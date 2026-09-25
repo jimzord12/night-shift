@@ -3,6 +3,6 @@
   "name": "Lighthouse (demo)",
   "accent": "#7C5CFF",
   "repo": "https://github.com/example/lighthouse",
-  "buffer": { "target": 15, "low": 5 },
+  "buffer": { "max": 20, "low": 5 },
   "board": { "type": "file", "path": "board.json", "readyLabel": "Night-ready", "doneLists": ["Done"] }
 }

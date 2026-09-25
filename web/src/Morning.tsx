@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { Outcome, Overview, QuestionEntry, Shift } from '../../src/types.ts';
-import { OUTCOME_STATUSES, isOpen } from '../../src/types.ts';
+import { OUTCOME_STATUSES, bufferZone, isOpen } from '../../src/types.ts';
 import { EvidenceView, MediaViewer } from './Evidence.tsx';
-import { FuelGauge, Icon, Pill, Ring, STATUS, shiftTitle, taskId } from './ui.tsx';
+import { Icon, Pill, Ring, STATUS, Tachometer, ZONE, shiftTitle, taskId } from './ui.tsx';
 
 interface Props {
   overview: Overview;
@@ -64,14 +64,10 @@ export function Morning({ overview, shift, questions, onOpenDeck, onShowQueue }:
           </div>
         </button>
 
-        {/* Buffer: the gauge large in the upper half, its words underneath. */}
+        {/* Buffer: the rev counter large in the upper half, its words underneath. */}
         <button onClick={onShowQueue} className="glass pop-in flex flex-col items-center justify-center gap-2 rounded-3xl p-6 text-center transition hover:bg-white/10" style={{ animationDelay: '120ms' }}>
-          <FuelGauge value={overview.queue.length} target={overview.buffer.target} low={overview.buffer.low} className="w-full max-w-sm" />
-          <div>
-            <div className="text-sm tracking-widest text-white/50 uppercase">Buffer</div>
-            <div className="font-display mt-1 text-xl font-semibold">{overview.queue.length} Night-ready</div>
-            <div className={`mt-1 text-sm ${overview.queue.length < overview.buffer.low ? 'font-semibold text-blocked' : 'text-white/60'}`}>{overview.queue.length < overview.buffer.low ? 'Low: time for a Day Shift' : `target ${overview.buffer.target}`}</div>
-          </div>
+          <Tachometer value={overview.queue.length} max={overview.buffer.max} low={overview.buffer.low} className="w-full max-w-sm" />
+          <BufferWords overview={overview} />
         </button>
       </section>
 
@@ -90,6 +86,24 @@ export function Morning({ overview, shift, questions, onOpenDeck, onShowQueue }:
       )}
 
       {open && <OutcomeDrawer outcome={open} questions={questions} onClose={() => setOpen(null)} onQuestion={(id) => { setOpen(null); onOpenDeck(id); }} />}
+    </div>
+  );
+}
+
+// What the tachometer counts, in plain words, then which zone it is in and what that means.
+export function BufferWords({ overview }: { overview: Overview }) {
+  const n = overview.queue.length;
+  const zone = ZONE[bufferZone(n, overview.buffer)];
+  const board = overview.project.board.type === 'trello' ? 'Trello cards' : 'Cards';
+  return (
+    <div className="text-center">
+      <div className="font-display text-xl font-semibold">{n} Night Shift task{n === 1 ? '' : 's'}</div>
+      <div className="mt-0.5 text-sm text-white/45">{board} marked {overview.project.board.readyLabel}, waiting for the next Night Shift</div>
+      <div className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold" style={{ color: zone.color, background: `color-mix(in srgb, ${zone.color} 14%, transparent)` }}>
+        <span className="size-2 rounded-full" style={{ background: zone.color, boxShadow: `0 0 8px ${zone.color}` }} />
+        {zone.label}
+      </div>
+      <div className="mt-1.5 text-sm text-white/55">{zone.hint}</div>
     </div>
   );
 }

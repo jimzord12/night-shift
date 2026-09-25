@@ -99,7 +99,7 @@ export async function buildShifts(project: Project, board: BoardAdapter, comment
 }
 
 export async function buildOverview(project: Project, board: BoardAdapter, version: string): Promise<Overview> {
-  const buffer = { target: project.buffer?.target ?? 15, low: project.buffer?.low ?? 5 };
+  const buffer = { max: project.buffer?.max ?? 20, low: project.buffer?.low ?? 5 };
   const overview: Overview = { version, project, buffer, queue: [], shifts: [], boardError: null, loadedAt: localIso(new Date()) };
   try {
     const [queue, comments] = await Promise.all([buildQueue(project, board), board.comments()]);

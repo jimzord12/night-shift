@@ -63,10 +63,19 @@ design card is `explore` until the owner has picked an option.
 
 ## 5. The buffer
 
-- Aim for 10 to 15 Night-ready cards. A night realistically clears 5 to 8
-  medium cards, so the buffer lasts two nights; the Day Shift is then not a
-  daily obligation.
-- Call a Day Shift when the buffer drops below 5.
+The buffer is read like an engine's rev counter, not a fuel tank: more is
+better only up to a point.
+
+| Zone | Share of the scale (`buffer.max`, default 20) | Meaning |
+|---|---|---|
+| Idle | below `buffer.low` (default 5) | too few cards for a night: call a Day Shift |
+| Warming up | up to 70% | room for more |
+| Sweet spot | 70% to 80% (14 to 16 cards by default) | aim here: two to three nights of work, still fresh |
+| Running hot | 80% to 90% | enough: finish before adding |
+| Redline | 90% and above | too much queued: decisions go stale before the nights reach them |
+
+- A night realistically clears 5 to 8 medium cards, so the sweet spot lasts
+  two to three nights; the Day Shift is then not a daily obligation.
 - The order of the buffer is the owner's: it is set in the Day Shift or by a
   `rank` question in the morning (section 8).
 
@@ -160,7 +169,7 @@ questions: 2026-09-25-night-03
 
 The owner runs `night-shift serve <project>` and sees, in this order: the
 last shift's outcomes as tiles (green shipped, amber needs-eyes, red
-blocked), the open questions as a deck, and the buffer with its fuel gauge.
+blocked), the open questions as a deck, and the buffer on its rev counter.
 Older shifts stay one click away. The review is meant to cost the owner
 little attention: visual first, one line of text per item, details on click.
 

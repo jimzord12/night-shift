@@ -42,6 +42,20 @@ export interface Question {
   resolved: Resolved | null;
 }
 
+// The queue as an engine's rev range. Too few cards and the nights idle; the sweet spot is 70-80%
+// of the scale; past 90% is the redline: more is queued than the nights clear before the plan
+// goes stale.
+export type Zone = 'idle' | 'warming' | 'sweet' | 'hot' | 'redline';
+
+export function bufferZone(count: number, buffer: { max: number; low: number }): Zone {
+  const f = count / buffer.max;
+  if (count < buffer.low) return 'idle';
+  if (f < 0.7) return 'warming';
+  if (f <= 0.8) return 'sweet';
+  if (f < 0.9) return 'hot';
+  return 'redline';
+}
+
 // A question still waits for the owner when it has no answer or was put off ("not now").
 export function isOpen(q: Question): boolean {
   return !q.resolved && (!q.answer || q.answer.status === 'deferred');
@@ -74,7 +88,7 @@ export interface Project {
   name: string;
   accent?: string;
   repo?: string;
-  buffer?: { target?: number; low?: number };
+  buffer?: { max?: number; low?: number };
   board: TrelloBoard | FileBoard;
 }
 
@@ -136,7 +150,7 @@ export interface Shift {
 export interface Overview {
   version: string;
   project: Project;
-  buffer: { target: number; low: number };
+  buffer: { max: number; low: number };
   queue: QueueCard[];
   shifts: Shift[];
   boardError: string | null;

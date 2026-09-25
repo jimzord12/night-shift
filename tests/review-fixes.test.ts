@@ -9,7 +9,7 @@ import { TrelloBoard } from '../src/board/trello.ts';
 import { parseOutcome } from '../src/parse.ts';
 import { createApp } from '../src/server.ts';
 import { listQuestions } from '../src/store.ts';
-import { isOpen } from '../src/types.ts';
+import { bufferZone, isOpen } from '../src/types.ts';
 import type { Question } from '../src/types.ts';
 
 const DEMO = path.resolve(import.meta.dirname, '..', 'examples', 'demo', '.night-shift');
@@ -79,6 +79,12 @@ test('questions: a UTF-8 byte-order mark does not make a file invalid', () => {
   fs.writeFileSync(file, `﻿${fs.readFileSync(file, 'utf8')}`);
   const entry = listQuestions(dir).find((e) => e.file === '2026-09-25-night-03.json')!;
   assert.deepEqual(entry.problems, []);
+});
+
+test('buffer zones: idle below low, sweet spot 70-80%, redline from 90%', () => {
+  const b = { max: 20, low: 5 };
+  const zones = [0, 4, 5, 13, 14, 16, 17, 18, 25].map((n) => `${n}:${bufferZone(n, b)}`);
+  assert.deepEqual(zones, ['0:idle', '4:idle', '5:warming', '13:warming', '14:sweet', '16:sweet', '17:hot', '18:redline', '25:redline']);
 });
 
 test('a deferred question is still open; a resolved one is not', () => {

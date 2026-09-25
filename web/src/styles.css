@@ -161,6 +161,11 @@ body {
   background: #23263f14;
 }
 
+@keyframes redline {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
 .pop-in {
   animation: pop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }

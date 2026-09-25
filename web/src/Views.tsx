@@ -1,7 +1,8 @@
 import type { Overview, QuestionEntry, QueueCard, Shift } from '../../src/types.ts';
 import { OUTCOME_STATUSES } from '../../src/types.ts';
 import { fileUrl } from './api.ts';
-import { FuelGauge, Icon, Pill, STATUS, shiftTitle, taskId } from './ui.tsx';
+import { BufferWords } from './Morning.tsx';
+import { Icon, Pill, STATUS, Tachometer, shiftTitle, taskId } from './ui.tsx';
 
 // ---------------------------------------------------------------- questions
 
@@ -80,14 +81,13 @@ export function QueueView({ overview }: { overview: Overview }) {
   return (
     <div className="space-y-6">
       <div className="glass flex flex-wrap items-center gap-6 rounded-3xl p-6">
-        <FuelGauge value={queue.length} target={buffer.target} low={buffer.low} className="w-64" />
-        <div>
-          <div className="font-display text-3xl font-semibold">{queue.length} Night-ready</div>
-          <div className="mt-1 text-white/60">
-            target {buffer.target} · a Day Shift is due below {buffer.low}
-            {queue.length < buffer.low && <span className="ml-2 font-semibold text-blocked">· due now</span>}
+        <Tachometer value={queue.length} max={buffer.max} low={buffer.low} className="w-72" />
+        <div className="flex-1">
+          <BufferWords overview={overview} />
+          <div className="mt-3 text-center text-xs text-white/45">
+            sweet spot {Math.ceil(buffer.max * 0.7)}–{Math.floor(buffer.max * 0.8)} cards · redline from {Math.ceil(buffer.max * 0.9)} · idle below {buffer.low}
           </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/60">
+          <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs text-white/60">
             <span className="inline-flex items-center gap-1"><Icon name="hammer" className="size-3.5" /> build: finished overnight</span>
             <span className="inline-flex items-center gap-1"><Icon name="compass" className="size-3.5" /> explore: options for the morning</span>
             <span className="inline-flex items-center gap-1"><Icon name="collide" className="size-3.5" /> same colour: never in parallel</span>

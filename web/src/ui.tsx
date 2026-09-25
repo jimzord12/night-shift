@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { OutcomeStatus } from '../../src/types.ts';
+import type { OutcomeStatus, Zone } from '../../src/types.ts';
+import { bufferZone } from '../../src/types.ts';
 
 const PATHS = {
   check: 'M5 12.5l4.5 4.5L19 7.5',
@@ -76,53 +77,74 @@ export function Ring({ done, total, size = 120, color = 'var(--accent)', childre
   );
 }
 
-// The buffer as a car's fuel gauge: how many Night-ready cards are queued against the target.
-// A segmented arc shading from red (empty) through amber to green (full), a tick per card with
-// numbers every five, a red flag at the "call a Day Shift" level, a glowing tapered needle, and
-// large E/F marks with a pump between them.
-export function FuelGauge({ value, target, low, className = 'w-44' }: { value: number; target: number; low: number; className?: string }) {
+export const ZONE: Record<Zone, { label: string; hint: string; color: string }> = {
+  idle: { label: 'Idle', hint: 'Too few cards for a night: time for a Day Shift', color: '#7dd3fc' },
+  warming: { label: 'Warming up', hint: 'Room for more cards', color: '#a3e635' },
+  sweet: { label: 'Sweet spot', hint: 'Enough for the next nights, nothing going stale', color: '#34d399' },
+  hot: { label: 'Running hot', hint: 'Enough for now: finish before adding', color: '#fbbf24' },
+  redline: { label: 'Redline', hint: 'Too much queued: the plan goes stale before the nights clear it', color: '#fb7185' },
+};
+
+// The queue as an engine's tachometer: how many Night-ready cards wait for the Night Shift. A 240°
+// dial with a band per zone (idle, warming up, the green sweet spot at 70-80%, running hot, and
+// the hatched redline from 90%), a tick per card, a glowing needle on a moon hub, and the count
+// in the middle. In the redline the needle and readout pulse.
+export function Tachometer({ value, max, low, className = 'w-64' }: { value: number; max: number; low: number; className?: string }) {
   const cx = 150;
-  const cy = 150;
+  const cy = 145;
   const r = 112;
-  const frac = Math.max(0, Math.min(value / target, 1));
+  const SWEEP = 240;
+  const START = 210; // degrees, counter-clockwise from the right, the dial's zero at lower left
+  const clamp = (t: number) => Math.max(0, Math.min(t, 1));
   const polar = (t: number, radius: number) => {
-    const a = Math.PI * (1 - t);
+    const a = ((START - SWEEP * clamp(t)) * Math.PI) / 180;
     return { x: cx + radius * Math.cos(a), y: cy - radius * Math.sin(a) };
   };
   const arc = (t0: number, t1: number, radius: number) => {
     const p0 = polar(t0, radius);
     const p1 = polar(t1, radius);
-    return `M ${p0.x} ${p0.y} A ${radius} ${radius} 0 0 1 ${p1.x} ${p1.y}`;
+    const large = (t1 - t0) * SWEEP > 180 ? 1 : 0;
+    return `M ${p0.x} ${p0.y} A ${radius} ${radius} 0 ${large} 1 ${p1.x} ${p1.y}`;
   };
-  const hue = (t: number) => `hsl(${(350 + 160 * t) % 360} 88% 62%)`;
-  const SEGMENTS = 30;
-  const gap = 0.006;
-  const segments = Array.from({ length: SEGMENTS }, (_, i) => {
-    const t0 = i / SEGMENTS + gap;
-    const t1 = (i + 1) / SEGMENTS - gap;
-    return { d: arc(t0, t1, r), color: hue((t0 + t1) / 2), lit: (i + 0.5) / SEGMENTS <= frac };
+  const zone = bufferZone(value, { max, low });
+  const lowT = clamp(low / max);
+  const bands: { from: number; to: number; z: Zone }[] = [
+    { from: 0, to: lowT, z: 'idle' },
+    { from: lowT, to: 0.7, z: 'warming' },
+    { from: 0.7, to: 0.8, z: 'sweet' },
+    { from: 0.8, to: 0.9, z: 'hot' },
+    { from: 0.9, to: 1, z: 'redline' },
+  ].filter((b) => b.to > b.from) as { from: number; to: number; z: Zone }[];
+  const step = max <= 12 ? 2 : 5;
+  const ticks = Array.from({ length: max + 1 }, (_, i) => {
+    const t = i / max;
+    const major = i % step === 0 || i === max;
+    return { i, t, major, a: polar(t, r - 16), b: polar(t, r - (major ? 30 : 23)), label: polar(t, r - 44) };
   });
-  const ticks = Array.from({ length: target + 1 }, (_, i) => {
-    const t = i / target;
-    const major = i % 5 === 0 || i === target;
-    const a = polar(t, r - 16);
-    const b = polar(t, r - (major ? 30 : 23));
-    const label = polar(t, r - 44);
-    return { i, a, b, major, label };
-  });
-  const lowFlag = polar(Math.min(low / target, 1), r + 14);
-  const tip = polar(frac, r - 20);
-  const base = (dt: number) => polar(frac + dt, 9);
-  const needleColor = hue(frac);
+  const frac = clamp(value / max);
+  const tip = polar(frac, r - 18);
+  const base = (dt: number) => polar(frac + dt, 10);
+  const color = ZONE[zone].color;
+  const hot = zone === 'redline';
+  const idleLabel = polar(0, r + 2);
+  const redLabel = polar(1, r + 2);
   return (
-    <svg viewBox="0 0 300 212"className={className} role="img" aria-label={`${value} of ${target} cards ready`}>
+    <svg viewBox="0 0 300 276" className={className} role="img" aria-label={`${value} cards: ${ZONE[zone].label}`}>
       <defs>
-        <radialGradient id="hub" cx="40%" cy="35%" r="70%">
+        <radialGradient id="tacho-hub" cx="40%" cy="35%" r="70%">
           <stop offset="0%" stopColor="#fffef8" />
           <stop offset="60%" stopColor="#d9d2bb" />
           <stop offset="100%" stopColor="#8f8871" />
         </radialGradient>
-        <filter id="needle-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <radialGradient id="tacho-face" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stopColor="#ffffff0d" />
+          <stop offset="100%" stopColor="#ffffff00" />
+        </radialGradient>
+        <pattern id="tacho-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="6" height="6" fill="#fb7185" />
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#7f1d2d" strokeWidth="3" />
+        </pattern>
+        <filter id="tacho-glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="3" result="b" />
           <feMerge>
             <feMergeNode in="b" />
@@ -131,42 +153,45 @@ export function FuelGauge({ value, target, low, className = 'w-44' }: { value: n
         </filter>
       </defs>
 
-      {/* the dial face */}
-      <path d={`${arc(0, 1, r + 8)} L ${cx + r - 40} ${cy} A ${r - 40} ${r - 40} 0 0 0 ${cx - r + 40} ${cy} Z`} fill="#ffffff05" />
+      <circle cx={cx} cy={cy} r={r + 12} fill="url(#tacho-face)" stroke="#ffffff12" strokeWidth={1.5} />
 
-      {segments.map((s, i) => (
-        <path key={i} d={s.d} stroke={s.lit ? s.color : '#ffffff14'} strokeWidth={14} fill="none" style={s.lit ? { filter: `drop-shadow(0 0 4px ${s.color})` } : undefined} />
-      ))}
+      {bands.map((b) => {
+        const lit = b.z === zone;
+        return (
+          <path
+            key={b.z}
+            d={arc(b.from, b.to, r)}
+            stroke={b.z === 'redline' ? 'url(#tacho-hatch)' : ZONE[b.z].color}
+            strokeWidth={lit ? 15 : 11}
+            fill="none"
+            opacity={lit ? 1 : 0.38}
+            style={lit ? { filter: `drop-shadow(0 0 7px ${ZONE[b.z].color})` } : undefined}
+          />
+        );
+      })}
 
       {ticks.map((t) => (
-        <line key={t.i} x1={t.a.x} y1={t.a.y} x2={t.b.x} y2={t.b.y} stroke={t.major ? '#ffffffb0' : '#ffffff45'} strokeWidth={t.major ? 2.4 : 1.2} strokeLinecap="round" />
+        <line key={t.i} x1={t.a.x} y1={t.a.y} x2={t.b.x} y2={t.b.y} stroke={t.t >= 0.9 ? '#fb7185' : t.major ? '#ffffffc0' : '#ffffff45'} strokeWidth={t.major ? 2.4 : 1.2} strokeLinecap="round" />
       ))}
-      {ticks.filter((t) => t.major && t.i !== 0 && t.i !== target).map((t) => (
-        <text key={`l${t.i}`} x={t.label.x} y={t.label.y + 4} fontSize={12} fill="#ffffff80" textAnchor="middle" fontWeight={600}>{t.i}</text>
+      {ticks.filter((t) => t.major).map((t) => (
+        <text key={`l${t.i}`} x={t.label.x} y={t.label.y + 4.5} fontSize={13} fontWeight={700} textAnchor="middle" fill={t.t >= 0.9 ? '#fb7185' : '#ffffffa0'}>{t.i}</text>
       ))}
 
-      {/* the "call a Day Shift" flag */}
-      <circle cx={lowFlag.x} cy={lowFlag.y} r={4.5} fill="var(--color-blocked)" style={{ filter: 'drop-shadow(0 0 4px var(--color-blocked))' }} />
+      <text x={idleLabel.x + 4} y={idleLabel.y + 26} fontSize={11} fontWeight={700} letterSpacing={1.5} textAnchor="middle" fill="#7dd3fc">IDLE</text>
+      <text x={redLabel.x - 8} y={redLabel.y + 26} fontSize={11} fontWeight={700} letterSpacing={1.5} textAnchor="middle" fill="#fb7185">REDLINE</text>
 
-      {/* E and F, with a pump between them */}
-      <text x={cx - r + 6} y={cy + 30} fontSize={26} fontWeight={800} fill="var(--color-blocked)" textAnchor="middle" style={{ filter: 'drop-shadow(0 0 6px #fb718566)' }}>E</text>
-      <text x={cx + r - 6} y={cy + 30} fontSize={26} fontWeight={800} fill="var(--color-shipped)" textAnchor="middle" style={{ filter: 'drop-shadow(0 0 6px #34d39966)' }}>F</text>
-      <g transform={`translate(${cx - 11} ${cy - 62})`} fill="none" stroke="#ffffff70" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x={2} y={4} width={12} height={17} rx={2} />
-        <line x1={4.5} y1={9} x2={11.5} y2={9} />
-        <path d="M14 8 h3 a2 2 0 0 1 2 2 v7 a1.5 1.5 0 0 0 3 0 V8 l-3 -3" />
-      </g>
+      {/* readout: the count, and what the scale means */}
+      <text x={cx} y={cy + 52} fontSize={34} fontWeight={800} textAnchor="middle" fill="#fff" style={hot ? { animation: 'redline 0.9s ease-in-out infinite' } : undefined}>{value}</text>
+      <text x={cx} y={cy + 70} fontSize={10} letterSpacing={2} textAnchor="middle" fill="#ffffff70">CARDS QUEUED</text>
 
-      {/* the needle */}
-      <polygon points={`${base(0.5).x},${base(0.5).y} ${tip.x},${tip.y} ${base(-0.5).x},${base(-0.5).y}`} fill={needleColor} filter="url(#needle-glow)" style={{ transition: 'all .8s cubic-bezier(.2,.9,.3,1.2)' }} />
-      <circle cx={cx} cy={cy} r={13} fill="url(#hub)" stroke="#00000055" strokeWidth={1} />
-      <circle cx={cx} cy={cy} r={4} fill={needleColor} />
-
-      {/* readout, below the hub where the needle never goes */}
-      <text x={cx} y={cy + 50} fontSize={28} fontWeight={800} fill="#fff" textAnchor="middle">
-        {value}
-        <tspan fontSize={15} fontWeight={600} fill="#ffffff70"> / {target}</tspan>
-      </text>
+      <polygon
+        points={`${base(0.5).x},${base(0.5).y} ${tip.x},${tip.y} ${base(-0.5).x},${base(-0.5).y}`}
+        fill={color}
+        filter="url(#tacho-glow)"
+        style={{ transition: 'all .9s cubic-bezier(.2,.9,.3,1.25)', animation: hot ? 'redline 0.9s ease-in-out infinite' : undefined }}
+      />
+      <circle cx={cx} cy={cy} r={14} fill="url(#tacho-hub)" stroke="#00000055" strokeWidth={1} />
+      <circle cx={cx} cy={cy} r={4.5} fill={color} />
     </svg>
   );
 }

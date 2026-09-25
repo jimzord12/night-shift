@@ -19,7 +19,7 @@ project's `.night-shift/` folder. Validate with `night-shift check <project>`.
   "name": "Lighthouse",
   "accent": "#7C5CFF",
   "repo": "https://github.com/example/lighthouse",
-  "buffer": { "target": 15, "low": 5 },
+  "buffer": { "max": 20, "low": 5 },
   "board": { "type": "trello", "id": "abc123XY", "readyLabel": "Night-ready", "doneLists": ["Done"] }
 }
 ```

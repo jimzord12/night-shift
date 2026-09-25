@@ -6,12 +6,12 @@ A working protocol for one owner and a team of AI agents, plus the small local
 app that makes the morning review take minutes instead of an hour of reading.
 
 - **Day Shift**: owner and lead agent decide and design; the output is a buffer
-  of 10 to 15 cards that are *Night-ready*: nothing left to decide.
+  of cards that are *Night-ready*: nothing left to decide.
 - **Night Shift**: agents build those cards unattended, and raise a question
   instead of guessing when something is not decided.
 - **Morning Review**: the owner opens the app: what shipped (renders,
-  before/after sliders), the night's questions as a clickable deck, and how
-  full the buffer still is.
+  before/after sliders), the night's questions as a clickable deck, and a
+  rev counter showing whether the queue sits in its sweet spot.
 
 The protocol is project-neutral. A project plugs in its own board, test
 command and review rules through a short *binding*.
