@@ -11,6 +11,8 @@ project-neutral: nothing here names a particular project, board or client.
 | `docs/protocol.md` | The protocol. Printed by `night-shift docs protocol` |
 | `docs/contract.md`, `schemas/*.schema.json` | What agents write and the app reads |
 | `docs/binding.md` | Template a project fills to adopt the protocol |
+| `docs/practices/` | Default working practices a binding adopts or overrides; project-neutral, examples use the demo project |
+| `templates/` | Copy-ready files for adopting projects: cards, glossary, bypass log, owner file, reviewer agents |
 | `src/cli.ts` | `night-shift serve / check / docs / --version` |
 | `src/server.ts` | Hono app: JSON API plus the built web app |
 | `src/store.ts` | `.night-shift/` folder: project, questions, answer writes (hash guard) |

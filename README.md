@@ -21,6 +21,11 @@ command and review rules through a short *binding*.
 | [docs/protocol.md](docs/protocol.md) | The protocol: roles, the cycle, the Night-ready contract, night rules |
 | [docs/contract.md](docs/contract.md) | Exactly what agents write: `project.json`, question files, the card header, the outcome comment |
 | [docs/binding.md](docs/binding.md) | How a project adopts it |
+| [docs/practices/](docs/practices/README.md) | Default working practices: task flow, handoff, review gate, evidence, Git, glossary, proposals, board discipline |
+| [templates/](templates/) | Copy-ready task card, handoff card, glossary, bypass log, owner file and reviewer agents |
+
+`night-shift docs` prints only the protocol, contract and binding; read the
+practices and templates from this repository or on GitHub.
 
 ## Install
 

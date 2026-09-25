@@ -20,6 +20,7 @@ Follows the Night Shift Protocol <vN>.
 | Where evidence may go | <what may be uploaded to the board, what never> |
 | End-of-night notification | <how the owner is told the night is over> |
 | Worktrees | <where parallel builders work> |
+| Practices overridden | <none, or each Night Shift practice replaced and the project doc that replaces it> |
 ```
 
 Then create `<project>/.night-shift/project.json` (see

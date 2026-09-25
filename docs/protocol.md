@@ -77,7 +77,10 @@ design card is `explore` until the owner has picked an option.
 2. Run in parallel only cards whose Touches do not overlap, each in its own
    worktree or branch.
 3. Follow the project's own development and review rules to the letter. The
-   night changes who is watching, not the quality bar.
+   night changes who is watching, not the quality bar. Those rules are the
+   Night Shift practices
+   (<https://github.com/jimzord12/night-shift/tree/main/docs/practices>)
+   unless the binding overrides one.
 4. **Never guess a decision.** When the card does not answer something the
    work depends on: write a question (section 8), mark the card blocked,
    and move to the next card.
@@ -176,8 +179,17 @@ A project adopts the protocol by filling these slots in its own docs and in
 | Owner-reserved actions | the project's list of what agents never do |
 | Where evidence may go | screenshots of test data only |
 | Notification at the end of a night | a push message |
+| Practices overridden | none, or `review` replaced by the project's `docs/review.md` |
 
 `night-shift docs binding` prints a template.
+
+The protocol ships default working practices (task flow, orientation and
+handoff, the review gate, evidence, Git, glossary, proposals, board
+discipline) with copy-ready templates:
+<https://github.com/jimzord12/night-shift/tree/main/docs/practices>. The
+copy that matches an installed release lives under its tag, for example
+`https://github.com/jimzord12/night-shift/tree/v1/docs/practices`. A
+binding adopts them as they are or names the ones it overrides.
 
 ## 12. Changing the protocol
 
