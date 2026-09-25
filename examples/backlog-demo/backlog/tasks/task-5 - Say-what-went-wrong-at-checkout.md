@@ -4,8 +4,9 @@ title: Say what went wrong at checkout
 status: Done
 assignee: []
 created_date: '2026-09-25 18:02'
-updated_date: '2026-09-25 18:02'
-labels: []
+updated_date: '2026-09-25 18:17'
+labels:
+  - night-ready
 dependencies: []
 ordinal: 5000
 ---

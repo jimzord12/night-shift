@@ -148,7 +148,7 @@ export class BacklogBoard implements BoardAdapter {
     const dir = path.resolve(this.attachmentDir(cardId));
     const file = path.resolve(dir, attachmentId);
     if (!insideDir(dir, file) || path.dirname(file) !== dir) throw new BoardError(`attachment ${attachmentId} leaves the attachments folder`);
-    if (!fs.existsSync(file)) throw new BoardError(`card ${cardId} has no attachment ${attachmentId}`);
+    if (!fs.statSync(file, { throwIfNoEntry: false })?.isFile()) throw new BoardError(`card ${cardId} has no attachment ${attachmentId}`);
     const body = fs.readFileSync(file);
     return { body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength) as ArrayBuffer, contentType: contentType(file) };
   }

@@ -201,5 +201,5 @@ evidence: image after.png | The export button" --comment-author "@builder"
 
 Backlog.md stamps comments to the minute, so within one task a comment
 further down the file counts as newer; a corrected Outcome for the same
-shift is simply posted again. An Outcome body must not contain a line
-holding only `---`: Backlog.md uses that line to end a comment.
+shift is simply posted again. Backlog.md refuses a comment with a line
+holding only `---` (it ends a comment), so an Outcome never uses one.

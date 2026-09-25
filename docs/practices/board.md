@@ -28,6 +28,9 @@ a lost or duplicated write costs the owner's attention.
 - Outcome evidence is copied into `.night-shift/attachments/<task id>/`;
   the owner opens it through the app. For evidence that must also open on a
   phone, commit it next to the work or link the CI run.
+- Do not run `backlog cleanup` before the Morning Review: it moves Done
+  tasks to `completed/`, which the app does not read, so their Outcomes
+  disappear from the review.
 - Keep the tool's automatic commits and remote operations off
   (`auto_commit: false`, `remote_operations: false` in `config.yml`): the
   agent commits task changes with the work they describe.

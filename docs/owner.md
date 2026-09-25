@@ -7,7 +7,8 @@ session in this repository. It is this repository's filled copy of
 
 Also read every file in `.local/preferences/` (git-ignored) when it exists:
 the owner's personal profile. What the owner says in the session wins, then
-that profile, then this file ([practices/local-folder.md](practices/local-folder.md)).
+that profile, then this file on how to talk; who decides
+what stays in this file ([practices/local-folder.md](practices/local-folder.md)).
 
 ## Who the owner is
 

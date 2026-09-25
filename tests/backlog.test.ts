@@ -29,7 +29,9 @@ async function overview(a = app()): Promise<Overview> {
 test('backlog: queue holds labelled open tasks in status, ordinal order, with collisions', async () => {
   const o = await overview();
   assert.equal(o.boardError, null);
-  assert.deepEqual(o.queue.map((c) => c.id), ['TASK-1', 'TASK-3', 'TASK-2']);
+  // TASK-7 has the lowest ordinal but its status comes later in config.yml; TASK-5 is labelled but Done.
+  assert.deepEqual(o.queue.map((c) => c.id), ['TASK-1', 'TASK-3', 'TASK-2', 'TASK-7']);
+  assert.equal(o.queue[3].list, 'In Progress');
   assert.equal(o.queue[0].name, 'TASK-1: Filter the catalogue by colour and size');
   assert.equal(o.queue[0].list, 'To Do');
   assert.deepEqual(o.queue[0].header, { kind: 'build', size: 'M', touches: ['src/search', 'tests/search'], problems: [] });
@@ -65,6 +67,14 @@ test('backlog: attachments are served from .night-shift/attachments/<task>; noth
   }
 });
 
+test('backlog: an attachment id that names a folder is a board error, not a crash', async () => {
+  const root = copy();
+  fs.mkdirSync(path.join(root, '.night-shift', 'attachments', 'TASK-5', 'sub'));
+  const res = await app(root).request('/api/attachment/TASK-5/sub');
+  assert.equal(res.status, 502);
+  assert.match(((await res.json()) as { error: string }).error, /has no attachment sub/);
+});
+
 test('backlog: a missing evidence file is reported on the outcome', async () => {
   const root = copy();
   fs.rmSync(path.join(root, '.night-shift', 'attachments', 'TASK-5', 'checkout-before.svg'));
@@ -94,5 +104,5 @@ test('backlog: board.path defaults to ../backlog', async () => {
   fs.writeFileSync(file, JSON.stringify(project));
   const o = await overview(app(root));
   assert.equal(o.boardError, null);
-  assert.equal(o.queue.length, 3);
+  assert.equal(o.queue.length, 4);
 });

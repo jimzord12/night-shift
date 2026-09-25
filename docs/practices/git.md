@@ -78,6 +78,9 @@ commits), tag the old tip locally and say so in the report:
 git tag backup/feat-search-20260925-2310 feat/search   # then reset, rebase or delete
 ```
 
+The name is `backup/<branch>-<yyyymmdd-hhmm>`, with any `/` in the branch
+name written as `-`.
+
 - Merged is checked, not assumed: `git merge-base --is-ancestor <branch> main`.
 - Backup tags stay local (never pushed) and are pruned after 30 days.
 - Uncommitted work is stashed with a message before a reset or a branch
