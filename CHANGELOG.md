@@ -3,7 +3,7 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
-## v6, 2026-09-25
+## v6 (83f4694), 2026-09-25
 
 - A Backlog.md board: `board.type: "backlog"` reads a project's `backlog/`
   folder; tasks are cards, statuses the lists, task comments carry
