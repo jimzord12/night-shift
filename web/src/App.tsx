@@ -4,6 +4,7 @@ import type { Overview, QuestionEntry } from '../../src/types.ts';
 import { isOpen } from '../../src/types.ts';
 import { getOverview, getQuestions } from './api.ts';
 import { Morning } from './Morning.tsx';
+import { Starfield } from './Starfield.tsx';
 import { QuestionDeck } from './QuestionDeck.tsx';
 import { HistoryView, QueueView, QuestionsView } from './Views.tsx';
 import { Icon, shiftTitle } from './ui.tsx';
@@ -57,7 +58,7 @@ export function App() {
 
   return (
     <div className="sky min-h-screen">
-      <div className="stars pointer-events-none fixed inset-0" />
+      <Starfield />
       <div className="relative mx-auto max-w-7xl px-4 pb-16 sm:px-6">
         <header className="flex flex-wrap items-center gap-4 py-5">
           <div className="flex items-center gap-3">
@@ -73,7 +74,7 @@ export function App() {
             {VIEWS.map((v) => (
               <button key={v.id} onClick={() => setView(v.id)} className={`relative rounded-full px-4 py-1.5 text-sm transition ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
                 {v.label}
-                {v.id === 'questions' && openCount > 0 && <span className="ml-1.5 rounded-full bg-eyes px-1.5 text-[11px] font-bold text-night-950">{openCount}</span>}
+                {v.id === 'questions' && openCount > 0 && <span className="ml-1.5 rounded-full bg-eyes px-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
               </button>
             ))}
           </nav>

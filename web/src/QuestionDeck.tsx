@@ -4,6 +4,7 @@ import type { Question, QuestionEntry } from '../../src/types.ts';
 import { isOpen } from '../../src/types.ts';
 import { ApiError, fileUrl, postAnswer } from './api.ts';
 import { Lightbox } from './Evidence.tsx';
+import { Starfield } from './Starfield.tsx';
 import { Icon } from './ui.tsx';
 
 interface Draft {
@@ -179,7 +180,7 @@ export function QuestionDeck({ entries, startId, onClose, onSaved, onConflict }:
 
   return (
     <div className="sky fixed inset-0 z-40 overflow-y-auto">
-      <div className="stars pointer-events-none fixed inset-0" />
+      <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 py-6">
         <header className="flex items-center gap-4">
           <div className="flex flex-1 flex-wrap gap-1.5">
@@ -268,12 +269,12 @@ export function QuestionDeck({ entries, startId, onClose, onSaved, onConflict }:
             {message && <div className="mt-4 rounded-xl bg-blocked/15 px-4 py-2 text-sm text-blocked">{message}</div>}
 
             <footer className="mt-auto flex items-center gap-2 pt-8">
-              <button onClick={() => go(index - 1)} disabled={index === 0} className="rounded-full p-3 hover:bg-white/10 disabled:opacity-30" aria-label="Previous"><Icon name="left" className="size-5" /></button>
-              <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="rounded-full p-3 hover:bg-white/10 disabled:opacity-30" aria-label="Next"><Icon name="right" className="size-5" /></button>
+              <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
+              <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
               <div className="flex-1" />
               {!locked && (
                 <>
-                  <button onClick={() => save('deferred')} disabled={busy} className="rounded-full px-4 py-2.5 text-sm text-white/70 hover:bg-white/10">Not now <kbd>D</kbd></button>
+                  <button onClick={() => save('deferred')} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold">Not now <kbd>D</kbd></button>
                   <button onClick={() => save('answered')} disabled={busy} className="rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
                     {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 !border-white/40">Enter</kbd>
                   </button>
@@ -297,7 +298,7 @@ function AnswerInput({ q, draft, setDraft, onZoom }: { q: Question; draft: Draft
           const on = draft.value[0] === v;
           const color = v === 'yes' ? 'var(--color-shipped)' : 'var(--color-blocked)';
           return (
-            <button key={v} onClick={() => setDraft({ ...draft, value: [v] })} className="relative rounded-3xl border-2 py-10 text-3xl font-bold transition hover:scale-[1.02]" style={{ borderColor: on ? color : '#ffffff1a', background: on ? `color-mix(in srgb, ${color} 18%, transparent)` : '#ffffff08', color: on ? color : '#ffffffb0', boxShadow: on ? `0 0 40px -10px ${color}` : undefined }}>
+            <button key={v} onClick={() => setDraft({ ...draft, value: [v] })} className="relative rounded-3xl border-2 py-10 text-3xl font-bold transition hover:scale-[1.02]" style={{ borderColor: on ? color : '#ffffff1a', background: on ? `color-mix(in srgb, ${color} 18%, var(--color-night-900))` : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)', color: on ? color : '#ffffffb0', boxShadow: on ? `0 0 40px -10px ${color}` : undefined }}>
               {v === 'yes' ? 'Yes' : 'No'}
               <span className="absolute right-3 bottom-2 text-xs font-normal text-white/40"><kbd>{i + 1}</kbd> <kbd>{v === 'yes' ? 'Y' : 'N'}</kbd></span>
               {rec.has(v) && <Icon name="sparkle" className="absolute top-3 right-3 size-4 text-moon" />}
@@ -332,7 +333,7 @@ function AnswerInput({ q, draft, setDraft, onZoom }: { q: Question; draft: Draft
                 {on && <span className="absolute right-2 bottom-16 grid size-8 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"><Icon name="check" className="size-5" strokeWidth={3} /></span>}
               </button>
             ) : (
-              <button key={o.id} onClick={() => toggle(o.id)} className="flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition hover:bg-white/5" style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : undefined }}>
+              <button key={o.id} onClick={() => toggle(o.id)} className="flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition hover:bg-white/5" style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)' }}>
                 <span className={`grid size-7 shrink-0 place-items-center ${q.kind === 'one' ? 'rounded-full' : 'rounded-lg'} border-2`} style={{ borderColor: on ? 'var(--accent)' : '#ffffff30', background: on ? 'var(--accent)' : undefined }}>
                   {on && <Icon name="check" className="size-4" strokeWidth={3} />}
                 </span>
@@ -351,7 +352,7 @@ function AnswerInput({ q, draft, setDraft, onZoom }: { q: Question; draft: Draft
   }
   if (q.kind === 'rank') return <RankInput q={q} draft={draft} setDraft={setDraft} />;
   return (
-    <textarea value={draft.value[0] ?? ''} onChange={(e) => setDraft({ ...draft, value: [e.target.value] })} rows={3} className="w-full rounded-2xl border-2 border-white/10 bg-white/5 px-4 py-3 text-xl outline-none focus:border-[var(--accent)]" placeholder="Your answer" />
+    <textarea value={draft.value[0] ?? ''} onChange={(e) => setDraft({ ...draft, value: [e.target.value] })} rows={3} className="w-full rounded-2xl border-2 border-white/10 bg-night-800/95 px-4 py-3 text-xl outline-none focus:border-[var(--accent)]" placeholder="Your answer" />
   );
 }
 
@@ -377,7 +378,7 @@ function RankInput({ q, draft, setDraft }: { q: Question; draft: Draft; setDraft
             e.preventDefault();
             if (dragging && dragging !== oid) move(draft.value.indexOf(dragging), i);
           }}
-          className="flex cursor-grab items-center gap-3 rounded-2xl border-2 bg-white/5 px-3 py-3 transition active:cursor-grabbing"
+          className="flex cursor-grab items-center gap-3 rounded-2xl border-2 bg-night-800/95 px-3 py-3 transition active:cursor-grabbing"
           style={{ borderColor: dragging === oid ? 'var(--accent)' : '#ffffff14', opacity: dragging === oid ? 0.6 : 1 }}
         >
           <Icon name="grip" className="size-5 text-white/40" strokeWidth={3} />

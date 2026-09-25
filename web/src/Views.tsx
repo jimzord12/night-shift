@@ -32,7 +32,7 @@ export function QuestionsView({ entries, onOpen }: { entries: QuestionEntry[]; o
               const q = e.question;
               const thumb = q?.options?.find((o) => o.image)?.image ?? q?.images?.[0];
               return (
-                <button key={e.file} disabled={!q} onClick={() => q && onOpen(q.id)} className="glass glow pop-in flex gap-3 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 disabled:cursor-default" style={{ ['--glow' as string]: st.color, animationDelay: `${i * 40}ms` }}>
+                <button key={e.file} disabled={!q} onClick={() => q && onOpen(q.id)} className="glass glow-soft pop-in flex gap-3 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 disabled:cursor-default" style={{ ['--glow' as string]: st.color, animationDelay: `${i * 40}ms` }}>
                   {thumb && <img src={fileUrl(thumb)} alt="" className="size-16 shrink-0 rounded-xl bg-white object-cover" />}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 text-xs">

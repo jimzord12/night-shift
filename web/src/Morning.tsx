@@ -20,8 +20,8 @@ export function Morning({ overview, shift, questions, onOpenDeck, onShowQueue }:
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr_1fr]">
-        <div className="glass pop-in rounded-3xl p-6">
+      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="glass pop-in rounded-3xl p-6 md:col-span-2 2xl:col-span-1">
           <div className="text-sm tracking-widest text-white/50 uppercase">{shift ? (shift.kind === 'night' ? 'Last night' : 'Last shift') : 'No shifts yet'}</div>
           <h1 className="font-display mt-1 text-3xl font-semibold">{shift ? shiftTitle(shift.id) : 'Nothing has run yet'}</h1>
           <div className="mt-5 flex flex-wrap gap-3">
@@ -43,15 +43,18 @@ export function Morning({ overview, shift, questions, onOpenDeck, onShowQueue }:
           <Ring done={answered} total={valid.length}>
             <div>
               <div className="text-2xl font-bold">{openCount}</div>
-              <div className="text-[11px] text-white/60">open</div>
+              <div className="text-[13px] text-white/60">open</div>
             </div>
           </Ring>
           <div>
             <div className="text-sm tracking-widest text-white/50 uppercase">Questions</div>
             <div className="font-display mt-1 text-xl font-semibold">{openCount ? `${openCount} waiting for you` : 'All clear'}</div>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm font-semibold text-white shadow-lg transition group-hover:translate-x-1">
-              {openCount ? 'Start answering' : 'Review answers'} <Icon name="right" className="size-4" />
-            </div>
+            <span className="cta mt-4 inline-flex items-center gap-2 text-base">
+              <span className="cta-shine" />
+              <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
+              {openCount ? 'Start answering' : 'Review answers'}
+              <Icon name="right" className="size-5" strokeWidth={2.6} />
+            </span>
           </div>
         </button>
 
@@ -112,7 +115,7 @@ function OutcomeTile({ outcome: o, delay, onOpen }: { outcome: Outcome; delay: n
           <div className="font-mono text-sm font-semibold" style={{ color: s.color }}>{id}</div>
           {rest && <div className="text-xs text-white/50">{rest}</div>}
         </div>
-        <p className="text-[15px] leading-snug text-white/90">{o.line}</p>
+        <p className="text-[18px] leading-snug text-white/90">{o.line}</p>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
           {o.review && <Pill><Icon name="check" className="size-3" /> {o.review}</Pill>}
           {o.commits.length > 0 && <Pill><Icon name="commit" className="size-3" /> {o.commits.length}</Pill>}

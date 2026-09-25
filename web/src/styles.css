@@ -13,6 +13,16 @@
   --color-skipped: #94a3b8;
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+
+  /* Every text size 20% above Tailwind's defaults (owner, 2026-09-25). */
+  --text-xs: 0.9rem;
+  --text-sm: 1.05rem;
+  --text-base: 1.2rem;
+  --text-lg: 1.35rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.8rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 2.7rem;
 }
 
 :root {
@@ -23,42 +33,132 @@
 html,
 body {
   background: var(--color-night-950);
-  color: #e7e8f5;
+  color: #eceef9;
   font-family: var(--font-sans);
+  font-size: 1.2rem;
   -webkit-font-smoothing: antialiased;
 }
 
-/* The sky: a slow gradient and a scatter of stars behind everything. */
+/* The sky: a slow gradient behind the star canvas. */
 .sky {
   background:
     radial-gradient(1200px 600px at 85% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%),
     radial-gradient(900px 500px at 0% 0%, #1b1f4a 0%, transparent 70%),
+    radial-gradient(700px 400px at 50% 120%, #1a1440 0%, transparent 70%),
     linear-gradient(180deg, #0b0d24 0%, #07081a 60%);
-}
-.stars {
-  background-image:
-    radial-gradient(1px 1px at 20% 30%, #fff8 50%, transparent 51%),
-    radial-gradient(1px 1px at 70% 20%, #fff6 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 40% 70%, #fff5 50%, transparent 51%),
-    radial-gradient(1px 1px at 85% 60%, #fff7 50%, transparent 51%),
-    radial-gradient(1px 1px at 10% 85%, #fff5 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 60% 45%, #fff4 50%, transparent 51%);
-  background-size: 600px 400px;
-  animation: twinkle 8s ease-in-out infinite alternate;
-}
-@keyframes twinkle {
-  from { opacity: 0.55; }
-  to { opacity: 1; }
+  background-attachment: fixed;
 }
 
+/* Cards: lighter than the sky, a clear edge and a faint top highlight, so they stand out. */
 .glass {
-  background: color-mix(in srgb, var(--color-night-800) 72%, transparent);
-  border: 1px solid color-mix(in srgb, white 9%, transparent);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-night-700) 88%, transparent), color-mix(in srgb, var(--color-night-800) 90%, transparent));
+  border: 1px solid color-mix(in srgb, white 15%, transparent);
+  box-shadow: inset 0 1px 0 #ffffff1c, 0 12px 40px -18px #000c;
+  backdrop-filter: blur(14px);
 }
 
 .glow {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--glow) 45%, transparent), 0 10px 40px -12px var(--glow);
+  box-shadow: inset 0 1px 0 #ffffff1c, 0 0 0 1px color-mix(in srgb, var(--glow) 45%, transparent), 0 10px 40px -12px var(--glow);
+}
+
+/* The question cards glow 20% softer (owner, 2026-09-25). */
+.glow-soft {
+  box-shadow: inset 0 1px 0 #ffffff1c, 0 0 0 1px color-mix(in srgb, var(--glow) 36%, transparent), 0 10px 40px -12px color-mix(in srgb, var(--glow) 80%, transparent);
+}
+
+/* The call to action: a moonlit ring that turns slowly, a filled core, a shine that sweeps
+   across every few seconds and a halo that breathes. */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 0.7em 1.5em;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+  animation: breathe 3.2s ease-in-out infinite;
+  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(from var(--angle), var(--color-moon), var(--accent), #ffffff, var(--accent), var(--color-moon));
+  animation: turn 4s linear infinite;
+  z-index: -2;
+}
+.cta::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 140% at 20% 0%, color-mix(in srgb, var(--color-moon) 35%, transparent), transparent 55%),
+    linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #1b1f4a));
+  z-index: -1;
+}
+.cta-shine {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, #ffffff55 48%, transparent 60%);
+  transform: translateX(-120%);
+  animation: shine 3.6s ease-in-out infinite;
+}
+.cta:hover,
+.group:hover .cta {
+  transform: translateY(-2px) scale(1.04);
+}
+@keyframes turn {
+  to { --angle: 360deg; }
+}
+@keyframes shine {
+  0%, 55% { transform: translateX(-120%); }
+  85%, 100% { transform: translateX(120%); }
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent), 0 8px 30px -10px var(--accent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-moon) 14%, transparent), 0 10px 40px -8px var(--accent); }
+}
+
+/* Secondary buttons as little moons: a pale disc lit from the upper left, faint craters, a soft
+   glow (owner, 2026-09-25). Round for icons; the same surface as a pill for "Not now". */
+.moon-btn {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9999px;
+  color: #23263f;
+  background:
+    radial-gradient(circle at 68% 64%, #0000000f 0 9%, transparent 10%),
+    radial-gradient(circle at 30% 70%, #0000000c 0 6%, transparent 7%),
+    radial-gradient(circle at 60% 28%, #0000000a 0 5%, transparent 6%),
+    radial-gradient(circle at 32% 28%, #fffef8 0%, #f3edd8 38%, #d6cfb6 72%, #b3ab93 100%);
+  box-shadow: 0 0 22px -4px #f5d76e55, inset -3px -4px 10px #00000026, inset 2px 2px 6px #ffffffb0;
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.3), box-shadow 0.2s, filter 0.2s;
+}
+.moon-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 0 34px -2px #f5d76e88, inset -3px -4px 10px #00000026, inset 2px 2px 6px #ffffffb0;
+}
+.moon-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.moon-btn:disabled {
+  opacity: 0.28;
+  filter: grayscale(0.6);
+  box-shadow: none;
+}
+.moon-btn kbd {
+  border-color: #23263f40;
+  background: #23263f14;
 }
 
 .pop-in {
@@ -75,6 +175,10 @@ body {
 @keyframes slide {
   from { transform: translateX(40px); opacity: 0; }
   to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta, .cta::before, .cta-shine { animation: none; }
 }
 
 kbd {
