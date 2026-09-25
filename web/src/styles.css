@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night-950: #07081a;
+  --color-night-900: #0b0d24;
+  --color-night-800: #121536;
+  --color-night-700: #1b1f4a;
+  --color-night-600: #2a2f66;
+  --color-moon: #f5d76e;
+  --color-shipped: #34d399;
+  --color-eyes: #fbbf24;
+  --color-blocked: #fb7185;
+  --color-skipped: #94a3b8;
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+}
+
+:root {
+  --accent: #7c5cff;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-night-950);
+  color: #e7e8f5;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The sky: a slow gradient and a scatter of stars behind everything. */
+.sky {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 0% 0%, #1b1f4a 0%, transparent 70%),
+    linear-gradient(180deg, #0b0d24 0%, #07081a 60%);
+}
+.stars {
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, #fff8 50%, transparent 51%),
+    radial-gradient(1px 1px at 70% 20%, #fff6 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 40% 70%, #fff5 50%, transparent 51%),
+    radial-gradient(1px 1px at 85% 60%, #fff7 50%, transparent 51%),
+    radial-gradient(1px 1px at 10% 85%, #fff5 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 60% 45%, #fff4 50%, transparent 51%);
+  background-size: 600px 400px;
+  animation: twinkle 8s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+.glass {
+  background: color-mix(in srgb, var(--color-night-800) 72%, transparent);
+  border: 1px solid color-mix(in srgb, white 9%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.glow {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--glow) 45%, transparent), 0 10px 40px -12px var(--glow);
+}
+
+.pop-in {
+  animation: pop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.slide-in {
+  animation: slide 0.25s ease-out both;
+}
+@keyframes slide {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+kbd {
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.72em;
+  padding: 0.05em 0.4em;
+  border-radius: 0.3em;
+  border: 1px solid #ffffff30;
+  background: #ffffff10;
+}

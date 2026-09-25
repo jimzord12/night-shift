@@ -1,0 +1,6 @@
+node_modules/
+web/dist/
+/version.json
+.night-shift/
+!examples/**/.night-shift/
+*.log

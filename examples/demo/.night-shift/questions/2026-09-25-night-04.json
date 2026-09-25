@@ -1,0 +1,22 @@
+{
+  "schema": "question/1",
+  "id": "2026-09-25-night-04",
+  "shift": "2026-09-25-night",
+  "card": "search-filters",
+  "topic": "Search",
+  "question": "Which filters ship first?",
+  "why": "Up to three fit in the first release.",
+  "kind": "many",
+  "options": [
+    { "id": "colour", "label": "Colour" },
+    { "id": "size", "label": "Size" },
+    { "id": "price", "label": "Price" },
+    { "id": "brand", "label": "Brand" }
+  ],
+  "min": 1,
+  "max": 3,
+  "recommended": ["colour", "size"],
+  "because": "The two filters customers ask for most.",
+  "answer": null,
+  "resolved": null
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jimzord12/night-shift/schemas/project.schema.json",
+  "title": "Night Shift project",
+  "description": ".night-shift/project.json: who the project is and which board holds its cards.",
+  "type": "object",
+  "required": ["schema", "name", "board"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "project/1" },
+    "name": { "type": "string", "minLength": 1 },
+    "accent": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$", "description": "The project's colour in the app." },
+    "repo": { "type": "string", "format": "uri", "description": "Repository URL; commits in outcomes link here." },
+    "buffer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": { "type": "integer", "minimum": 1, "description": "Full tank. Default 15." },
+        "low": { "type": "integer", "minimum": 0, "description": "Below this, call a Day Shift. Default 5." }
+      }
+    },
+    "board": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "id", "readyLabel"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "trello" },
+            "id": { "type": "string", "minLength": 1, "description": "Board id or short link (the part after /b/ in the URL)." },
+            "readyLabel": { "type": "string", "minLength": 1, "description": "Label that marks a Night-ready card." },
+            "doneLists": { "type": "array", "items": { "type": "string" }, "description": "Lists whose cards never count as queued." }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "path", "readyLabel"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "file" },
+            "path": { "type": "string", "minLength": 1, "description": "A board.json beside project.json; for demos and tests." },
+            "readyLabel": { "type": "string", "minLength": 1 },
+            "doneLists": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      ]
+    }
+  }
+}

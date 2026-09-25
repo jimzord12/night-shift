@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <g id="ring"><rect width="200" height="200" fill="#12121a"/><circle cx="100" cy="100" r="62" fill="none" stroke="#f5d76e" stroke-width="16"/><path d="M100 100 L178 62 L178 138 Z" fill="#f5d76e" opacity="0.85"/><circle cx="100" cy="100" r="14" fill="#fff"/></g>
+    <g id="beam"><rect width="200" height="200" fill="#7c5cff"/><path d="M30 170 L170 30 L190 50 L50 190 Z" fill="#fff"/><circle cx="40" cy="160" r="18" fill="#12121a"/></g>
+    <g id="tower"><rect width="200" height="200" fill="#e8f1ff"/><path d="M80 180 L90 70 L110 70 L120 180 Z" fill="#d7263d"/><rect x="86" y="100" width="28" height="12" fill="#fff"/><rect x="84" y="135" width="32" height="12" fill="#fff"/><rect x="86" y="48" width="28" height="22" fill="#12121a"/><path d="M84 48 L100 30 L116 48 Z" fill="#d7263d"/><path d="M114 56 L180 36 L180 76 Z" fill="#f5d76e"/><rect x="40" y="180" width="120" height="8" fill="#12121a"/></g>
+  </defs>
+  <rect width="720" height="300" fill="#fafafa"/>
+  <g transform="translate(40 40)"><use href="#ring" transform="scale(0.64)"/><use href="#ring" transform="translate(150 96) scale(0.16)"/><text x="0" y="170" font-size="16" fill="#333">Ring</text></g>
+  <g transform="translate(270 40)"><use href="#beam" transform="scale(0.64)"/><use href="#beam" transform="translate(150 96) scale(0.16)"/><text x="0" y="170" font-size="16" fill="#333">Beam</text></g>
+  <g transform="translate(500 40)"><use href="#tower" transform="scale(0.64)"/><use href="#tower" transform="translate(150 96) scale(0.16)"/><text x="0" y="170" font-size="16" fill="#333">Tower</text></g>
+  <text x="40" y="260" font-size="14" fill="#777">Each mark at 128 px and at 32 px.</text>
+</svg>

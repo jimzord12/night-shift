@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Helvetica, Arial, sans-serif">
+  <rect width="800" height="500" fill="#f4f4f6"/>
+  <rect x="200" y="60" width="400" height="380" rx="14" fill="#fff" stroke="#d8d8de"/>
+  <text x="240" y="120" font-size="26" font-weight="700" fill="#222">Checkout</text>
+  <rect x="240" y="150" width="320" height="44" rx="8" fill="#f4f4f6" stroke="#ccc"/>
+  <text x="256" y="178" font-size="16" fill="#888">•••• •••• •••• 4242</text>
+  <rect x="240" y="214" width="320" height="104" rx="10" fill="#fff7e6" stroke="#f0a020"/>
+  <circle cx="266" cy="244" r="12" fill="#f0a020"/>
+  <text x="266" y="249" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">!</text>
+  <text x="288" y="249" font-size="17" font-weight="700" fill="#7a4b00">Your bank declined this card</text>
+  <text x="256" y="278" font-size="14" fill="#7a4b00">Try another card, or call your bank to</text>
+  <text x="256" y="298" font-size="14" fill="#7a4b00">allow online payments.</text>
+  <rect x="240" y="360" width="320" height="50" rx="10" fill="#7c5cff"/>
+  <text x="400" y="392" font-size="18" fill="#fff" text-anchor="middle">Use another card</text>
+</svg>
