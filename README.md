@@ -23,6 +23,9 @@ command and review rules through a short *binding*.
 | [docs/binding.md](docs/binding.md) | How a project adopts it |
 | [docs/practices/](docs/practices/README.md) | Default working practices: task flow, handoff, review gate, evidence, Git, glossary, proposals, board discipline |
 | [templates/](templates/) | Copy-ready task card, handoff card, glossary, bypass log, owner file and reviewer agents |
+| [docs/decisions.md](docs/decisions.md) | Why it is built this way |
+| [docs/glossary.md](docs/glossary.md) | The official terms |
+| [CHANGELOG.md](CHANGELOG.md) | What each release changed |
 
 `night-shift docs` prints only the protocol, contract and binding; read the
 practices and templates from this repository or on GitHub.

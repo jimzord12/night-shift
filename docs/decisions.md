@@ -1,0 +1,117 @@
+# Decisions
+
+Why this repository is the way it is. One entry per decision, newest last,
+append-only: a changed mind is a new entry that names the one it replaces.
+Each says what was decided, why, and what was rejected.
+
+## D1  A protocol first, an app second (2026-09-25)
+
+The Night Shift is a way of working (docs/protocol.md) that must work without
+the app; the app only makes the Morning Review cheap. **Why:** the owner's
+attention is the scarce resource, agent hours at night are plentiful; the
+protocol is what makes unattended work safe (Night-ready contract, never guess
+a decision). **Rejected:** a tool-first design where the rules live in code.
+
+## D2  Project-neutral, public, its own repository (2026-09-25)
+
+Everything project-specific lives in the adopting project's binding; this
+repo names no real project, board or person, and examples use the fictional
+Lighthouse shop. **Why:** the protocol is meant to be adopted across many
+projects; coupling to the first adopter would make that impossible.
+
+## D3  Local app, not hosted (2026-09-25)
+
+`night-shift serve` runs on 127.0.0.1. **Why:** no hosting, login, deploys or
+upkeep; a trial tool, not a product. **Rejected:** a hosted web app (days of
+work plus maintenance) and throwaway HTML reports per night (no history, no
+reusable widgets, no way to answer).
+
+## D4  JSON files, not a database (2026-09-25)
+
+The project's `.night-shift/` folder holds `project.json` and
+`questions/<id>.json`. **Why:** agents write files natively (no database tool,
+no permission prompt at 3 a.m.), files diff and validate against JSON Schema,
+and a few hundred files load instantly. **Rejected:** SQLite now; it can come
+later as an index while the files stay the source of truth.
+
+## D5  One writer per field (2026-09-25)
+
+In a question file the asker writes every field except `answer`; the app
+writes only `answer`, and only over the exact version the owner saw (content
+hash; 409 otherwise). **Why:** two writers on one file lose data silently.
+Questions and answers share one file because they are one thing; the hash
+guard covers the one realistic clash (an agent editing a question while the
+owner answers it).
+
+## D6  The board is the source of truth; files only for what nothing else holds (2026-09-25)
+
+The queue (cards with the Night-ready label) and the Outcomes (structured
+comments on cards) are read live from the board. **Why:** every file that
+copies board state is a staleness risk. Questions stay files because no board
+holds them. **Rejected:** `queue.json` and per-shift `shift.json` files; the
+shift's headline and counts are computed.
+
+## D7  Board adapters (2026-09-25)
+
+`src/board/` hides each board behind four reads (cards, comments, attachments,
+attachment). Trello is the first, a JSON `file` board serves demos and tests.
+**Why:** the protocol must not depend on Trello.
+
+## D8  "Question", not "decision" (2026-09-25)
+
+**Why:** "decision" reads as settled and permanent; a question is open until
+the owner answers it and the asker resolves it.
+
+## D9  Five question kinds, images as a property (2026-09-25)
+
+`confirm`, `one`, `many`, `rank`, `text`; any option may carry an `image` and
+a `preview`; every question has a recommendation (preselected), "not now"
+and an optional note. **Why:** covers every morning choice seen so far with
+the fewest widgets; a picture choice is just options with images.
+
+## D10  Releases are tags; a launcher runs the current one (2026-09-25)
+
+`npm run release vN` checks, exports the tagged commit to
+`~/.night-shift/releases/vN/`, builds it, tags and pushes; `night-shift` on
+PATH runs `releases/current`. Tags `v1, v2, …` are never moved. **Why:** the
+checkout can change while the owner runs a stable version; modelled on a
+proven toolkit repo of the same owner.
+
+## D11  Security for a public local app (2026-09-25, after the first review)
+
+Requests whose Host is not 127.0.0.1/localhost at the served port get 403
+(DNS rebinding); Trello ids from URLs must be 24 hex characters before any
+signed request (credential misuse); credentials never reach the browser;
+media is served inline only for images, video and PDF, HTML only with
+`Content-Security-Policy: sandbox allow-scripts` (opaque origin), anything
+else downloads. **Why:** the first independent review found these holes.
+
+## D12  Visual first, game-like UI (2026-09-25)
+
+Night sky with twinkling stars, shooting stars and meteors; one question per
+screen with the recommendation preselected; moon-like secondary buttons.
+**Why:** the review must cost the owner little attention and can be fun;
+walls of text were the failure this replaces.
+
+## D13  Practices are defaults a binding may override (2026-09-25)
+
+docs/practices/ carries generic working practices (task flow, handoff, review
+gate, evidence, Git, glossary, proposals, bypass log, owner authority, idea
+loop, board discipline) plus templates. **Why:** a project adopting the
+protocol should get the day's quality bar for the night without writing it
+from scratch; each project may still replace any of them.
+
+## D14  The buffer is a rev counter, not a fuel gauge (2026-09-25)
+
+Zones: idle below `buffer.low`, warming up, sweet spot at 70-80% of
+`buffer.max` (default 20, so 14-16 cards), running hot, redline from 90%.
+Replaces "aim for 10 to 15" and `buffer.target`. **Why:** the owner's
+analogy: more cards is better only up to a point; an overloaded queue goes
+stale before the nights clear it. The default max of 20 was the agent's
+choice; projects tune it in `project.json`.
+
+## D15  Media viewer for any asset (2026-09-25)
+
+Options may carry `preview` (image, video, PDF, HTML page or URL), opened
+full-screen from a round view button. **Why:** the owner needs to see a
+design option in full, whatever its format, before choosing.
