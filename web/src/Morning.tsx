@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Outcome, Overview, QuestionEntry, Shift } from '../../src/types.ts';
 import { OUTCOME_STATUSES, isOpen } from '../../src/types.ts';
-import { EvidenceView, Lightbox } from './Evidence.tsx';
+import { EvidenceView, MediaViewer } from './Evidence.tsx';
 import { FuelGauge, Icon, Pill, Ring, STATUS, shiftTitle, taskId } from './ui.tsx';
 
 interface Props {
@@ -206,7 +206,7 @@ function OutcomeDrawer({ outcome: o, questions, onClose, onQuestion }: { outcome
           </div>
         )}
       </aside>
-      {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
+      {zoom && <MediaViewer media={{ src: zoom, kind: 'image' }} onClose={() => setZoom(null)} />}
     </div>
   );
 }

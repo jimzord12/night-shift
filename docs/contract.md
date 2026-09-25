@@ -64,6 +64,27 @@ The id is `<shift>-<nn>`, and the file is named after it.
 | `rank` | 2 or more | every id, in order | every id, in order |
 | `text` | omitted | one suggested answer | one string |
 
+### Media
+
+An option may carry `image` (a thumbnail picture) and `preview` (the full
+asset the owner opens with the option's view button). A question may carry
+`images`: media shown above the options. Each is a path relative to
+`.night-shift/` or an `http(s)` URL.
+
+```json
+{ "id": "hero-a", "label": "Direction A", "image": "assets/hero-a.png", "preview": "assets/hero-a.pdf" }
+```
+
+| Asset | Shown as |
+|---|---|
+| `.png` `.jpg` `.gif` `.webp` `.svg` | picture, fit to screen or at actual size |
+| `.mp4` `.webm` `.mov` | video with controls |
+| `.pdf` | the browser's PDF reader |
+| `.html`, or any other URL | a web page in a sandbox; "Open in new tab" for sites that refuse to be framed |
+
+`preview` defaults to `image`. Local HTML runs in an isolated sandbox that
+cannot reach the app; other file types download instead of opening.
+
 The app writes `answer`:
 
 ```json

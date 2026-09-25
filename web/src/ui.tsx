@@ -24,6 +24,9 @@ const PATHS = {
   file: 'M7 3h7l5 5v13H7zM14 3v5h5',
   collide: 'M8 7l-4 5 4 5M16 7l4 5-4 5M11 5l2 14',
   warn: 'M12 4l9 16H3L12 4zm0 6v4m0 3v.01',
+  expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+  play: 'M7 4.5v15l12-7.5-12-7.5z',
+  globe: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z',
 } as const;
 
 export type IconName = keyof typeof PATHS;

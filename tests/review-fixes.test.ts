@@ -37,16 +37,35 @@ test('server: a malformed escape is a 404, not a crash', async () => {
   assert.equal((await app.request('/api/files/%E0%A4%A')).status, 404);
 });
 
-test('server: non-image files are served as downloads, never inline', async () => {
+test('server: media inline, HTML only in an opaque sandbox, everything else downloads', async () => {
   const dir = copyDemo();
   fs.writeFileSync(path.join(dir, 'assets', 'x.html'), '<script>alert(1)</script>');
+  fs.writeFileSync(path.join(dir, 'assets', 'x.js'), 'alert(1)');
+  fs.writeFileSync(path.join(dir, 'assets', 'clip.mp4'), 'not really a video');
   const app = createApp({ dataDir: dir, version: 'test' });
   const html = await app.request('/api/files/assets/x.html');
-  assert.equal(html.headers.get('content-type'), 'application/octet-stream');
-  assert.equal(html.headers.get('content-disposition'), 'attachment');
+  assert.equal(html.headers.get('content-type'), 'text/html; charset=utf-8');
+  assert.equal(html.headers.get('content-security-policy'), 'sandbox allow-scripts');
+  const js = await app.request('/api/files/assets/x.js');
+  assert.equal(js.headers.get('content-type'), 'application/octet-stream');
+  assert.equal(js.headers.get('content-disposition'), 'attachment');
+  const video = await app.request('/api/files/assets/clip.mp4');
+  assert.equal(video.headers.get('content-type'), 'video/mp4');
   const svg = await app.request('/api/files/assets/mark-a.svg');
   assert.equal(svg.headers.get('content-type'), 'image/svg+xml');
   assert.equal(svg.headers.get('content-security-policy'), 'sandbox');
+});
+
+test('questions: a preview may be a local asset or a web page; a missing file is a problem', () => {
+  const dir = copyDemo();
+  const file = path.join(dir, 'questions', '2026-09-25-night-01.json');
+  const q = JSON.parse(fs.readFileSync(file, 'utf8'));
+  q.options[0].preview = 'assets/marks.svg';
+  q.options[1].preview = 'https://example.com/beam';
+  q.options[2].preview = 'assets/missing.pdf';
+  fs.writeFileSync(file, JSON.stringify(q));
+  const entry = listQuestions(dir).find((e) => e.file === '2026-09-25-night-01.json')!;
+  assert.deepEqual(entry.problems, ['media assets/missing.pdf does not exist']);
 });
 
 test('outcome: prose after the closing fence is not part of the block', () => {

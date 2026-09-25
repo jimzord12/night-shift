@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import type { Question, QuestionEntry } from '../../src/types.ts';
+import type { Option, Question, QuestionEntry } from '../../src/types.ts';
 import { isOpen } from '../../src/types.ts';
 import { ApiError, fileUrl, postAnswer } from './api.ts';
-import { Lightbox } from './Evidence.tsx';
+import { MediaThumb, MediaViewer } from './Evidence.tsx';
+import type { Media } from './Evidence.tsx';
 import { Starfield } from './Starfield.tsx';
 import { Icon } from './ui.tsx';
 
@@ -70,7 +71,7 @@ export function QuestionDeck({ entries, startId, onClose, onSaved, onConflict }:
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [showNote, setShowNote] = useState(false);
-  const [zoom, setZoom] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
 
   const id = order[index];
@@ -226,9 +227,10 @@ export function QuestionDeck({ entries, startId, onClose, onSaved, onConflict }:
             {q.why && <p className="mt-2 text-lg text-white/60">{q.why}</p>}
             {q.images?.length ? (
               <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-                {q.images.map((img) => (
-                  <button key={img} onClick={() => setZoom(fileUrl(img))} className="shrink-0 overflow-hidden rounded-xl bg-white transition hover:scale-[1.02]">
-                    <img src={fileUrl(img)} alt="" className="h-40 w-auto" />
+                {q.images.map((m) => (
+                  <button key={m} onClick={() => setZoom({ src: fileUrl(m) })} className="group relative shrink-0 overflow-hidden rounded-xl transition hover:scale-[1.02]" title="View in full">
+                    <MediaThumb src={fileUrl(m)} />
+                    <span className="moon-btn absolute right-2 bottom-2 size-9 opacity-90 group-hover:opacity-100"><Icon name="expand" className="size-5" strokeWidth={2.6} /></span>
                   </button>
                 ))}
               </div>
@@ -284,13 +286,42 @@ export function QuestionDeck({ entries, startId, onClose, onSaved, onConflict }:
           </div>
         )}
       </div>
-      {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
+      {zoom && <MediaViewer media={zoom} onClose={() => setZoom(null)} />}
     </div>
   );
 }
 
-function AnswerInput({ q, draft, setDraft, onZoom }: { q: Question; draft: Draft; setDraft: (d: Draft) => void; onZoom: (src: string) => void }) {
+// A round moon button that opens an asset in full, usable inside a clickable tile (it is a span,
+// since a button may not sit inside a button, and it never toggles the tile).
+function ViewButton({ label, onView, className = '' }: { label: string; onView: () => void; className?: string }) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      title={label}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onView();
+      }}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          onView();
+        }
+      }}
+      className={`moon-btn cursor-zoom-in ${className}`}
+    >
+      <Icon name="expand" className="size-[55%]" strokeWidth={2.6} />
+    </span>
+  );
+}
+
+function AnswerInput({ q, draft, setDraft, onZoom }: { q: Question; draft: Draft; setDraft: (d: Draft) => void; onZoom: (m: Media) => void }) {
   const rec = new Set(q.recommended);
+  const view = (o: Option) => onZoom({ src: fileUrl(o.preview ?? o.image!), title: o.label });
   if (q.kind === 'confirm') {
     return (
       <div className="grid grid-cols-2 gap-4">
@@ -322,15 +353,18 @@ function AnswerInput({ q, draft, setDraft, onZoom }: { q: Question; draft: Draft
           {options.map((o, i) => {
             const on = draft.value.includes(o.id);
             return pictures ? (
-              <button key={o.id} onClick={() => toggle(o.id)} onDoubleClick={() => onZoom(fileUrl(o.image!))} className="group relative overflow-hidden rounded-2xl border-2 text-left transition hover:-translate-y-1" style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', boxShadow: on ? '0 0 40px -8px var(--accent)' : undefined }}>
-                <img src={fileUrl(o.image!)} alt={o.label} className="aspect-square w-full bg-white object-cover" />
+              <button key={o.id} onClick={() => toggle(o.id)} onDoubleClick={() => view(o)} className="group relative overflow-hidden rounded-2xl border-2 text-left transition hover:-translate-y-1" style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', boxShadow: on ? '0 0 40px -8px var(--accent)' : undefined }}>
+                <div className="relative">
+                  <img src={fileUrl(o.image!)} alt={o.label} className="aspect-square w-full bg-white object-cover" />
+                  <ViewButton label={`View ${o.label} in full`} onView={() => view(o)} className="absolute right-2 bottom-2 size-10" />
+                  {on && <span className="absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"><Icon name="check" className="size-5" strokeWidth={3} /></span>}
+                </div>
                 <div className="p-3">
                   <div className="font-semibold">{o.label}</div>
                   {o.detail && <div className="text-xs text-white/60">{o.detail}</div>}
                 </div>
                 <span className="absolute top-2 left-2 rounded-md bg-black/60 px-1.5 text-xs"><kbd className="!border-0">{i + 1}</kbd></span>
                 {rec.has(o.id) && <span className="absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-black/60 text-moon"><Icon name="sparkle" className="size-4" /></span>}
-                {on && <span className="absolute right-2 bottom-16 grid size-8 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"><Icon name="check" className="size-5" strokeWidth={3} /></span>}
               </button>
             ) : (
               <button key={o.id} onClick={() => toggle(o.id)} className="flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition hover:bg-white/5" style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)' }}>
@@ -341,6 +375,7 @@ function AnswerInput({ q, draft, setDraft, onZoom }: { q: Question; draft: Draft
                   <span className="block text-lg font-medium">{o.label}</span>
                   {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                 </span>
+                {o.preview && <ViewButton label={`View ${o.label} in full`} onView={() => view(o)} className="size-9 shrink-0" />}
                 {rec.has(o.id) && <Icon name="sparkle" className="size-4 text-moon" />}
                 <kbd className="text-white/40">{i + 1}</kbd>
               </button>

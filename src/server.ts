@@ -32,15 +32,26 @@ function safeDecode(s: string): string | null {
   }
 }
 
-// Only these types are served inline; anything else (HTML, scripts) downloads instead of running
-// on the app's origin.
-const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|application\/pdf)$/;
+// Media the viewer shows inline. HTML is shown too, but only as a sandboxed document with an
+// opaque origin (scripts may run, yet it can never read or act on this app); anything else
+// (scripts, archives, unknown types) downloads instead.
+const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|application\/pdf|video\/(mp4|webm|quicktime))$/;
+const HTML = /^text\/html\b/;
 
 function fileResponse(body: ArrayBuffer | Uint8Array, type: string, cache: string): Response {
-  const inline = INLINE.test(type);
-  const headers: Record<string, string> = { 'Content-Type': inline ? type : 'application/octet-stream', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': cache };
-  if (!inline) headers['Content-Disposition'] = 'attachment';
-  if (type !== 'application/pdf') headers['Content-Security-Policy'] = 'sandbox';
+  const bare = type.split(';')[0].trim().toLowerCase();
+  const headers: Record<string, string> = { 'X-Content-Type-Options': 'nosniff', 'Cache-Control': cache };
+  if (HTML.test(bare)) {
+    headers['Content-Type'] = 'text/html; charset=utf-8';
+    headers['Content-Security-Policy'] = 'sandbox allow-scripts';
+  } else if (INLINE.test(bare)) {
+    headers['Content-Type'] = bare;
+    if (bare !== 'application/pdf' && !bare.startsWith('video/')) headers['Content-Security-Policy'] = 'sandbox';
+  } else {
+    headers['Content-Type'] = 'application/octet-stream';
+    headers['Content-Disposition'] = 'attachment';
+    headers['Content-Security-Policy'] = 'sandbox';
+  }
   return new Response(body as BodyInit, { headers });
 }
 
@@ -103,7 +114,7 @@ export function createApp({ dataDir, version, board, port }: AppOptions): Hono {
   // Card attachments, fetched with the board's credentials so the browser never holds them.
   app.get('/api/attachment/:card/:id', async (c) => {
     const { body, contentType: type } = await adapter().attachment(c.req.param('card'), c.req.param('id'));
-    return fileResponse(body, type.split(';')[0].trim().toLowerCase(), 'private, max-age=3600');
+    return fileResponse(body, type, 'private, max-age=3600');
   });
 
   app.get('/api/*', (c) => c.json({ error: 'no such endpoint' }, 404));

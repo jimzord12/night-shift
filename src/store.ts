@@ -100,12 +100,13 @@ function semanticProblems(q: Question, file: string, dir: string): string[] {
     const p = valueProblem(q, q.answer.value);
     if (p) problems.push(`answer: ${p}`);
   }
-  for (const img of [...(q.images ?? []), ...(q.options ?? []).flatMap((o) => (o.image ? [o.image] : []))]) {
-    const full = path.resolve(dir, img);
-    if (!full.startsWith(path.resolve(dir) + path.sep)) problems.push(`image ${img} leaves the .night-shift folder`);
-    else if (!fs.existsSync(full)) problems.push(`image ${img} does not exist`);
-  }
-  return problems;
+  const media = [...(q.images ?? []), ...(q.options ?? []).flatMap((o) => [o.image, o.preview].filter((m): m is string => !!m))];
+  for (const m of media) {
+    if (/^https?:\/\//i.test(m)) continue; // a web page: nothing on disk to check
+    const full = path.resolve(dir, m);
+    if (!full.startsWith(path.resolve(dir) + path.sep)) problems.push(`media ${m} leaves the .night-shift folder`);
+    else if (!fs.existsSync(full)) problems.push(`media ${m} does not exist`);
+  }  return problems;
 }
 
 // The one place that knows what a value must look like for each kind.

@@ -7,6 +7,7 @@ export interface Option {
   label: string;
   detail?: string;
   image?: string;
+  preview?: string;
 }
 
 export interface Answer {

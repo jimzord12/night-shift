@@ -12,6 +12,10 @@ const TYPES: Record<string, string> = {
   '.webp': 'image/webp',
   '.gif': 'image/gif',
   '.pdf': 'application/pdf',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.htm': 'text/html; charset=utf-8',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
 };

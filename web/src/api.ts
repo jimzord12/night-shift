@@ -31,5 +31,5 @@ export function postAnswer(id: string, body: { status: 'answered' | 'deferred'; 
   });
 }
 
-// A path relative to .night-shift/ (question images).
-export const fileUrl = (rel: string) => `/api/files/${rel.split('/').map(encodeURIComponent).join('/')}`;
+// A path relative to .night-shift/ (question media), or a web address used as it is.
+export const fileUrl = (rel: string) => (/^https?:\/\//i.test(rel) ? rel : `/api/files/${rel.split('/').map(encodeURIComponent).join('/')}`);

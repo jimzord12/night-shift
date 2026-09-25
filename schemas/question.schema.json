@@ -26,7 +26,8 @@
           "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
           "label": { "type": "string", "minLength": 1 },
           "detail": { "type": "string" },
-          "image": { "type": "string", "description": "Path relative to .night-shift/, usually assets/..." }
+          "image": { "type": "string", "description": "Thumbnail picture: a path relative to .night-shift/, usually assets/..." },
+          "preview": { "type": "string", "description": "The full asset the owner can open: an image, video (mp4/webm/mov), PDF, HTML page (path relative to .night-shift/) or an http(s) URL. Defaults to image." }
         }
       }
     },
@@ -41,7 +42,7 @@
     "images": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Extra pictures shown with the question, paths relative to .night-shift/."
+      "description": "Media shown with the question: images, videos, PDFs or HTML pages (paths relative to .night-shift/) or http(s) URLs."
     },
     "answer": {
       "oneOf": [
