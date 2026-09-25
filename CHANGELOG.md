@@ -3,6 +3,24 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v6, 2026-09-25
+
+- A Backlog.md board: `board.type: "backlog"` reads a project's `backlog/`
+  folder; tasks are cards, statuses the lists, task comments carry
+  Outcomes, evidence lives in `.night-shift/attachments/<task id>/` (D17).
+  Demo: `examples/backlog-demo/`.
+- This repository tracks its own work in Backlog.md; `docs/backlog.md` is
+  gone (D16).
+- Practices: new `local-folder.md` (the git-ignored `.local/` for the owner
+  profile, drafts and scratch evidence, D18); Git judged by what could be
+  lost, with backup tags (D19); stricter review depth; honesty rules for
+  evidence; Backlog.md board discipline.
+- Templates: an owner-profile, a Backlog.md starter (`config.yml`,
+  `README.md`), a design-reviewer agent; the owner file and reviewer agents
+  upgraded.
+- Contract: `project.json` accepts the `backlog` board (additive; `/1`
+  unchanged).
+
 ## v5 (89af26f), 2026-09-25
 
 - The buffer is a tachometer: idle, warming up, a sweet spot at 70-80% of

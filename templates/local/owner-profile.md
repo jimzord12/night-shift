@@ -3,7 +3,8 @@
 Copy to `.local/preferences/owner-profile.md` (git-ignored) and fill it with
 the owner in one short conversation. Every agent reads this folder before
 its first reply of a session, beside `docs/owner.md`. What the owner says in
-the session wins, then this file, then `docs/owner.md`. Never copy its
+the session wins, then this file, then `docs/owner.md`. This file never
+changes who decides what: that stays in `docs/owner.md`. Never copy its
 contents into the repository, a card, a report or a log. Delete the hints.
 
 ## Background

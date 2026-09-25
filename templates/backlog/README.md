@@ -69,7 +69,7 @@ Ready is not Done (Night Shift practice `task-flow`).
 
 Types: `bug` (a confirmed defect), `feature`, `enhancement`, `chore`,
 `docs`, `spike` (find out, not build). Priority: High for correctness,
-trust or the trial's real test; Medium for meaningful improvements; Low
+trust or data risk; Medium for meaningful improvements; Low
 for limited-impact clean-up and ideas. Priority is not a deadline.
 
 ## Working a task
@@ -90,6 +90,17 @@ backlog task edit TASK-7 -s Done
 - **Parallel agents:** one coordinator creates the tasks before handing
   them out; each task has one holder; branches can allocate the same id,
   so only the coordinator creates.
+
+## Handoff
+
+- **The session handoff** is one Backlog.md document, created once with
+  `backlog doc create "Session handoff"` (shape: Night Shift's
+  `templates/handoff-card.md`) and rewritten in place at the end of every
+  session with `backlog doc update doc-<n> --content "…"`. Never a task:
+  it would sit in the queue and could be moved by `backlog cleanup`.
+- **A task's own handoff** goes in its implementation notes
+  (`backlog task edit TASK-<n> --append-notes "…"`); parallel builders
+  write only their own task's notes.
 
 ## The Night Shift app
 

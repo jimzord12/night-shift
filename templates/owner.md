@@ -5,8 +5,8 @@ session. Fill every slot; delete the hints.
 
 Also read every file in `.local/preferences/` (git-ignored) when it exists:
 the owner's personal profile. What the owner says in the session wins,
-then that profile, then this file on how to talk; who decides
-what stays in this file (Night Shift practice `local-folder`).
+then that profile, then this file. The profile never changes who decides
+what: that stays in this file (Night Shift practice `local-folder`).
 
 ## Who the owner is
 

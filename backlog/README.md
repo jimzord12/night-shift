@@ -89,6 +89,16 @@ backlog task edit TASK-7 -s Done
   them out; each task has one holder; branches can allocate the same id,
   so only the coordinator creates.
 
+## Handoff
+
+- **The session handoff** is one Backlog.md document, `doc-1` (shape:
+  `templates/handoff-card.md`), rewritten in place at the end of every
+  session with `backlog doc update doc-1 --content "…"`. Never a task:
+  it would sit in the queue and could be moved by `backlog cleanup`.
+- **A task's own handoff** goes in its implementation notes
+  (`backlog task edit TASK-<n> --append-notes "…"`); parallel builders
+  write only their own task's notes.
+
 ## This repository on its own protocol
 
 The Night Shift app can show this backlog: create `.night-shift/project.json`
