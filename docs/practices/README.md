@@ -24,6 +24,7 @@ fictional web shop in `examples/demo/`.
 | [owner.md](owner.md) | Who decides what; how to talk to the owner | Before replying to the owner |
 | [idea-loop.md](idea-loop.md) | Idea agents in a closed review loop that only proposes | Running product or design idea work |
 | [board.md](board.md) | Write discipline for any board adapter | Writing to the board |
+| [local-folder.md](local-folder.md) | `.local/`: the owner's private profile, planning drafts, scratch evidence | First reply of a session; saving a draft or scratch proof |
 
 Read them from this repository or on GitHub. `night-shift docs` prints only
 the three protocol documents (`protocol`, `contract`, `binding`).
@@ -41,14 +42,18 @@ the three protocol documents (`protocol`, `contract`, `binding`).
 | `templates/owner.md` | `docs/owner.md`; fill every slot |
 | `templates/agents/code-reviewer.md` | `.claude/agents/code-reviewer.md` |
 | `templates/agents/research-reviewer.md` | `.claude/agents/research-reviewer.md` |
+| `templates/agents/design-reviewer.md` | `.claude/agents/design-reviewer.md` |
+| `templates/local/owner-profile.md` | `.local/preferences/owner-profile.md` (git-ignored); fill it with the owner |
+| `templates/backlog/config.yml`, `templates/backlog/README.md` | `backlog/config.yml` after `backlog init`, and `backlog/README.md`: a Backlog.md board |
 | `docs/practices/review.md` | `docs/review.md`; the code-reviewer agent reads it |
 | `docs/practices/idea-loop.md` | `docs/idea-loop.md`; the research-reviewer agent reads it |
 
-The two agent files are Claude Code subagent definitions. Copy them into the
+The agent files are Claude Code subagent definitions. Copy them into the
 project's `.claude/agents/` together with the practice file each one reads
 (the last two rows): an agent cannot read this repository from inside the
 project. If the project keeps those rules elsewhere, adjust the one path
-line in the agent file instead. Start a new session afterwards: subagent
+line in the agent file instead. The design-reviewer carries its rubric
+itself; fill its one project slot. Start a new session afterwards: subagent
 definitions load when a session starts. Invoke them fresh every round (the
 Agent tool with `subagent_type: code-reviewer`).
 

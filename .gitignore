@@ -4,3 +4,8 @@ web/dist/
 .night-shift/
 !examples/**/.night-shift/
 *.log
+
+# Private agent context: owner profile, planning drafts, scratch evidence (docs/practices/local-folder.md).
+/.local/
+# Machine-local Claude Code permissions.
+.claude/settings.local.json

@@ -4,8 +4,9 @@ Read this when starting or ending any session, day or night.
 
 ## A fresh session
 
-1. Read the project's entry file (`AGENTS.md` or equivalent) and its owner
-   file ([owner.md](owner.md)).
+1. Read the project's entry file (`AGENTS.md` or equivalent), its owner
+   file ([owner.md](owner.md)) and every file in `.local/preferences/`
+   when it exists ([local-folder.md](local-folder.md)).
 2. Read the **session-handoff card** first: the previous session's resume
    point, parked owner decisions and pitfalls.
 3. Derive the state from the sources: the vision, relevant decisions and

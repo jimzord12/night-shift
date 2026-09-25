@@ -48,6 +48,21 @@ lenses. They are prompts, not quotas.
 | 7. Simplicity and ownership | Code sits in its owning module; duplication and abstraction are justified; scope did not grow unasked. |
 | 8. Repository and docs | Imports, docs, card state, line endings and commit scope are coherent; prose uses the glossary's terms. |
 
+How deep to go, whatever the lenses:
+
+- **Follow the change outwards.** Read the diff, then its callers, wiring
+  and configuration; confirm the real entry point reaches it, not only a
+  test.
+- **Look for the same bug next door**: the sibling path with the same
+  shape (create and update, demo and real, interactive and unattended).
+  Name it even when the diff did not touch it.
+- **Ask of every new or changed test: would it fail if the new code were
+  deleted or gutted?** One that still passes is a Material finding. Mocks
+  belong only at true external boundaries (a network service, the clock,
+  hardware), never around the code under test.
+- **A visible change nobody looked at is Material**: no screenshot of the
+  running app, or one of an older version.
+
 Pick lead lenses from risk: wiring plus tests for integration work;
 integrity plus contracts for a migration; correctness plus visible evidence
 for UI work.
@@ -62,7 +77,13 @@ for UI work.
 | Note | An observation or preference. Does not block. |
 
 Each finding has a stable id, an anchor (file and line), a scenario,
-expected versus actual, impact, and the smallest useful fix.
+expected versus actual, impact, and the smallest useful fix. A finding with
+no anchor is a Note; so is architecture taste.
+
+**Practical, not theatrical.** Strict about what a user or the owner would
+hit; relaxed about what they never would. Do not invent process, and do not
+fail a change over a name you would have chosen differently. Do fail one
+that shows wrong data, passes demo data off as real, or was never walked.
 
 - **PASS:** all lenses considered, required evidence present, no open
   Blocking or Material finding.

@@ -18,6 +18,20 @@ a lost or duplicated write costs the owner's attention.
   ([orientation-and-handoff.md](orientation-and-handoff.md)).
 - A card moving to Done proves nothing by itself ([task-flow.md](task-flow.md)).
 
+## Backlog.md boards
+
+- Change tasks with the `backlog` CLI, never by hand-editing the Markdown:
+  the CLI keeps the section markers the app and other agents read.
+- Pin the CLI version the project tested (`npm install --global
+  backlog.md@<version>`); never run an unqualified `npx backlog`, which can
+  resolve to an unrelated package.
+- Outcome evidence is copied into `.night-shift/attachments/<task id>/`;
+  the owner opens it through the app. For evidence that must also open on a
+  phone, commit it next to the work or link the CI run.
+- Keep the tool's automatic commits and remote operations off
+  (`auto_commit: false`, `remote_operations: false` in `config.yml`): the
+  agent commits task changes with the work they describe.
+
 ## Links
 
 Links on cards must open on a phone: the owner may review on a phone.

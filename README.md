@@ -22,7 +22,7 @@ command and review rules through a short *binding*.
 | [docs/contract.md](docs/contract.md) | Exactly what agents write: `project.json`, question files, the card header, the outcome comment |
 | [docs/binding.md](docs/binding.md) | How a project adopts it |
 | [docs/practices/](docs/practices/README.md) | Default working practices: task flow, handoff, review gate, evidence, Git, glossary, proposals, board discipline |
-| [templates/](templates/) | Copy-ready task card, handoff card, glossary, bypass log, owner file and reviewer agents |
+| [templates/](templates/) | Copy-ready task card, handoff card, glossary, bypass log, owner file, owner profile, Backlog.md starter and reviewer agents |
 | [docs/decisions.md](docs/decisions.md) | Why it is built this way |
 | [docs/glossary.md](docs/glossary.md) | The official terms |
 | [CHANGELOG.md](CHANGELOG.md) | What each release changed |
@@ -61,6 +61,9 @@ night-shift docs protocol                  # the protocol text of the installed 
 Try it without a board: `night-shift serve examples/demo --open` (a
 fictional project on a `file` board). The demo's question files are tracked,
 so answer them in a copy.
+
+Or on a Backlog.md board: `night-shift serve examples/backlog-demo --open`
+(tasks in the project's own `backlog/` folder; no account needed).
 
 A Trello board needs `TRELLO_API_KEY` and `TRELLO_API_TOKEN` in the shell
 that runs `serve`; they stay on the server and never reach the browser.

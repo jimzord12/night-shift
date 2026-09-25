@@ -11,7 +11,7 @@ Follows the Night Shift Protocol <vN>.
 
 | Slot | This project |
 |---|---|
-| Board and adapter | <board name and URL>; adapter `<trello|file>`; Night-ready label `<name>` |
+| Board and adapter | <board name and URL>; adapter `<trello|backlog|file>`; Night-ready label `<name>` |
 | Stages | queued: <list>; working: <list>; blocked: <label or list>; done: <list> |
 | Test command | `<command>` |
 | Review gate | <who reviews, where the rules are> |
@@ -25,4 +25,6 @@ Follows the Night Shift Protocol <vN>.
 
 Then create `<project>/.night-shift/project.json` (see
 `night-shift docs contract`), add `.night-shift/` to the project's
-`.gitignore`, and create the Night-ready label on the board.
+`.gitignore`, and create the Night-ready label on the board (for a
+Backlog.md board: add it to `labels` in `backlog/config.yml`; starter files
+in [templates/backlog/](../templates/backlog/)).

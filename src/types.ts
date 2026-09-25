@@ -76,6 +76,7 @@ export interface TrelloBoard {
   doneLists?: string[];
 }
 
+export interface BacklogBoard { type: 'backlog'; path?: string; readyLabel: string; doneLists?: string[]; }
 export interface FileBoard {
   type: 'file';
   path: string;
@@ -89,7 +90,7 @@ export interface Project {
   accent?: string;
   repo?: string;
   buffer?: { max?: number; low?: number };
-  board: TrelloBoard | FileBoard;
+  board: TrelloBoard | BacklogBoard | FileBoard;
 }
 
 export type CardKind = 'build' | 'explore';

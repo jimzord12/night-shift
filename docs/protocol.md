@@ -180,7 +180,7 @@ A project adopts the protocol by filling these slots in its own docs and in
 
 | Slot | Example |
 |---|---|
-| Board and adapter | a Trello board, label `Night-ready` |
+| Board and adapter | a Trello board, or Backlog.md in the repository; label `Night-ready` |
 | Working, blocked and done stages | lists Active, Done; label Blocked |
 | Test command | `npm test` |
 | Review gate | a fresh reviewer agent per the project's review rules |

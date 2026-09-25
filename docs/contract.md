@@ -9,6 +9,7 @@ project's `.night-shift/` folder. Validate with `night-shift check <project>`.
   project.json                 who the project is, which board (schemas/project.schema.json)
   questions/<id>.json          one question and its answer (schemas/question.schema.json)
   assets/                      images that questions show
+  attachments/<task id>/       evidence files, for the `backlog` adapter only (below)
 ```
 
 ## project.json
@@ -162,3 +163,43 @@ two outcomes for the same shift, the newer one wins.
   ]
 }
 ```
+
+## A Backlog.md board (the `backlog` adapter)
+
+For a project that tracks its work with [Backlog.md](https://github.com/MrLesk/Backlog.md)
+(tested with 1.52) in its own repository:
+
+```json
+"board": { "type": "backlog", "path": "../backlog", "readyLabel": "night-ready", "doneLists": ["Done"] }
+```
+
+`path` is the Backlog.md folder relative to `.night-shift/` (default
+`../backlog`). The app reads the task files directly; the CLI is not needed
+to serve.
+
+| Board idea | In Backlog.md |
+|---|---|
+| Card | A task in `backlog/tasks/` (drafts, `completed/` and `archive/` are not read) |
+| Card name | `<id>: <title>`, for example `TASK-7: Export orders as CSV` |
+| List (stage) | The task's `status`; board order follows `statuses` in `config.yml`, then `ordinal`, then the task number |
+| Labels | The task's `labels`; `readyLabel` is one of them |
+| Card description | The task's Description section; the `Card Header` is its first line |
+| Comments | The task's Comments section: an `Outcome` is a comment |
+| Attachments | Files in `.night-shift/attachments/<task id>/`, matched by name |
+| Card link | The task file on GitHub or GitLab when `repo` is set |
+
+Posting an Outcome and its evidence:
+
+```sh
+backlog task edit TASK-7 --comment "night-shift outcome/1
+shift: 2026-09-25-night
+status: shipped
+line: Accountants can download the orders as a CSV file.
+evidence: image after.png | The export button" --comment-author "@builder"
+# then copy after.png into .night-shift/attachments/TASK-7/
+```
+
+Backlog.md stamps comments to the minute, so within one task a comment
+further down the file counts as newer; a corrected Outcome for the same
+shift is simply posted again. An Outcome body must not contain a line
+holding only `---`: Backlog.md uses that line to end a comment.

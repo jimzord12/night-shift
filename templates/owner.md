@@ -3,6 +3,10 @@
 Read this before replying to the owner. It applies to every agent in every
 session. Fill every slot; delete the hints.
 
+Also read every file in `.local/preferences/` (git-ignored) when it exists:
+the owner's personal profile. What the owner says in the session wins,
+then that profile, then this file (Night Shift practice `local-folder`).
+
 ## Who the owner is
 
 <One short paragraph an agent needs to pitch its replies: the owner's role
@@ -33,10 +37,15 @@ act without asking.
   the cap, ...>
 - **Agents decide and do, then report:** <architecture inside an approved
   item, naming and glossary terms, structure, wording, order of work,
-  commits, pushes, merges into `main`, feature-branch rebases and
-  force-with-lease pushes, branch, tag (not `archive/*`, not release tags
-  such as `v1`, `v2`) and worktree cleanup, clearing output folders by
-  path, editing and moving cards, ...>
+  commits, pushes, merges into `main`, stash, reset, amend, feature-branch
+  rebases and force-with-lease pushes, branch, tag (not `archive/*`, not
+  release tags such as `v1`, `v2`) and worktree add, remove and prune,
+  deleting merged branches, and unmerged ones once a `backup/` tag holds
+  their tip, clearing output folders by path, editing and moving cards,
+  ...>
+- **Judge by what could be lost, not by the command's name.** A command
+  is routine when nothing unique is lost; tag the old tip first
+  (`backup/<branch>-<yyyymmdd-hhmm>`) when a branch loses commits.
 - **Needs an explicit go, with the exact command shown first:** <rewriting
   or force-pushing published `main`, deleting or moving `archive/*` tags,
   deleting the repository or changing its visibility or settings, deleting
@@ -44,6 +53,8 @@ act without asking.
   replacing a public release, ...>
 - **Never, even with a go:** moving or deleting a release tag (`v1`, `v2`,
   ...); a bad release takes the next number.
+- **Do the work; don't hand it back.** Start servers, run checks, walk the
+  app yourself; never ask the owner to run a command you can run.
 - **Ask the owner for observations, not decisions that are yours:** <a
   screenshot, a log, a yes or no on a look>.
 
@@ -56,5 +67,7 @@ The binding's **Owner-reserved actions** slot links to the third list.
 - **Every substantive reply ends with a Recap:** three to six bullets, then
   one last line headed "Your next move" with exactly one action for the
   owner, or "nothing needed".
+- **Verified apart from assumed:** say which claims were checked; never
+  sound surer than the evidence.
 - **Evidence over assurance,** in a form the owner can read: the last line
   of a test run, a screenshot, a diff image. Not a code listing.

@@ -24,7 +24,10 @@ next report (docs/practices/glossary.md).
 | `Outcome` | What happened to one card in one shift (shipped, needs-eyes, blocked, skipped), posted as a card comment | `night-shift outcome/1` | 2026-09-25 |
 | `Shift Id` | `<date the shift started>-night` or `-day` | contract | 2026-09-25 |
 | `Binding` | A project's answers to the protocol's slots: board, test command, review gate, owner-reserved actions | docs/binding.md | 2026-09-25 |
-| `Board Adapter` | The code that reads one kind of board for the app | src/board/ | 2026-09-25 |
+| `Board Adapter` | The code that reads one kind of board for the app: Trello, Backlog.md, or a demo file | src/board/ (`trello`, `backlog`, `file`) | 2026-09-25 |
+| `Owner File` | A project's shared, committed rules for working with its `Owner`: who decides what, how to report | `docs/owner.md` (templates/owner.md) | 2026-09-25 |
+| `Owner Profile` | The `Owner`'s personal preferences, kept out of the repository; read before the first reply of a session | `.local/preferences/` (git-ignored) | 2026-09-25 |
+| `Backup Tag` | A local tag on a branch's old tip, made before a command drops commits or deletes an unmerged branch, so nothing is lost for good | `backup/<branch>-<yyyymmdd-hhmm>` | 2026-09-25 |
 | `Practice` | A default way of working in docs/practices/ that a `Binding` may override | docs/practices/ | 2026-09-25 |
 | `Release` | A tagged version `vN` installed under `~/.night-shift/releases/` and run by the launcher | scripts/release.ts | 2026-09-25 |
 

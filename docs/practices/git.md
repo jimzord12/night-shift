@@ -7,6 +7,10 @@ Read this before committing, pushing, branching, integrating or tagging.
 - The working agent commits, pushes, branches, merges authorised work into
   `main`, rebases and cleans up branches and worktrees **without asking**,
   and reports what it did.
+- Judge a command by **what it could lose, not by its name**. `reset`,
+  `branch -D`, `stash drop` and `worktree remove` are routine once nothing
+  unique is lost; a harmless-looking command that destroys the only copy of
+  work is not.
 - Only an explicit owner instruction ("I will handle Git this session")
   suspends this, for that session.
 - Routine Git never approves a pending product design; the owner still
@@ -63,11 +67,30 @@ Shoppers asked for it in every support thread this month.
 Evidence: builds/tests-20260925-0312/ (suite passes), filters.png.
 ```
 
+## Safety net: backup tags
+
+Before any command that drops commits from a branch or deletes a branch
+that is not fully merged (`reset --hard` to an older commit, a rebase that
+drops commits, `branch -D`, a `--force-with-lease` push that replaces
+commits), tag the old tip locally and say so in the report:
+
+```sh
+git tag backup/feat-search-20260925-2310 feat/search   # then reset, rebase or delete
+```
+
+- Merged is checked, not assumed: `git merge-base --is-ancestor <branch> main`.
+- Backup tags stay local (never pushed) and are pruned after 30 days.
+- Uncommitted work is stashed with a message before a reset or a branch
+  switch that would lose it (`git stash push -m "before rebase onto main"`);
+  a stash is dropped only after its changes are committed or known unwanted.
+- Worktrees are added for parallel writers and removed, with
+  `git worktree prune`, once their branch is merged or backed up.
+
 ## Protected refs
 
 Agents may amend, rebase, reset and `--force-with-lease` a feature branch,
-and delete ordinary tags and branches that are merged, or abandoned ones
-they created themselves. Never:
+and delete ordinary tags and branches that are merged, or unmerged ones
+once a backup tag holds their tip. Never:
 
 - delete a branch during a Night Shift while other builders run: an
   unmerged branch may be another builder's work in progress;

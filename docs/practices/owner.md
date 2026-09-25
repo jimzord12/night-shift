@@ -2,7 +2,10 @@
 
 Read this before replying to the owner. Each project fills its own copy
 ([templates/owner.md](../../templates/owner.md)) as `docs/owner.md`; this
-page explains the structure and the defaults.
+page explains the structure and the defaults. The owner's personal
+profile (background, tone, language) lives beside it in the git-ignored
+`.local/preferences/` ([local-folder.md](local-folder.md)); what the owner
+says in the session beats both.
 
 ## Who decides what
 
@@ -17,6 +20,9 @@ what cannot be delegated.
 | **Needs an explicit go, exact command shown first** | Irreversible actions: rewriting published `main`, deleting data nothing else restores, changing repository visibility or settings, replacing a public release | `git push --force origin main` |
 
 - Never bring tier-two work to the owner for approval; report it.
+- **Do the work; don't hand it back.** Anything an agent can do itself
+  (start a server, run the checks, walk the app, edit a config) it does.
+  Never ask the owner to run a command the agent can run.
 - For tier three, show the exact command and what it destroys, then wait.
 - The binding's **Owner-reserved actions** slot links to tier three
   ([binding.md](../binding.md)); a builder never does them at night.

@@ -10,6 +10,12 @@ work" is not a state.
 
 - The claim names the exact revision it was checked on.
 - An old artefact is not current proof; a missing one is no proof at all.
+- **Verified is kept apart from assumed.** Say which claims were checked
+  and which are inferred; do not sound surer than the evidence.
+- **Tested, committed, pushed, integrated and CI-green are separate facts.**
+  Report each one; never infer "pushed" from "committed". "Not checked" is
+  an honest result.
+- Demo or synthetic data is labelled as such, never passed off as real.
 - A reviewer never manufactures the author's missing evidence and calls it
   independent proof ([review.md](review.md)).
 
@@ -36,6 +42,10 @@ screenshot, a diff image. Not a code listing. At night these become the
   deliberate commit with a new version.
 - The output folder is ignored by Git. Clear it by path when it is no
   longer needed, keeping evidence that active work still points to.
+- Scratch proof that should not be committed (walk-throughs, console
+  logs, screenshots of a work in progress) goes to
+  `.local/evidence/<yyyy-mm-dd>-<slug>/`, files numbered by step:
+  `01-load.png`, `02-answer.png`, `notes.md` ([local-folder.md](local-folder.md)).
 - Name artefacts honestly: `checkout-after-fix.png`, not `final.png`.
 
 ## Tests

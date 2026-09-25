@@ -94,7 +94,7 @@ export function Morning({ overview, shift, questions, onOpenDeck, onShowQueue }:
 export function BufferWords({ overview }: { overview: Overview }) {
   const n = overview.queue.length;
   const zone = ZONE[bufferZone(n, overview.buffer)];
-  const board = overview.project.board.type === 'trello' ? 'Trello cards' : 'Cards';
+  const board = { trello: 'Trello cards', backlog: 'Backlog.md tasks', file: 'Cards' }[overview.project.board.type];
   return (
     <div className="text-center">
       <div className="font-display text-xl font-semibold">{n} Night Shift task{n === 1 ? '' : 's'}</div>

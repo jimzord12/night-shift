@@ -34,6 +34,17 @@
         },
         {
           "type": "object",
+          "required": ["type", "readyLabel"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "backlog" },
+            "path": { "type": "string", "minLength": 1, "description": "The Backlog.md folder, relative to .night-shift/. Default ../backlog." },
+            "readyLabel": { "type": "string", "minLength": 1, "description": "Task label that marks a Night-ready card." },
+            "doneLists": { "type": "array", "items": { "type": "string" }, "description": "Statuses whose tasks never count as queued." }
+          }
+        },
+        {
+          "type": "object",
           "required": ["type", "path", "readyLabel"],
           "additionalProperties": false,
           "properties": {

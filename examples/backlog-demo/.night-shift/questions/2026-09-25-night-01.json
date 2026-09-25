@@ -1,0 +1,20 @@
+{
+  "schema": "question/1",
+  "id": "2026-09-25-night-01",
+  "shift": "2026-09-25-night",
+  "card": "TASK-6",
+  "blocking": true,
+  "topic": "Orders",
+  "question": "Which date format does the CSV export use?",
+  "why": "The card does not say; accountants and spreadsheets disagree.",
+  "kind": "one",
+  "options": [
+    { "id": "iso", "label": "2026-09-25", "detail": "ISO: sorts correctly everywhere" },
+    { "id": "eu", "label": "25/09/2026", "detail": "What Greek accountants read" },
+    { "id": "both", "label": "Both columns" }
+  ],
+  "recommended": ["iso"],
+  "because": "Every spreadsheet reads ISO dates and sorts them right.",
+  "answer": null,
+  "resolved": null
+}

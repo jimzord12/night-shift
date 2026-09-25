@@ -115,3 +115,44 @@ choice; projects tune it in `project.json`.
 Options may carry `preview` (image, video, PDF, HTML page or URL), opened
 full-screen from a round view button. **Why:** the owner needs to see a
 design option in full, whatever its format, before choosing.
+
+## D16  Backlog.md tracks this repository's work (2026-09-25)
+
+`backlog/` replaces the hand-kept `docs/backlog.md`. Its statuses mirror the
+task-flow practice (Queued, Active, Review, Ready, Done), so this repository
+runs on its own protocol. **Why:** the owner uses Backlog.md elsewhere and
+wanted one tracker with ids, acceptance criteria and history instead of a
+list whose lines are deleted when done. **Rejected:** a Trello board (a
+second place to look, and credentials for a public repository's own work).
+
+## D17  A Backlog.md board adapter (2026-09-25)
+
+`board.type: "backlog"` reads a project's `backlog/` folder from disk. A
+task is a card, the status is the list, a task comment is where an Outcome
+goes, and evidence files live in `.night-shift/attachments/<task id>/`.
+**Why:** a project that keeps its tasks in its repository should not need a
+Trello board to run a Night Shift. Reading the files keeps the app free of
+the CLI at serve time. **Rejected:** Outcomes in the implementation notes
+(Backlog.md 1.52 has real comments, which match the Trello shape exactly);
+evidence committed under `backlog/` (evidence is often large and local).
+
+## D18  The `.local/` folder for private agent context (2026-09-25)
+
+Each project may keep `.local/` (git-ignored): `preferences/` for the
+owner's personal profile, `planning/<topic>/` for drafts not yet promoted,
+`evidence/<yyyy-mm-dd>-<slug>/` for scratch proof. Agents read every file in
+`.local/preferences/` before replying. **Why:** some preferences are
+personal and the repository is public; drafts and scratch evidence need a
+home that is not the tracker. Precedence: the owner's words in the session,
+then `.local/preferences/`, then the shared owner file.
+
+## D19  Agents judge risk by what can be lost, not by command name (2026-09-25)
+
+Agents do all routine Git (commit, push, merge to `main`, stash, reset,
+rebase, branch, tag and worktree clean-up) without asking. Before a command
+that drops commits from a branch or deletes an unmerged branch, they tag the
+old tip `backup/<branch>-<yyyymmdd-hhmm>`, so nothing is lost for good. Only
+losing work for good, rewriting published `main` and changing the
+repository itself stay with the owner. **Why:** the owner wants senior
+developers who need no babysitting; a backup tag makes most "dangerous"
+commands reversible, which is the real test.

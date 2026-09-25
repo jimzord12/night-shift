@@ -4,6 +4,7 @@
 
 import type { BoardAdapter, RawComment } from './board/adapter.ts';
 import { BoardError } from './board/adapter.ts';
+import { BacklogBoard } from './board/backlog.ts';
 import { FileBoard } from './board/file.ts';
 import { TrelloBoard } from './board/trello.ts';
 import { SHIFT_ID, isOutcome, parseHeader, parseOutcome, touchesOverlap } from './parse.ts';
@@ -12,7 +13,14 @@ import { OUTCOME_STATUSES } from './types.ts';
 import { localIso } from './store.ts';
 
 export function adapterFor(project: Project, dataDir: string): BoardAdapter {
-  return project.board.type === 'trello' ? new TrelloBoard(project.board.id) : new FileBoard(dataDir, project.board.path);
+  switch (project.board.type) {
+    case 'trello':
+      return new TrelloBoard(project.board.id);
+    case 'backlog':
+      return new BacklogBoard(dataDir, project.board.path, project.repo);
+    default:
+      return new FileBoard(dataDir, project.board.path);
+  }
 }
 
 export async function buildQueue(project: Project, board: BoardAdapter): Promise<QueueCard[]> {
