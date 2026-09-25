@@ -80,7 +80,7 @@ export function QueueView({ overview }: { overview: Overview }) {
   return (
     <div className="space-y-6">
       <div className="glass flex flex-wrap items-center gap-6 rounded-3xl p-6">
-        <FuelGauge value={queue.length} target={buffer.target} low={buffer.low} />
+        <FuelGauge value={queue.length} target={buffer.target} low={buffer.low} className="w-64" />
         <div>
           <div className="font-display text-3xl font-semibold">{queue.length} Night-ready</div>
           <div className="mt-1 text-white/60">

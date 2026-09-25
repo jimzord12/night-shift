@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 
 // The night sky behind every screen, drawn on one canvas:
 // - stars of different size and brightness; about a third of them twinkle, each at its own pace
-// - a shooting star every few seconds, falling from the upper right towards the lower left
-// - rarely, a big glowing meteor crossing from a random edge in a random direction
+// - a shooting star every 1.5 to 4.5 seconds, falling from the upper right towards the lower left
+// - every 12 to 24 seconds, a big glowing meteor crossing from a random edge in a random direction
 // With "reduce motion" set in the OS, the stars stay still and nothing falls.
 
 interface Star {
@@ -83,8 +83,8 @@ export function Starfield() {
     let h = 0;
     let stars: Star[] = [];
     const streaks: Streak[] = [];
-    let nextShoot = performance.now() + rand(1500, 4000);
-    let nextMeteor = performance.now() + rand(18000, 35000);
+    let nextShoot = performance.now() + rand(800, 2500);
+    let nextMeteor = performance.now() + rand(6000, 12000);
     let raf = 0;
 
     const resize = () => {
@@ -151,11 +151,11 @@ export function Starfield() {
       if (!still) {
         if (now > nextShoot) {
           streaks.push(shootingStar(w, h));
-          nextShoot = now + rand(3500, 9000);
+          nextShoot = now + rand(1500, 4500);
         }
         if (now > nextMeteor) {
           streaks.push(meteor(w, h));
-          nextMeteor = now + rand(25000, 50000);
+          nextMeteor = now + rand(12000, 24000);
         }
         for (let i = streaks.length - 1; i >= 0; i--) {
           const s = streaks[i];

@@ -39,31 +39,38 @@ export function Morning({ overview, shift, questions, onOpenDeck, onShowQueue }:
           </div>
         </div>
 
-        <button onClick={() => onOpenDeck()} className="glass pop-in group flex items-center gap-5 rounded-3xl p-6 text-left transition hover:bg-white/10" style={{ animationDelay: '60ms' }}>
-          <Ring done={answered} total={valid.length}>
-            <div>
-              <div className="text-2xl font-bold">{openCount}</div>
-              <div className="text-[13px] text-white/60">open</div>
-            </div>
-          </Ring>
-          <div>
-            <div className="text-sm tracking-widest text-white/50 uppercase">Questions</div>
-            <div className="font-display mt-1 text-xl font-semibold">{openCount ? `${openCount} waiting for you` : 'All clear'}</div>
-            <span className="cta mt-4 inline-flex items-center gap-2 text-base">
+        {/* Questions: the call to action on its own row, centred; the ring and its words together below it. */}
+        <button onClick={() => onOpenDeck()} className="glass pop-in group flex flex-col items-center justify-center gap-6 rounded-3xl p-6 text-center transition hover:bg-white/10" style={{ animationDelay: '60ms' }}>
+          <div className="flex w-full justify-center">
+            <span className="cta inline-flex items-center gap-2 text-lg">
               <span className="cta-shine" />
               <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
               {openCount ? 'Start answering' : 'Review answers'}
               <Icon name="right" className="size-5" strokeWidth={2.6} />
             </span>
           </div>
+          <div className="flex flex-wrap items-center justify-center gap-5 text-left">
+            <Ring done={answered} total={valid.length}>
+              <div>
+                <div className="text-2xl font-bold">{openCount}</div>
+                <div className="text-[13px] text-white/60">open</div>
+              </div>
+            </Ring>
+            <div>
+              <div className="text-sm tracking-widest text-white/50 uppercase">Questions</div>
+              <div className="font-display mt-1 text-xl font-semibold">{openCount ? `${openCount} waiting for you` : 'All clear'}</div>
+              <div className="mt-1 text-sm text-white/55">{answered} of {valid.length} answered</div>
+            </div>
+          </div>
         </button>
 
-        <button onClick={onShowQueue} className="glass pop-in flex items-center gap-4 rounded-3xl p-6 text-left transition hover:bg-white/10" style={{ animationDelay: '120ms' }}>
-          <FuelGauge value={overview.queue.length} target={overview.buffer.target} low={overview.buffer.low} />
+        {/* Buffer: the gauge large in the upper half, its words underneath. */}
+        <button onClick={onShowQueue} className="glass pop-in flex flex-col items-center justify-center gap-2 rounded-3xl p-6 text-center transition hover:bg-white/10" style={{ animationDelay: '120ms' }}>
+          <FuelGauge value={overview.queue.length} target={overview.buffer.target} low={overview.buffer.low} className="w-full max-w-sm" />
           <div>
             <div className="text-sm tracking-widest text-white/50 uppercase">Buffer</div>
             <div className="font-display mt-1 text-xl font-semibold">{overview.queue.length} Night-ready</div>
-            <div className="mt-1 text-sm text-white/60">{overview.queue.length < overview.buffer.low ? 'Low: time for a Day Shift' : `target ${overview.buffer.target}`}</div>
+            <div className={`mt-1 text-sm ${overview.queue.length < overview.buffer.low ? 'font-semibold text-blocked' : 'text-white/60'}`}>{overview.queue.length < overview.buffer.low ? 'Low: time for a Day Shift' : `target ${overview.buffer.target}`}</div>
           </div>
         </button>
       </section>
