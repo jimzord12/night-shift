@@ -22,6 +22,15 @@ with this document. Rewritten in place at the end of every session.
   installed `night-shift`; its two nights are in `examples/sample-repo/`.
 - v10 review loops ended on PASS: code R3, visual R2, design R3.
 
+## Paused mid-work (2026-09-26 evening, owner closed the laptop)
+- Commit 8b40d74 adds `night-shift allow` (D23, v11 entry in CHANGELOG
+  without a hash). Checks pass (29/29) but it is NOT reviewed, NOT pushed,
+  NOT released. Resume: code-reviewer round 1 (lead lens: do the rules
+  match Claude Code's permission syntax, incl. the quoted Windows path in
+  the checkout form), fix, push, `npm run release v11`, switch, fill the
+  hash, then run `night-shift allow` in cvgen and show the owner the diff.
+- CVgen has Night Shift v10 installed (cvgen commit ebad1f5, pushed).
+
 ## Next, in order
 1. The owner uses v10 for real and decides what the trial left open:
    TASK-22 (preflight for unattended permissions) and TASK-21 (installing a
