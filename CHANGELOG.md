@@ -3,7 +3,7 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
-## v8 (unreleased), 2026-09-26
+## v8 (e0fbd44), 2026-09-26
 
 - Feedback issues read better on GitHub: the agent's words under a
   heading, then kind (with what it means), tags, night and version as a
