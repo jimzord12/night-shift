@@ -10,7 +10,7 @@ beats both.
 
 ## Who decides what
 
-The owner file holds three lists. Agents act as senior developers: they
+The owner file sorts decisions into tiers. Agents act as senior developers: they
 make technical choices and act, and the owner's attention goes only to
 what cannot be delegated.
 
@@ -18,7 +18,7 @@ what cannot be delegated.
 |---|---|---|
 | **Owner decides** | What the product is, what gets built next, an approved look, changes to the repository's non-negotiable rules, review rounds beyond the cap | What the Viewer's Trends screen measures |
 | **Agents decide and report afterwards** | Architecture inside an approved item, naming, structure, wording, order of work, all routine Git and task work | Splitting `store.ts` into two modules; merging a verified fix to `main` |
-| **Needs an explicit go, exact command shown first** | Irreversible actions: rewriting published `main`, deleting data nothing else restores, changing repository visibility or settings, replacing a public release | `git push --force origin main` |
+| **Needs an explicit go, exact command shown first** | Irreversible actions: rewriting published `main`, deleting data nothing else restores, changing repository visibility or settings (moving or deleting a release tag is never done, even with a go) | `git push --force origin main` |
 
 - Never bring tier-two work to the owner for approval; report it.
 - **Do the work; don't hand it back.** Anything an agent can do itself

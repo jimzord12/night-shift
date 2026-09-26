@@ -4,8 +4,7 @@ The official terms of the `Night Shift Repo`. Use them, never a synonym;
 wrap them in backticks when talking to the owner. Agents keep this list
 current without asking and name every added, renamed or dropped term in their
 next report (docs/practices/glossary.md). Terms from docs/design.md (D20)
-name what is being built; their files and fields are the design's until the
-code has them.
+name what v7 builds.
 
 ## Terms
 
@@ -17,7 +16,7 @@ code has them.
 | `Lead` | The agent in the `Owner`'s session that runs the work and briefs subagents (`Reviewer`s, idea agents) | docs/practices/review.md, docs/practices/idea-loop.md | 2026-09-25; redefined 2026-09-26 |
 | `Reviewer` | A fresh agent that reviews another agent's change | docs/practices/review.md, `.claude/agents/` | 2026-09-25 |
 | `Night` | One unattended agent session, whenever it runs | a night id such as `2026-09-26-a` | 2026-09-26, owner |
-| `Plan` | The agent's promise at the start of a `Night`: the tasks and what "done" means for each | `.night-shift/plan.json`, schema `night-shift/plan@1` | 2026-09-26, owner |
+| `Plan` | The agent's promise at the start of a `Night`: the tasks and what "done" means for each | `.night-shift/nights/<night id>/plan.json`, schema `night-shift/plan@1` | 2026-09-26, owner |
 | `Night file` | The single record of one `Night`: the `Plan`'s tasks with their `Outcome`s, `Question`s, `Feedback`, metrics | `night.json`, schema `night-shift/night@1`; copies in `.night-shift/history/` | 2026-09-26, owner |
 | `Outcome` | One of six values a task ends a `Night` with: `done`, `partial`, `blocked`, `failed`, `not_started`, `skipped` | `tasks[].outcome` in the `Night file` | 2026-09-25; redefined 2026-09-26, owner |
 | `Block` | One item of the fixed vocabulary for evidence and notes in a `Night file`: `image`, `compare`, `video`, `pdf`, `link`, `command`, `note` | `type` of an `evidence[]` entry | 2026-09-26, owner |

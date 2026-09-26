@@ -98,7 +98,9 @@ then run:
 {{cli}} record --file .night-shift/input.json
 ```
 
-Outcomes, and what each needs:
+Every record of a planned task sends `checks`: one per `done_when` line,
+in order, each `true`, `false`, or `{ "met": false, "note": "what is left" }`.
+Outcomes, and what each needs on top of that:
 
 | Outcome | When | Needs |
 |---|---|---|
@@ -106,12 +108,12 @@ Outcomes, and what each needs:
 | `partial` | Progress saved, can continue | at least one check met; each unmet check as `{ "met": false, "note": "what is left" }` |
 | `blocked` | Cannot go on without the developer | `"blocked_by": "Q1"` (ask first) |
 | `failed` | Tried; no decision would fix it | `"why"` |
-| `not_started` | Never reached | nothing (the tool also sets it at close) |
+| `not_started` | Never reached | no checks needed; usually leave it to close, which sets it |
 | `skipped` | Not needed: already done, or no longer wanted | `"reason"` |
 
 Evidence comes only from these blocks: `image` (path, caption), `compare`
 (before, after, caption), `video` (path, caption), `pdf` (path, caption),
-`link` (url, label), `command` (command, exit_code, excerpt of 20 lines at
+`link` (url, label), `command` (command, exit_code, excerpt of 25 lines at
 most), `note` (text: plain text, no Markdown). Paths are relative to the
 night's folder and must be inside its `evidence/` folder.
 

@@ -217,4 +217,5 @@ choices below were made unattended and are open to review:
 
 **Rejected:** keeping the v6 screens behind a flag (two models to maintain
 for no user); inline JSON with a documented permission rule (every Adopter
-would need to change their permissions).
+would need to change their permissions). Replaces D7, D13, D14 and D17;
+D5 and D9 stay open (D20).

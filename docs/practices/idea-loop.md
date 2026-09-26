@@ -11,7 +11,7 @@ approved or put on the roadmap without the owner.
 | Lead | Runs the loop, gives snapshots, stores reports; integrates only after the owner has answered | full |
 | Author agent | Proposes at most three ideas (or two or three design concepts with mock-ups) and revises them | read, web, write in the run folder |
 | Research Reviewer | Checks that sources exist, are current and say what is claimed ([research-reviewer](../../.claude/agents/research-reviewer.md)) | read-only, web |
-| Quality Reviewer | Judges each idea against a fixed rubric the project writes once | read-only |
+| Quality Reviewer | Judges each idea against a fixed rubric this repository writes once | read-only |
 
 No agent in the loop has the Agent tool. They cannot start each other, so
 every review round starts fresh, the caps live in one place (the Lead), and

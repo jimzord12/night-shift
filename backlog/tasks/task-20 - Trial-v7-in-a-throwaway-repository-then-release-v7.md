@@ -14,7 +14,7 @@ ordinal: 20000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Copy the todo-list example into night-shift-testing-repo, install Night Shift, and run realistic nights and follow-ups with agents acting as the night workers and the lead acting as the developer. Release v7 only after that passes.
+Copy a small todo-list example app into a throwaway repository, install Night Shift, and run realistic nights and follow-ups with agents acting as the night workers and the lead acting as the developer. Release v7 only after that passes.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

@@ -143,7 +143,7 @@ Proof and notes inside a task come only from these.
 | `video` | A short recording of a flow | `path`, `caption` |
 | `pdf` | A generated document | `path`, `caption` |
 | `link` | A pull request, preview deployment, ticket | `url`, `label` |
-| `command` | Proof for work that cannot be seen: tests, builds | `command`, `exit_code`, `excerpt` (about 20 lines at most) |
+| `command` | Proof for work that cannot be seen: tests, builds | `command`, `exit_code`, `excerpt` (25 lines at most) |
 | `note` | A short explanation | `text`, plain text with line breaks, no Markdown |
 
 File paths are relative to the night's folder and must point to files
@@ -210,12 +210,12 @@ The agent's promise. `source` is free text so it fits any workflow.
 
 ### night.json
 
-The single record of the night. Close copies the plan's tasks in, so the file
+The single record of the night. Start copies the plan's tasks in, so the file
 stands on its own in history. The agent writes `summary`, `tasks`,
 `questions` and `feedback`; the tool writes `status` and `metrics`; the
 Viewer writes only `questions[].answer`, `questions[].note` and
 `feedback[].sent`. A metric Claude Code did not provide is `null` and shows
-as "unknown".
+as "unknown". An abridged example (the schema has every field):
 
 ```json
 {
@@ -324,8 +324,8 @@ or by day, does the digging for context.
 ```
 
 - Item kinds: `decision`, `unfinished`, and `waiting` (a question the
-  developer did not answer; the next agent leaves that task alone and asks
-  again instead of guessing).
+  developer did not answer; the next agent plans it, asks again instead of
+  guessing, and records it `blocked` if it still needs the answer).
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
   night took the item on as a task that did not end done or skipped, so that
   task (and that night's own follow-up) carries it from here.
@@ -348,8 +348,9 @@ No `/ns:ask` in version 1: outside a night the developer is at the terminal.
 `night-shift install` (run once in a repository) copies both skills into its
 `.claude/skills/`, with the exact command that runs the tool written into
 them, and adds the Meter's session-end hook to its `.claude/settings.json`,
-keeping every other setting. Agents hand the tool JSON on stdin (a heredoc),
-with `--file` or with `--json`; every reply ends with the next step.
+keeping every other setting. Agents write the JSON to `.night-shift/input.json` and pass `--file`
+(D21); the tool also reads stdin and `--json`. Every reply ends with the
+next step.
 
 ## Viewer
 

@@ -14,7 +14,7 @@ ordinal: 18000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-D20 changed direction; nobody depends on v6 (the one trial, in CV Gen, is removed). Delete the protocol, contract, binding, board adapters, parsers, queue and buffer screens, v6 schemas, demos and templates; trim the practices and the kept server and app code; archive superseded tasks. The approved keep/delete/trim list is in the session of 2026-09-26.
+D20 changed direction; nobody depends on v6 (the one earlier `Adopter` trial is removed). Delete the protocol, contract, binding, board adapters, parsers, queue and buffer screens, v6 schemas, demos and templates; trim the practices and the kept server and app code; archive superseded tasks. The approved keep/delete/trim list is in the session of 2026-09-26.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

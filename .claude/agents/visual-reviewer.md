@@ -1,6 +1,6 @@
 ---
 name: visual-reviewer
-description: Fresh-context reviewer that drives the running Viewer in a real browser, the way the owner would, and reports what a person actually experiences - journeys that break, buttons that do nothing, missing or wrong states, console errors, layouts that fail at laptop, tablet or phone width. Give it the task and its acceptance, the journeys to walk, the round number and earlier reports. Read-only apart from its own screenshots and scratch copies; returns PASS or FINDINGS.
+description: Fresh-context reviewer that drives the running Viewer in a real browser, the way the owner would, and reports what a person actually experiences - journeys that break, buttons that do nothing, missing or wrong states, console errors, layouts that fail at laptop or phone width. Give it the task and its acceptance, the journeys to walk, the round number and earlier reports. Read-only apart from its own screenshots and scratch copies; returns PASS or FINDINGS.
 tools: Read, Grep, Glob, Bash, PowerShell
 model: opus
 effort: high

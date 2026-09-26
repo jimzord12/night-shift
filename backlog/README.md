@@ -91,11 +91,11 @@ backlog task edit TASK-7 -s Done
 ## Handoff
 
 - **The session handoff** is one Backlog.md document, `doc-1` (shape:
-  docs/practices/orientation-and-handoff.md), rewritten in place at the end of every
-  session with `backlog doc update doc-1 --content "…"`. Never a task:
+  docs/practices/orientation-and-handoff.md), rewritten in place at the end
+  of every session with `backlog doc update doc-1 --content "…"`. Never a task:
   it would sit in the queue and could be moved by `backlog cleanup`.
 - **A task's own handoff** goes in its implementation notes
-  (`backlog task edit TASK-<n> --append-notes "…"`); parallel builders
+  (`backlog task edit TASK-<n> --append-notes "…"`); parallel agents
   write only their own task's notes.
 
 ## Notes that are not bugs
