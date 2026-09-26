@@ -6,6 +6,12 @@ The `Night Shift Repo`: the Night Shift Protocol (`docs/protocol.md`), its contr
 project-neutral: nothing here names a particular project, board or client.
 A project that runs Night Shift is an `Adopter` (docs/glossary.md).
 
+**Direction changed on 2026-09-26 (D20):** Night Shift is becoming files of
+a fixed shape, a tool, two skills and a local app, with no protocol imposed.
+The agreed design is `docs/design.md`; the protocol, contract, binding,
+practices and templates below describe v6 as shipped, not the direction.
+This repository still works by docs/practices/ until they are settled.
+
 Agents here work as independent, dependable senior developers: they take
 the technical and routine decisions themselves, carry work through to
 integrated and verified, and report afterwards. What stays with the owner
@@ -48,6 +54,7 @@ in it. Orient in this order, read-only, then give the four-line briefing
 
 | Path | Role |
 |---|---|
+| `docs/design.md` | The agreed next design (D20); wins over the v6 docs on direction |
 | `docs/protocol.md` | The protocol. Printed by `night-shift docs protocol` |
 | `docs/contract.md`, `schemas/*.schema.json` | What agents write and the app reads |
 | `docs/binding.md` | Template a project fills to adopt the protocol |

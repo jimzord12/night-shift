@@ -156,3 +156,26 @@ losing work for good, rewriting published `main` and changing the
 repository itself stay with the owner. **Why:** the owner wants senior
 developers who need no babysitting; a backup tag makes most "dangerous"
 commands reversible, which is the real test.
+
+## D20  Night Shift becomes files of a fixed shape, not a protocol (2026-09-26)
+
+Night Shift no longer asks an `Adopter` to follow a protocol (`Night-ready`
+cards, `Card Header`, `Binding`, practices) and no longer reads their board.
+It adds files of a fixed shape, a tool that checks them, two skills and a
+local app; the developer keeps their own workflow and tracker. One night is
+one unattended session: the agent writes a plan (its promise), records each
+task's outcome and evidence as it goes, and the tool closes one night file
+per night and adds metrics measured from the harness. Answers flow back
+through a follow-up file. The full agreed design is `docs/design.md`.
+**Why:** the owner judged the rigid protocol would not survive real use;
+the real pains are reading a night quickly, answering questions, history
+and measuring unattended agents, and none of them needs a process imposed.
+**Chosen:** a fixed JSON frame with a small block vocabulary inside it,
+grown release by release on request, because data cannot escape the
+vocabulary and the tool rejects anything else like a type error.
+**Rejected:** pages written as TSX components (arbitrary code escapes the
+vocabulary and cannot be validated); a page built freely from blocks (every night a different shape, so no
+history or measurement); reading the board (not every developer has one).
+Replaces D1 and D6; D7's board adapters and D13's practices become optional
+at most, to be settled when the v6 model is retired; D5's question files and
+D9's question kinds stay open until field testing.
