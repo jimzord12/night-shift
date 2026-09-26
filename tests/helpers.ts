@@ -16,8 +16,9 @@ export function git(repo: string, ...args: string[]): string {
   return r.stdout;
 }
 
+// Long path names: the registry stores a folder's canonical spelling (a Windows temp folder may be a short 8.3 path).
 export function gitRepo(name = 'shop'): string {
-  const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'ns-repo-')), name);
+  const dir = path.join(fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ns-repo-'))), name);
   fs.mkdirSync(dir);
   git(dir, 'init', '-q', '-b', 'main');
   git(dir, 'config', 'user.email', 'test@example.com');

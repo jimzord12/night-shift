@@ -272,8 +272,17 @@ function readRegistry(): RegistryEntry[] {
 const samePath = (a: string, b: string) => (process.platform === 'win32' ? path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase() : path.resolve(a) === path.resolve(b));
 
 // Registers a repository with the local install (idempotent) and returns its entry.
+// The canonical spelling of a folder (long names on Windows), so one folder registers once.
+function realPath(p: string): string {
+  try {
+    return fs.realpathSync.native(p);
+  } catch {
+    return p;
+  }
+}
+
 export function registerRepo(repo: string, now = new Date()): RepoRef {
-  const full = path.resolve(repo);
+  const full = realPath(path.resolve(repo));
   const repos = readRegistry();
   const found = repos.find((r) => samePath(r.path, full));
   if (found) return { ...found, missing: false };

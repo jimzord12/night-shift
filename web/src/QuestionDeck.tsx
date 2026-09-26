@@ -147,6 +147,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
       if (e.key === 'ArrowRight') return go(index + 1);
       if (e.key === 'ArrowLeft') return go(index - 1);
       if (e.key.toLowerCase() === 'd') return advance(savedKeys);
+      if (lock) return;
       const n = Number(e.key);
       const pick = qRef.current.options[n - 1];
       if (n >= 1 && pick) setDraft({ ...draft, answer: pick.id });
@@ -242,7 +243,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                       {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                     </span>
                     {o.id === q.recommended && <Icon name="sparkle" className="size-4 text-moon" />}
-                    <kbd className="text-white/40">{i + 1}</kbd>
+                    {!lock && <kbd className="text-white/40">{i + 1}</kbd>}
                   </button>
                 );
               })}
@@ -255,12 +256,14 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                   <span className="text-white/70">Recommended: </span>
                   <span className="font-semibold text-moon">{rec.label}</span>
                 </div>
-                <button onClick={() => setDraft({ ...draft, answer: rec.id })} className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20">use it</button>
+                {!lock && <button onClick={() => setDraft({ ...draft, answer: rec.id })} className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-xs hover:bg-white/20">use it</button>}
               </div>
             )}
 
             <div className="mt-4">
-              {showNote ? (
+              {lock ? (
+                q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
+              ) : showNote ? (
                 <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="A note for the agent (optional)" rows={2} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} />
               ) : (
                 <button onClick={() => { setShowNote(true); setFocusNote(true); }} className="text-sm text-white/50 hover:text-white">+ add a note</button>
@@ -270,12 +273,14 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
             {message && <div className="mt-4 rounded-xl bg-blocked/15 px-4 py-2 text-sm text-blocked">{message}</div>}
 
             <footer className="mt-auto flex items-center gap-2 pt-8">
-              <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
-              <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
+              <div className="hidden gap-2 sm:flex">
+                <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
+                <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
+              </div>
               <div className="flex-1" />
-              <button onClick={() => advance(savedKeys)} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title="Leave it unanswered; the next agent asks again">Not now <kbd className="hidden sm:inline">D</kbd></button>
+              <button onClick={() => advance(savedKeys)} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">D</kbd>}</button>
               {!lock && (
-                <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold whitespace-nowrap text-white shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
+                <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-5 py-2.5 font-semibold whitespace-nowrap text-white sm:px-6 shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
                   {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">Enter</kbd>
                 </button>
               )}

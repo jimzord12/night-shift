@@ -129,7 +129,7 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
       <section>
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="font-display text-lg font-semibold">What happened</h2>
-          <span className="text-sm text-white/50">click a task for its checks and proof</span>
+          <span className="hidden text-sm text-white/50 sm:inline">click a task for its checks and proof</span>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {n.tasks.map((t, i) => (
@@ -304,9 +304,11 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
             <div className="space-y-2">
               {questions.map((q) => (
                 <button key={q.id} onClick={() => onQuestion(`${detail.repo.id}/${detail.night.night}/${q.id}`)} className="glass flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left hover:bg-white/10">
-                  <Icon name="question" className="size-5 text-[var(--accent)]" />
-                  <span className="flex-1">{q.ask}</span>
-                  <span className="text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up) ? 'open' : 'locked'}</span>
+                  <Icon name="question" className="size-5 shrink-0 text-[var(--accent)]" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block">{q.ask}</span>
+                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up) ? 'open' : 'locked'}</span>
+                  </span>
                 </button>
               ))}
             </div>
