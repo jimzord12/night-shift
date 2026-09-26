@@ -226,6 +226,18 @@ test('forget: a repository leaves the registry with its read marks; its files st
   assert.deepEqual(Object.keys(readViewerState().read).filter((key) => key.startsWith(`${g.id}/`) || key.startsWith(`${k.id}/`)), [`${k.id}/2026-09-26-a`]);
   assert.ok(fs.existsSync(path.join(gone, 'README.md')));
   refused(() => forgetRepo(g.id), /no registered repository "gone"; registered: /);
+  // A name that is one repository's id and, from here, another repository's path is refused.
+  const first = registerRepo(gitRepo('twin'));
+  const second = gitRepo('twin');
+  registerRepo(second);
+  const cwd = process.cwd();
+  process.chdir(path.dirname(second));
+  try {
+    assert.equal(first.id, 'twin');
+    refused(() => forgetRepo('twin'), /is the id of .* and also names .*; give the full path/);
+  } finally {
+    process.chdir(cwd);
+  }
 });
 test('status reads the open night and says the next step', () => {
   const repo = gitRepo();

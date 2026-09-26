@@ -295,10 +295,13 @@ export function registerRepo(repo: string, now = new Date()): RepoRef {
 }
 
 // Removes a repository from the install by its id or its path, with its read marks. Its own
-// .night-shift/ folder is untouched: `night-shift install` there registers it again.
+// .night-shift/ folder is untouched: `night-shift install`, or the next night started there, registers it again.
 export function forgetRepo(ref: string): RepoRef {
   const repos = readRegistry();
-  const found = repos.find((r) => r.id === ref) ?? repos.find((r) => samePath(realPath(r.path), realPath(path.resolve(ref))));
+  const byId = repos.find((r) => r.id === ref);
+  const byPath = repos.find((r) => samePath(realPath(r.path), realPath(path.resolve(ref))));
+  if (byId && byPath && byId !== byPath) throw new StoreError(`"${ref}" is the id of ${byId.path} and also names ${byPath.path}; give the full path of the one to forget`);
+  const found = byId ?? byPath;
   if (!found) throw new StoreError(`no registered repository ${JSON.stringify(ref)}; registered: ${repos.map((r) => r.id).join(', ') || 'none'}`, 404);
   writeJson(registryFile(), { repos: repos.filter((r) => r !== found) });
   const state = readViewerState();

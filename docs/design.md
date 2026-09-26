@@ -383,7 +383,8 @@ from any folder. Screens:
 The registry of repositories and the read marks live in the local install
 folder (`~/.night-shift/repos.json`, `viewer.json`), never in a repository.
 `night-shift forget <id or path>` takes a repository off the list and drops its
-read marks; its own files stay, and `night-shift install` there adds it back.
+read marks; its own files stay, and `night-shift install` there, or the next
+night started there, adds it back.
 
 ## Feedback to the Night Shift Repo
 

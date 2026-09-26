@@ -234,7 +234,7 @@ async function main(argv: string[]): Promise<number> {
     case 'forget': {
       if (!p.args[0]) throw new UsageError('night-shift forget <repo id or path>; the ids are in the Viewer and in ~/.night-shift/repos.json');
       const r = forgetRepo(p.args[0]);
-      console.log(`Forgot ${r.id} (${r.path}): the Viewer no longer shows it. Its .night-shift/ folder is untouched; night-shift install there adds it back.`);
+      console.log(`Forgot ${r.id} (${r.path}): the Viewer no longer shows it. Its .night-shift/ folder is untouched; night-shift install there, or the next night started there, adds it back.`);
       return 0;
     }
     default:
