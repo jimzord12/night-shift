@@ -73,7 +73,7 @@ export const OWNER_SIDE: Record<OwnerSide, { label: string; color: string; hint:
 export function OwnerPill({ side }: { side: OwnerSide }) {
   const s = OWNER_SIDE[side];
   return (
-    <span title={s.hint} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ color: s.color, borderColor: `color-mix(in srgb, ${s.color} 45%, transparent)` }}>
+    <span title={s.hint} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${s.color} 70%, white)`, borderColor: `color-mix(in srgb, ${s.color} 45%, transparent)` }}>
       {s.label}
     </span>
   );
@@ -110,15 +110,17 @@ export function Ring({ done, total, size = 120, color = 'var(--accent)', childre
 }
 
 const DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+const DATE = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 
 // "Night of Sat 26 Sep", and "(2nd)" for the second night that started the same day.
-export function nightTitle(id: string): string {
+// "Night of Sat 26 Sept (2nd)"; short: "26 Sept (2nd)", for chips where space is tight.
+export function nightTitle(id: string, short = false): string {
   const m = /^(\d{4}-\d{2}-\d{2})-([a-z]+)$/.exec(id);
   if (!m) return id;
-  const d = DAY.format(new Date(`${m[1]}T12:00:00`));
+  const d = (short ? DATE : DAY).format(new Date(`${m[1]}T12:00:00`));
   const n = m[2].length === 1 ? m[2].charCodeAt(0) - 96 : 27;
   const ord = n === 1 ? '' : ` (${n}${n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'})`;
-  return `Night of ${d}${ord}`;
+  return `${short ? '' : 'Night of '}${d}${ord}`;
 }
 
 export function minutes(total: number | null | undefined): string {

@@ -55,13 +55,16 @@ function NightChip({ n, name, active, onClick }: { n: NightSummary; name: string
   const st = NIGHT_STATUS[n.running ? 'running' : n.status];
   const settled = !n.running && !inMorning(n);
   return (
-    <button onClick={onClick} aria-current={active || undefined} className={`glass inline-flex max-w-full min-w-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition hover:bg-white/10 ${active ? 'outline-2 outline-[var(--accent)]' : ''} ${settled && !active ? 'opacity-60' : ''}`}>
+    <button onClick={onClick} aria-current={active || undefined} className={`glass inline-flex max-w-full min-w-0 items-center gap-2 rounded-2xl px-3.5 py-1.5 text-left text-sm transition hover:bg-white/10 sm:rounded-full ${active ? 'outline-2 outline-[var(--accent)]' : ''} ${settled && !active ? 'opacity-60' : ''}`}>
       <span className="size-2 shrink-0 rounded-full" style={{ background: st.color, boxShadow: `0 0 8px ${st.color}` }} />
-      <span className="shrink-0 font-semibold whitespace-nowrap">{name}</span>
-      <span className="min-w-0 truncate text-white/60">{nightTitle(n.id)}</span>
+      {/* Phone: the name above the date, so neither squeezes the other out. */}
+      <span className="flex min-w-0 flex-col leading-tight sm:flex-row sm:items-baseline sm:gap-2">
+        <span className="min-w-0 truncate font-semibold" title={name}>{name}</span>
+        <span className="whitespace-nowrap text-white/60">{nightTitle(n.id, true)}</span>
+      </span>
       {!n.read && <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 text-[11px] font-bold tracking-wide text-white uppercase">new</span>}
       {n.questions_open > 0 && <span className="shrink-0 rounded-full bg-eyes px-1.5 text-[13px] font-bold text-night-950" title={`${n.questions_open} open question${n.questions_open === 1 ? '' : 's'}`}>{n.questions_open}</span>}
-      {n.hand_over && <span className="shrink-0 rounded-full border border-eyes/50 px-1.5 text-xs whitespace-nowrap text-eyes" title="Unfinished work or answers not handed over yet: Create follow-up">to hand over</span>}
+      {n.hand_over && <span className="shrink-0 rounded-full border border-eyes/50 px-1.5 text-xs whitespace-nowrap text-eyes" title="Unfinished work or answers not handed over yet: Create follow-up">hand over</span>}
       {settled && <Icon name="check" className="size-4 shrink-0 text-shipped" strokeWidth={2.6} />}
     </button>
   );
