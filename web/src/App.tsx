@@ -107,21 +107,21 @@ export function App() {
     <div className="sky min-h-screen">
       <Starfield />
       <div className="relative mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-        <header className="flex flex-wrap items-center gap-4 py-5">
+        <header className="flex flex-wrap items-center gap-3 py-4 sm:gap-4 sm:py-5">
           <div className="flex items-center gap-3">
             <span className="grid size-10 place-items-center rounded-full bg-moon/15 text-moon shadow-[0_0_24px_#f5d76e55]">
               <Icon name="moon" className="size-5" strokeWidth={2.2} />
             </span>
             <div>
               <div className="font-display text-lg leading-tight font-semibold">Night Shift</div>
-              <div className="text-xs text-white/50">{overview ? `${overview.repos.filter((r) => !r.missing).length} repositor${overview.repos.length === 1 ? 'y' : 'ies'}` : '…'}</div>
+              <div className="hidden text-xs text-white/50 sm:block">{overview ? `${overview.repos.filter((r) => !r.missing).length} repositor${overview.repos.length === 1 ? 'y' : 'ies'}` : '…'}</div>
             </div>
           </div>
-          <nav className="glass flex flex-wrap rounded-full p-1">
+          <nav className="glass order-last flex w-full justify-between rounded-full p-1 sm:order-none sm:w-auto sm:justify-start">
             {VIEWS.map((v) => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`relative rounded-full px-4 py-1.5 text-sm transition ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
+              <button key={v.id} onClick={() => setView(v.id)} className={`relative min-w-0 flex-1 rounded-full px-2 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
                 {v.label}
-                {v.id === 'questions' && openCount > 0 && <span className="ml-1.5 rounded-full bg-eyes px-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
+                {v.id === 'questions' && openCount > 0 && <span className="ml-1 rounded-full sm:ml-1.5 bg-eyes px-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
               </button>
             ))}
           </nav>

@@ -68,7 +68,7 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div className="glass pop-in rounded-3xl p-6 md:col-span-2 2xl:col-span-1">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="tracking-widest text-white/50 uppercase">{detail.repo.name}</span>
@@ -77,9 +77,9 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
               {st.label}
             </span>
           </div>
-          <h1 className="font-display mt-1 text-3xl font-semibold">{nightTitle(n.night)}</h1>
-          {n.summary ? <p className="mt-3 text-lg leading-snug text-white/85">{n.summary}</p> : <p className="mt-3 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
-          <div className="mt-5 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
+          <h1 className="font-display mt-1 text-2xl font-semibold sm:text-3xl">{nightTitle(n.night)}</h1>
+          {n.summary ? <p className="mt-3 leading-snug text-white/85 sm:text-lg">{n.summary}</p> : <p className="mt-3 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
             {OUTCOMES.map((o) => (
               <div key={o} className="flex min-w-0 items-center gap-2 rounded-2xl bg-white/5 px-2 py-2 sm:gap-2.5 sm:px-3" style={{ opacity: counts[o] ? 1 : 0.35 }}>
                 <span className="grid size-7 shrink-0 place-items-center rounded-full sm:size-8" style={{ background: `color-mix(in srgb, ${STATUS[o].color} 18%, transparent)`, color: STATUS[o].color }}>
@@ -99,9 +99,9 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
           </div>
         </div>
 
-        <button onClick={() => onOpenDeck()} disabled={!n.questions.length} className="glass pop-in group flex flex-col items-center justify-center gap-6 rounded-3xl p-6 text-center transition hover:bg-white/10 disabled:cursor-default disabled:hover:bg-transparent" style={{ animationDelay: '60ms' }}>
+        <button onClick={() => onOpenDeck()} disabled={!n.questions.length} className="glass pop-in group flex min-w-0 flex-col items-center justify-center gap-6 rounded-3xl p-6 text-center transition hover:bg-white/10 disabled:cursor-default disabled:hover:bg-transparent" style={{ animationDelay: '60ms' }}>
           {n.questions.length > 0 && (
-            <span className="cta inline-flex items-center gap-2 text-lg whitespace-nowrap">
+            <span className="cta inline-flex items-center gap-2 text-base sm:text-lg sm:whitespace-nowrap">
               <span className="cta-shine" />
               <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
               {openQ ? 'Start answering' : 'Review answers'}
