@@ -7,7 +7,7 @@ import { Icon, NIGHT_STATUS, STATUS, dollars, minutes, nightTitle } from './ui.t
 
 export function QuestionsView({ items, loading, onOpen }: { items: DeckItem[]; loading: boolean; onOpen: (key: string) => void }) {
   if (loading && !items.length) return <div className="py-24 text-center text-white/40">Loading the questions…</div>;
-  if (!items.length) return <Empty icon="question" text="No questions. When an agent needs a decision, it asks here instead of guessing." />;
+  if (!items.length) return <Empty icon="question" text="No open questions. When an agent needs a decision, it asks here instead of guessing." />;
   const groups = new Map<string, DeckItem[]>();
   for (const i of items) {
     const k = `${i.detail.repo.name} · ${nightTitle(i.detail.night.night)}`;

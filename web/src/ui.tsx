@@ -52,6 +52,10 @@ export const STATUS: Record<Outcome, { label: string; color: string; icon: IconN
   skipped: { label: 'Skipped', color: 'var(--color-skipped)', icon: 'skip' },
 };
 
+// A task of a running night with no outcome yet.
+export const WORKING = { label: 'Working', color: 'var(--color-moon)', icon: 'moon' as IconName };
+export const taskStyle = (outcome: Outcome | null) => (outcome === null ? WORKING : STATUS[outcome]);
+
 export const NIGHT_STATUS: Record<NightStatus | 'running', { label: string; color: string }> = {
   complete: { label: 'Complete', color: 'var(--color-shipped)' },
   interrupted: { label: 'Interrupted', color: 'var(--color-failed)' },
@@ -59,8 +63,8 @@ export const NIGHT_STATUS: Record<NightStatus | 'running', { label: string; colo
   running: { label: 'Running now', color: 'var(--color-moon)' },
 };
 
-export function Pill({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <span className={`inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-xs text-white/75 ${className}`}>{children}</span>;
+export function Pill({ children, className = '', title }: { children: ReactNode; className?: string; title?: string }) {
+  return <span title={title} className={`inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-xs text-white/75 ${className}`}>{children}</span>;
 }
 
 export function Ring({ done, total, size = 120, color = 'var(--accent)', children }: { done: number; total: number; size?: number; color?: string; children?: ReactNode }) {

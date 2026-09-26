@@ -4,7 +4,7 @@ import { OUTCOMES, countOutcomes, isOpenQuestion } from '../../src/types.ts';
 import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import type { Media } from './Evidence.tsx';
-import { Icon, NIGHT_STATUS, Pill, Ring, STATUS, dollars, minutes, nightTitle } from './ui.tsx';
+import { Icon, NIGHT_STATUS, Pill, Ring, STATUS, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
 
 interface Props {
   overview: Overview;
@@ -215,7 +215,7 @@ function thumbnail(t: Task, url: (rel: string) => string): string | undefined {
 }
 
 function TaskTile({ task: t, detail, delay, onOpen }: { task: Task; detail: NightDetail; delay: number; onOpen: () => void }) {
-  const s = STATUS[t.outcome ?? 'not_started'];
+  const s = taskStyle(t.outcome);
   const url = (rel: string) => fileUrl(detail.repo.id, detail.night.night, rel);
   const thumb = thumbnail(t, url);
   const met = t.checks.filter((c) => c.met).length;
@@ -231,7 +231,7 @@ function TaskTile({ task: t, detail, delay, onOpen }: { task: Task; detail: Nigh
           </div>
         )}
         <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold" style={{ color: s.color }}>
-          <Icon name={s.icon} className="size-3.5" strokeWidth={2.6} /> {t.outcome === null ? 'Working' : s.label}
+          <Icon name={s.icon} className="size-3.5" strokeWidth={2.6} /> {s.label}
         </span>
         {t.unplanned && <span className="absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white/80">unplanned</span>}
       </div>
@@ -240,7 +240,11 @@ function TaskTile({ task: t, detail, delay, onOpen }: { task: Task; detail: Nigh
         <p className="text-[18px] leading-snug text-white/90">{t.title}</p>
         {line && <p className="text-sm text-white/55">{line}</p>}
         <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
-          {t.evidence.length > 0 && <Pill><Icon name="image" className="size-3" /> {t.evidence.length}</Pill>}
+          {t.evidence.length > 0 && (
+            <Pill title={`${t.evidence.length} piece${t.evidence.length === 1 ? '' : 's'} of evidence`}>
+              <Icon name={t.evidence.some((b) => b.type === 'image' || b.type === 'compare' || b.type === 'video') ? 'image' : 'file'} className="size-3" /> {t.evidence.length}
+            </Pill>
+          )}
           {t.blocked_by && <Pill className="!bg-[var(--accent)]/25 !text-white"><Icon name="question" className="size-3" /> {t.blocked_by}</Pill>}
           {t.follow_up && <Pill>from {t.follow_up}</Pill>}
         </div>
@@ -251,7 +255,7 @@ function TaskTile({ task: t, detail, delay, onOpen }: { task: Task; detail: Nigh
 
 function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; detail: NightDetail; onClose: () => void; onQuestion: (key: string) => void }) {
   const [zoom, setZoom] = useState<Media | null>(null);
-  const s = STATUS[t.outcome ?? 'not_started'];
+  const s = taskStyle(t.outcome);
   const url = (rel: string) => fileUrl(detail.repo.id, detail.night.night, rel);
   const questions = detail.night.questions.filter((q) => q.task === t.id || q.id === t.blocked_by);
   useEffect(() => {
@@ -265,7 +269,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
         <div className="flex items-start justify-between gap-4">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 15%, transparent)` }}>
-              <Icon name={s.icon} className="size-3.5" strokeWidth={2.6} /> {t.outcome === null ? 'Working' : s.label}
+              <Icon name={s.icon} className="size-3.5" strokeWidth={2.6} /> {s.label}
             </span>
             <h2 className="font-display mt-3 text-2xl font-semibold"><span className="font-mono">{t.id}</span> · {t.title}</h2>
             {t.source && <div className="mt-1 text-sm text-white/50">from {t.source}</div>}
@@ -363,7 +367,7 @@ function FeedbackSection({ detail, onDetail }: { detail: NightDetail; onDetail: 
         {detail.night.feedback.map((f) => (
           <div key={f.id} className="glass flex items-start gap-3 rounded-2xl px-4 py-3">
             {f.sent ? (
-              <span className="mt-1 grid size-5 place-items-center rounded bg-shipped/20 text-shipped"><Icon name="check" className="size-3.5" strokeWidth={3} /></span>
+              <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-shipped/15 px-2 py-0.5 text-xs font-semibold text-shipped"><Icon name="check" className="size-3" strokeWidth={3} /> Sent</span>
             ) : (
               <input type="checkbox" checked={ticked.has(f.id)} onChange={() => toggle(f.id)} className="mt-1.5 size-4 accent-[var(--accent)]" aria-label={`Send ${f.title}`} />
             )}

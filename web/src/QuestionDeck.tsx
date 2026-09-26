@@ -48,6 +48,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [showNote, setShowNote] = useState(false);
+  const [focusNote, setFocusNote] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
 
@@ -62,6 +64,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   useEffect(() => {
     setMessage(null);
     setShowNote(!!draft?.note);
+    setFocusNote(false);
+    scroller.current?.scrollTo({ top: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
@@ -145,7 +149,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const rec = q?.options.find((o) => o.id === q.recommended);
 
   return (
-    <div className="sky fixed inset-0 z-40 overflow-y-auto">
+    <div ref={scroller} className="sky fixed inset-0 z-40 overflow-y-auto">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 py-6">
         <header className="flex items-center gap-4">
@@ -182,7 +186,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
             <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the morning</button>
           </div>
         ) : !q || !draft || !item ? (
-          <div className="my-auto text-center text-white/60">No questions.</div>
+          <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (
           <div key={key} className="pop-in mt-8 flex flex-1 flex-col">
             <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -245,9 +249,9 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
 
             <div className="mt-4">
               {showNote ? (
-                <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="A note for the agent (optional)" rows={2} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus />
+                <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="A note for the agent (optional)" rows={2} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} />
               ) : (
-                <button onClick={() => setShowNote(true)} className="text-sm text-white/50 hover:text-white">+ add a note</button>
+                <button onClick={() => { setShowNote(true); setFocusNote(true); }} className="text-sm text-white/50 hover:text-white">+ add a note</button>
               )}
             </div>
 
