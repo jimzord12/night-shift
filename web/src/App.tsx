@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { isOpenQuestionIn } from '../../src/types.ts';
+import { inMorning, isOpenQuestionIn, needsHandOver } from '../../src/types.ts';
 import type { NightDetail, Overview } from '../../src/types.ts';
 import { getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
@@ -23,16 +23,31 @@ const keyOf = (repo: string, night: string) => `${repo}/${night}`;
 export function App() {
   const [loaded, setOverview] = useState<Overview | null>(null);
   const [details, setDetails] = useState<Record<string, NightDetail>>({});
+  // Nights opened since the last load; they count as read at once.
+  const [seen, setSeen] = useState<ReadonlySet<string>>(new Set());
   // The overview as loaded, with each night's counts taken from its detail once the detail is here,
-  // so an answer saved in the deck updates the badges without a reload.
+  // so an answer saved in the deck or a follow-up updates the badges without a reload.
   const overview = useMemo<Overview | null>(() => {
     if (!loaded) return null;
     const nights = loaded.nights.map((n) => {
-      const d = details[keyOf(n.repo, n.id)];
-      return d ? { ...n, questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up)).length, feedback_unsent: d.night.feedback.filter((f) => !f.sent).length } : n;
+      const key = keyOf(n.repo, n.id);
+      const d = details[key];
+      const live = { ...n, read: n.read || seen.has(key) };
+      return d
+        ? {
+            ...live,
+            questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up)).length,
+            feedback_unsent: d.night.feedback.filter((f) => !f.sent).length,
+            follow_up: !!d.follow_up,
+            hand_over: needsHandOver(d.night, d.follow_up),
+          }
+        : live;
     });
     return { ...loaded, nights };
-  }, [loaded, details]);
+  }, [loaded, details, seen]);
+  // Morning's list is fixed at load, so a night does not vanish while the developer works on it;
+  // each entry still shows its live state.
+  const inbox = useMemo(() => (loaded && overview ? overview.nights.filter((_, i) => inMorning(loaded.nights[i])) : []), [loaded, overview]);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,11 +70,13 @@ export function App() {
       const o = await getOverview();
       setOverview(o);
       setDetails({});
+      setSeen(new Set());
       setError(null);
       document.title = 'Night Shift';
       setSelected((current) => {
         if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current)) return current;
-        const first = o.nights.find((n) => !n.read) ?? o.nights[0];
+        // Morning opens on the newest night that still needs the developer; none means all caught up.
+        const first = o.nights.find(inMorning);
         return first ? keyOf(first.repo, first.id) : null;
       });
     } catch (e) {
@@ -73,12 +90,15 @@ export function App() {
     void load();
   }, [load]);
 
-  // The chosen night: load it once and mark it read (the "New" chips keep the state they loaded with).
+  // The chosen night: load it once and mark it read.
   useEffect(() => {
-    if (!selected || details[selected]) return;
+    if (!selected) return;
     const [repo, night] = selected.split('/');
-    void loadNight(repo, night);
-    if (overview?.nights.some((n) => keyOf(n.repo, n.id) === selected && !n.read)) void markRead(repo, night).catch(() => {});
+    if (!details[selected]) void loadNight(repo, night);
+    if (overview?.nights.some((n) => keyOf(n.repo, n.id) === selected && !n.read)) {
+      setSeen((s) => new Set(s).add(selected));
+      void markRead(repo, night).catch(() => {});
+    }
   }, [selected, details, loadNight, overview]);
 
   // The Questions view needs every night that still has open questions.
@@ -137,7 +157,7 @@ export function App() {
 
         {overview && (
           <main className="mt-4">
-            {view === 'morning' && <Morning overview={overview} detail={detail} onPick={pick} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
+            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
             {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
             {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
             {view === 'trends' && <TrendsView />}

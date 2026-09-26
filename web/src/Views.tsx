@@ -1,7 +1,7 @@
 import type { Overview } from '../../src/types.ts';
-import { OUTCOMES, isOpenQuestionIn } from '../../src/types.ts';
+import { OUTCOMES, isOpenQuestionIn, ownerSide } from '../../src/types.ts';
 import type { DeckItem } from './QuestionDeck.tsx';
-import { Icon, NIGHT_STATUS, STATUS, dollars, minutes, nightTitle } from './ui.tsx';
+import { Icon, NIGHT_STATUS, OwnerPill, STATUS, dollars, minutes, nightTitle } from './ui.tsx';
 
 // ---------------------------------------------------------------- questions
 
@@ -64,6 +64,7 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
                   <span className="inline-flex items-center gap-1"><Icon name="clock" /> {minutes(n.duration_min)}</span>
                   <span className="inline-flex items-center gap-1"><Icon name="coin" /> {dollars(n.cost_usd)}</span>
                   <span className="font-semibold" style={{ color: st.color }}>{st.label}</span>
+                  {!n.running && <OwnerPill side={ownerSide(n)} />}
                 </span>
               </div>
               {n.summary && <p className="mt-1 text-sm text-white/70">{n.summary}</p>}

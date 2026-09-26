@@ -224,3 +224,23 @@ choices below were made unattended and are open to review:
 for no user); inline JSON with a documented permission rule (every `Adopter`
 would need to change their permissions). Replaces D7, D13, D14 and D17;
 D5 and D9 stay open (D20).
+
+## D22  Morning is an inbox; how a night ended and what it needs are shown apart (2026-09-26)
+
+Morning shows only the nights still unread or needing the developer: an
+open question, or unfinished work and answers not yet handed over (closed,
+something to hand over, no follow-up file). With none left it says "All
+caught up"; every night stays one click away in History. The night's own
+status reads **Closed** / **Stopped early** instead of Complete /
+Interrupted, and the developer's side shows beside it as **Needs you**,
+**Handed over** or **Nothing left**. **Why:** the owner opened Morning on
+two finished nights and could not tell why they were shown, nor whether
+"Complete" meant nothing was left for them. **Chosen:** one rule
+(`inMorning`, `ownerSide` in `src/types.ts`) used by the server and the web
+app alike; the list is fixed when the `Viewer` loads, so a night does not
+vanish while the developer works on it, and its chip shows a tick once
+settled. A question handed over unanswered keeps its night in Morning until
+it is answered or a later night settles it. **Rejected:** a dismiss button
+(an unfinished night is settled by handing it over; the next agent then
+skips what no longer matters, with a reason); keeping every unread night
+only (a read night with open questions would disappear).

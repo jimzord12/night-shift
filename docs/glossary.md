@@ -24,6 +24,9 @@ name what v7 builds.
 | `Feedback` | Friction with Night Shift an agent logs in the `Night file`; the `Owner` may send it to GitHub as an issue labelled `proposal` | `feedback[]` in the `Night file` | 2026-09-26, owner |
 | `Follow-up file` | What the `Owner` hands to the next agent: unfinished tasks plus the `Owner`'s decisions | `.night-shift/follow-ups/<night id>.json`, schema `night-shift/follow-up@1` | 2026-09-26, owner |
 | `Viewer` | The local app that shows every `Night` of every registered repository | `web/` | 2026-09-26, owner |
+| `Morning` | The `Viewer`'s inbox: the `Night`s still unread or needing the `Owner`; "All caught up" when none | `web/src/Morning.tsx`, `inMorning` in `src/types.ts` | 2026-09-26, owner (D22) |
+| Night status | How a `Night` ended, shown as **Closed** (`complete`), **Stopped early** (`interrupted`), **Running now**, or **Stopped, not closed yet** (`open`, session gone) | `status` in the `Night file`; `NIGHT_STATUS` in `web/src/ui.tsx` | 2026-09-26, owner (D22) |
+| `Owner` side | What a `Night` still asks of the `Owner`: **Needs you** (open `Question`s, or unfinished work not handed over), **Handed over** (its `Follow-up file` exists), **Nothing left** | `ownerSide` in `src/types.ts` | 2026-09-26, owner (D22) |
 | `Meter` | The part of the tool that reads the harness's logs and writes the metrics | docs/design.md, "Meter" | 2026-09-26, owner |
 | `Owner File` | A repository's shared, committed rules for working with its `Owner`: who decides what, how to report | `docs/owner.md` | 2026-09-25 |
 | `Owner Profile` | The `Owner`'s personal preferences, kept out of the repository; read before the first reply of a session | `.local/preferences/` (git-ignored) | 2026-09-25 |

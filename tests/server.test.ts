@@ -8,6 +8,7 @@ import { ask, close, feedback, record, start } from '../src/night.ts';
 import { loadNight, readFollowUp, registerRepo } from '../src/store.ts';
 import { resolveItem } from '../src/followup.ts';
 import { issueBody, newIssueUrl } from '../src/github.ts';
+import { inMorning, ownerSide } from '../src/types.ts';
 import type { NightDetail, Overview } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -40,6 +41,46 @@ test('overview: every registered repository\'s nights, newest first, with counts
   assert.equal((await app.request(`/api/nights/${a.ref.id}/${a.id}/read`, { method: 'POST' })).status, 200);
   const again = (await (await app.request('/api/overview')).json()) as Overview;
   assert.equal(again.nights.find((n) => n.repo === a.ref.id && n.id === a.id)?.read, true);
+});
+
+test('morning inbox: a night stays while unread or needing the developer, and leaves once read and handed over', async () => {
+  const { ref, id, repo } = closedNight();
+  const app = createApp({ version: 'test' });
+  const summary = async () => {
+    const o = (await (await app.request('/api/overview')).json()) as Overview;
+    const n = o.nights.find((x) => x.repo === ref.id && x.id === id);
+    assert.ok(n);
+    return n;
+  };
+  let n = await summary();
+  assert.deepEqual([n.hand_over, n.questions_open, ownerSide(n), inMorning(n)], [true, 1, 'needs_you', true]);
+  await app.request(`/api/nights/${ref.id}/${id}/read`, { method: 'POST' });
+  assert.equal(inMorning(await summary()), true, 'read, but the blocked task is not handed over');
+
+  // Handed over with the question unanswered: still waiting for the developer's answer.
+  await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  n = await summary();
+  assert.deepEqual([n.hand_over, n.follow_up, n.questions_open, inMorning(n)], [false, true, 1, true]);
+  await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: loadNight(repo, id).hash }) });
+  n = await summary();
+  assert.deepEqual([ownerSide(n), inMorning(n)], ['handed_over', false]);
+
+  // A night with every task done and no question has nothing to hand over: reading it is enough.
+  const other = gitRepo('clean');
+  const clean = start(other, plan(TASKS.slice(0, 1)), session('s2', DEAD_PID), NOW).night.night;
+  record(other, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  close(other, 'All done.');
+  const otherRef = registerRepo(other);
+  const cleanSummary = async () => {
+    const o = (await (await app.request('/api/overview')).json()) as Overview;
+    const found = o.nights.find((x) => x.repo === otherRef.id && x.id === clean);
+    assert.ok(found);
+    return found;
+  };
+  n = await cleanSummary();
+  assert.deepEqual([n.hand_over, ownerSide(n), inMorning(n)], [false, 'nothing', true]);
+  await app.request(`/api/nights/${otherRef.id}/${clean}/read`, { method: 'POST' });
+  assert.equal(inMorning(await cleanSummary()), false);
 });
 
 test('answers: round trip, a stale write is refused, an unknown option is refused', async () => {

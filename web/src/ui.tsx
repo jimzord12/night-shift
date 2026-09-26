@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { NightStatus, Outcome } from '../../src/types.ts';
+import type { NightStatus, Outcome, OwnerSide } from '../../src/types.ts';
 
 const PATHS = {
   check: 'M5 12.5l4.5 4.5L19 7.5',
@@ -57,11 +57,27 @@ export const WORKING = { label: 'Working', color: 'var(--color-moon)', icon: 'mo
 export const taskStyle = (outcome: Outcome | null) => (outcome === null ? WORKING : STATUS[outcome]);
 
 export const NIGHT_STATUS: Record<NightStatus | 'running', { label: string; color: string }> = {
-  complete: { label: 'Complete', color: 'var(--color-shipped)' },
-  interrupted: { label: 'Interrupted', color: 'var(--color-failed)' },
+  complete: { label: 'Closed', color: 'var(--color-shipped)' },
+  interrupted: { label: 'Stopped early', color: 'var(--color-failed)' },
   open: { label: 'Stopped, not closed yet', color: 'var(--color-eyes)' },
   running: { label: 'Running now', color: 'var(--color-moon)' },
 };
+
+// The developer's side of a night, shown beside how the night ended.
+export const OWNER_SIDE: Record<OwnerSide, { label: string; color: string; hint: string }> = {
+  needs_you: { label: 'Needs you', color: 'var(--color-eyes)', hint: 'Open questions, or unfinished work not handed over yet' },
+  handed_over: { label: 'Handed over', color: 'var(--accent)', hint: 'Its follow-up is with the next agent' },
+  nothing: { label: 'Nothing left', color: 'var(--color-idle)', hint: 'Every task done or skipped, no questions' },
+};
+
+export function OwnerPill({ side }: { side: OwnerSide }) {
+  const s = OWNER_SIDE[side];
+  return (
+    <span title={s.hint} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ color: s.color, borderColor: `color-mix(in srgb, ${s.color} 45%, transparent)` }}>
+      {s.label}
+    </span>
+  );
+}
 
 export function Pill({ children, className = '', title }: { children: ReactNode; className?: string; title?: string }) {
   return <span title={title} className={`inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-0.5 text-xs text-white/75 ${className}`}>{children}</span>;

@@ -368,16 +368,22 @@ and `--json`. Every reply ends with the next step.
 One local web app for every registered repository, opened with one command
 from any folder. Screens:
 
-1. **Morning:** every unread night as a chip, newest first, and the chosen
-   night in full: header (complete, interrupted or running, duration, cost,
+1. **Morning:** an inbox (D22). Every night still unread or needing the
+   developer (an open question, or unfinished work and answers not yet
+   handed over) is a chip, newest first; none left reads "All caught up",
+   with the last night and History one click away. Below, the chosen night
+   in full: header (how it ended: Closed, Stopped early or Running now; the
+   developer's side: Needs you, Handed over or Nothing left; duration, cost,
    sub-agents), summary, the six outcome counts, tasks (open one for its
    checks, questions and proof), the questions as a deck (one per screen,
    the recommendation preselected, a free note), **Create follow-up**, and
    feedback with tick boxes and **Send to GitHub**. Opening a night marks
-   it read.
+   it read. The list is fixed when the Viewer loads; a settled chip shows a
+   tick until the next reload.
 2. **Questions:** every open question across nights.
 3. **History:** one row per night: date, repository, outcome counts,
-   duration, cost, status; a row opens that night.
+   duration, cost, how it ended and the developer's side; a row opens that
+   night.
 4. **Trends:** empty until measurement is designed.
 
 The registry of repositories and the read marks live in the local install

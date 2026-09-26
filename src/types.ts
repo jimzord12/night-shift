@@ -197,6 +197,8 @@ export interface NightSummary {
   cost_usd: number | null;
   read: boolean;
   follow_up: boolean;
+  // Closed with work or questions for the next agent, and no follow-up yet.
+  hand_over: boolean;
   running: boolean;
   problems: string[];
 }
@@ -241,3 +243,19 @@ export const isOpenQuestionIn = (q: Question, f: FollowUp | null | undefined) =>
   const h = handedItem(f, q);
   return !h || h.status === 'open';
 };
+
+// Tasks a follow-up would hand over: not done or skipped, leaving out follow-up items the night
+// never reached (they stay open in their own follow-up). Matches buildFollowUp.
+export const unfinishedTasks = (n: Night) => n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped' && !(t.follow_up && t.outcome === 'not_started')).length;
+
+// A closed night with work or questions for the next agent and no follow-up yet: the developer
+// still has to hand it over.
+export const needsHandOver = (n: Night, f: FollowUp | null | undefined) => n.status !== 'open' && !f && (unfinishedTasks(n) > 0 || n.questions.length > 0);
+
+// The developer's side of a night, apart from how the night itself ended.
+export type OwnerSide = 'needs_you' | 'handed_over' | 'nothing';
+export const ownerSide = (s: Pick<NightSummary, 'questions_open' | 'hand_over' | 'follow_up'>): OwnerSide =>
+  s.questions_open > 0 || s.hand_over ? 'needs_you' : s.follow_up ? 'handed_over' : 'nothing';
+
+// Morning is an inbox: a night stays there while it is unread or still needs the developer.
+export const inMorning = (s: Pick<NightSummary, 'read' | 'questions_open' | 'hand_over' | 'follow_up'>) => !s.read || ownerSide(s) === 'needs_you';
