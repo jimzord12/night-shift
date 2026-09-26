@@ -33,10 +33,14 @@ type Validator = typeof planSchema;
 function schemaProblems(v: Validator, data: unknown): string[] {
   if (v(data)) return [];
   // oneOf failures repeat once per branch; keep each message once.
-  return [...new Set((v.errors ?? []).map((e) => `${e.instancePath || '(root)'} ${e.message ?? 'is invalid'}`))];
+  return [...new Set((v.errors ?? []).map((e) => {
+    const extra = (e.params as { additionalProperty?: string }).additionalProperty;
+    return `${e.instancePath || '(root)'} ${e.message ?? 'is invalid'}${extra ? ` ("${extra}")` : ''}`;
+  }))];
 }
 
 export const planProblems = (data: unknown) => schemaProblems(planSchema, data);
+export const nightShapeProblems = (data: unknown) => schemaProblems(nightSchema, data);
 export const followUpSchemaProblems = (data: unknown) => schemaProblems(followUpSchema, data);
 
 // JSON.parse that tolerates the byte-order mark Windows tools (PowerShell 5.1) put in UTF-8 files.
@@ -125,7 +129,10 @@ export function loadNight(repo: string, id: string): { night: Night; hash: strin
   return { night: r.night, hash: r.hash };
 }
 
+// The last guard: a night file that fails its own schema would make every later command refuse.
 export function saveNight(repo: string, night: Night): string {
+  const problems = nightShapeProblems(night);
+  if (problems.length) throw new StoreError(`night.json was not saved: ${problems.join('; ')}`, 422);
   return hashOf(writeJson(nightFile(repo, night.night), night));
 }
 

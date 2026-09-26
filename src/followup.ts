@@ -7,12 +7,15 @@ import fs from 'node:fs';
 
 // Every task that was not done or skipped, with the decision the developer made for it; answered
 // questions about no such task become decision items of their own; unanswered ones wait.
-export function buildFollowUp(n: Night, now = new Date()): FollowUp {
+// `earlier` finds the item a task took on, so a carried decision keeps the developer's answer.
+export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string) => FollowUpItem | undefined = () => undefined): FollowUp {
   const items: FollowUpItem[] = [];
   const used = new Set<string>();
   const add = (item: Omit<FollowUpItem, 'id' | 'status'>) => items.push({ id: `A${items.length + 1}`, status: 'open', ...item });
   for (const t of n.tasks) {
     if (t.outcome === 'done' || t.outcome === 'skipped') continue;
+    // Never reached: the item it took on is still open in its own follow-up.
+    if (t.follow_up && t.outcome === 'not_started') continue;
     const q = n.questions.find((x) => x.id === t.blocked_by) ?? n.questions.find((x) => x.task === t.id);
     if (q) used.add(q.id);
     const base = { task: t.id, title: t.title, done_when: t.done_when };
@@ -22,10 +25,12 @@ export function buildFollowUp(n: Night, now = new Date()): FollowUp {
     } else if (q) {
       add({ ...base, kind: 'waiting', question: q.ask });
     } else {
+      const prior = t.follow_up ? earlier(t.follow_up) : undefined;
       const left = t.checks.filter((c) => !c.met).map((c) => (c.note ? `${c.done_when}: ${c.note}` : c.done_when));
       if (t.outcome === 'failed' && t.why) left.unshift(`failed: ${t.why}`);
       if (t.outcome === 'not_started' || (!left.length && t.outcome !== 'partial')) left.push('not started');
-      add({ ...base, kind: 'unfinished', left });
+      if (prior?.kind === 'decision') add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), left });
+      else add({ ...base, kind: 'unfinished', left });
     }
   }
   for (const q of n.questions) {
@@ -42,7 +47,13 @@ export function buildFollowUp(n: Night, now = new Date()): FollowUp {
 export function createFollowUp(repo: string, n: Night, now = new Date()): FollowUp {
   if (n.status === 'open') throw new StoreError('the night is still running; create the follow-up once it has closed', 409);
   if (fs.existsSync(followUpFile(repo, n.night))) throw new StoreError(`a follow-up for ${n.night} already exists`, 409);
-  const f = buildFollowUp(n, now);
+  const f = buildFollowUp(n, now, (ref) => {
+    try {
+      return checkRef(repo, ref).item;
+    } catch {
+      return undefined;
+    }
+  });
   if (!f.items.length) throw new StoreError('nothing to follow up: every task is done or skipped and every question is settled', 422);
   saveFollowUp(repo, f);
   return f;
@@ -93,7 +104,7 @@ export function checkRef(repo: string, ref: string): OpenItem {
 // What a closing night did to the follow-up items it planned for.
 export function applyNightToFollowUps(repo: string, n: Night, now = new Date()): void {
   for (const t of n.tasks) {
-    if (!t.follow_up) continue;
+    if (!t.follow_up || t.outcome === 'not_started') continue;
     const status = t.outcome === 'done' ? 'done' : t.outcome === 'skipped' ? 'skipped' : 'carried';
     const reason = t.outcome === 'done' ? undefined : t.outcome === 'skipped' ? t.reason : `${t.id} ended ${t.outcome ?? 'without an outcome'} in ${n.night}`;
     try {

@@ -60,7 +60,17 @@ test('outcome rules are enforced and nothing is written when a record is refused
   refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: '../../../README.md' }] }), /not inside the night's evidence/);
   refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'table', rows: [] }] }), /unknown block type "table"/);
   refused(() => record(repo, { task: 'T9', outcome: 'done' }), /no task T9/);
+  // Shapes the schema rejects are refused too, before any rule runs, so the file never goes bad.
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'link', url: 'https://example.com', caption: 'x' }] }), /not recorded: .*additional properties \("caption"\)/);
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0 }] }), /not recorded: .*excerpt/);
+  refused(() => record(repo, { task: 'T3', outcome: 'failed', checks: [false, false], why: 'x'.repeat(5000) }), /not recorded: \/tasks\/2\/why/);
+  refused(() => ask(repo, { ask: 'Which?', options: [{ id: 'opt1', label: 'One' }, { id: 'opt2', label: 'Two' }], recommended: 'opt1' }), /question was not added/);
+  refused(() => ask(repo, { ask: 'Which?', options: 'abcdefg'.split('').map((l) => ({ label: l })), recommended: 'a' }), /question was not added/);
+  refused(() => feedback(repo, { title: 'x'.repeat(5000), body: 'too long a title' }), /feedback was not logged/);
+  refused(() => close(repo, 'x'.repeat(5000)), /night was not closed: \/summary/);
   assert.equal(fs.readFileSync(nightFile(repo, night.night), 'utf8'), before);
+  // A task never reached may be recorded without checks.
+  assert.equal(record(repo, { task: 'T3', outcome: 'not_started' }).task.checks.length, 0);
   // A path given from the repository root is accepted and stored relative to the night.
   evidenceFile(repo, night.night, 'a.svg');
   const r = record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: `.night-shift/nights/${night.night}/evidence/a.svg` }] });
@@ -155,11 +165,25 @@ test('follow-ups: built from answers, the next plan must cover every open item, 
   evidenceFile(repo, s2.night.night, 'shot.svg');
   record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: 'evidence/shot.svg' }] });
   close(repo, 'Carried on.');
-  const items = openItems(repo);
-  assert.equal(items.length, 0);
+  // T2 was planned for A2 but never reached: A2 stays open with the developer's decision, and the
+  // night's own follow-up does not repeat it.
+  assert.deepEqual(openItems(repo).map((o) => o.ref), [`${id}/A2`]);
   const after = JSON.parse(fs.readFileSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`), 'utf8'));
-  assert.deepEqual(after.items.map((i: { status: string }) => i.status), ['done', 'carried', 'skipped']);
-  assert.equal(after.items[1].resolved.reason, 'T2 ended not_started in 2026-09-27-a');
+  assert.deepEqual(after.items.map((i: { status: string }) => i.status), ['done', 'open', 'skipped']);
+  refused(() => createFollowUp(repo, loadNight(repo, s2.night.night).night), /nothing to follow up/);
+
+  // A third night reaches it and fails: the item is carried, and the new follow-up keeps the decision.
+  const s3 = start(repo, plan([{ ...TASKS[1], follow_up: `${id}/A2` }]), session('c'), new Date('2026-09-28T23:00:00'));
+  record(repo, { task: 'T2', outcome: 'failed', checks: [false], why: 'Safari still loops' });
+  close(repo, 'Tried the login fix.');
+  const carried = JSON.parse(fs.readFileSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`), 'utf8')).items[1];
+  assert.equal(carried.status, 'carried');
+  assert.equal(carried.resolved.reason, `T2 ended failed in ${s3.night.night}`);
+  const f3 = createFollowUp(repo, loadNight(repo, s3.night.night).night);
+  assert.deepEqual(
+    { kind: f3.items[0].kind, label: f3.items[0].decision_label, note: f3.items[0].owner_note, left: f3.items[0].left },
+    { kind: 'decision', label: 'Own domain', note: 'We own the domain already.', left: ['failed: Safari still loops', 'Login lands on the account page'] },
+  );
   refused(() => resolveItem(repo, `${id}/A9`, 'done', 'day', undefined), /no item A9/);
 });
 

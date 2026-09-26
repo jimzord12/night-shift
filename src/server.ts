@@ -10,7 +10,7 @@ import { contentType, insideDir } from './files.ts';
 import { createFollowUp } from './followup.ts';
 import { createIssue, ghReady, newIssueUrl } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
-import { REPO_ROOT, StoreError, findRepo, listNightIds, listRepos, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveNight, followUpFile } from './store.ts';
+import { REPO_ROOT, StoreError, findRepo, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveNight, followUpFile } from './store.ts';
 import type { NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
 import { countOutcomes, emptyCounts, isOpenQuestion } from './types.ts';
 
@@ -215,7 +215,12 @@ export function createApp({ version, port }: AppOptions): Hono {
         errors.push(`${f.id}: ${(error as Error).message}`);
       }
     }
-    saveNight(repo.path, n);
+    const fresh = loadNight(repo.path, n.night).night;
+    for (const f of entries) {
+      const target = fresh.feedback.find((x) => x.id === f.id);
+      if (target && f.sent) target.sent = f.sent;
+    }
+    saveNight(repo.path, fresh);
     return c.json({ detail: detail(repo.id, n.night), links, errors });
   });
 

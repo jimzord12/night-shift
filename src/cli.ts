@@ -83,7 +83,10 @@ function input<T>(p: Parsed): T {
 
 function inputText(p: Parsed): string {
   if (typeof p.flags.json === 'string') return p.flags.json;
-  if (typeof p.flags.file === 'string') return fs.readFileSync(p.flags.file, 'utf8');
+  if (typeof p.flags.file === 'string') {
+    if (!fs.existsSync(p.flags.file)) throw new UsageError(`no such file: ${p.flags.file}`);
+    return fs.readFileSync(p.flags.file, 'utf8');
+  }
   if (!process.stdin.isTTY) return fs.readFileSync(0, 'utf8');
   throw new UsageError('write the plan to .night-shift/input.json and pass --file .night-shift/input.json (or send it on stdin)');
 }

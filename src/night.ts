@@ -22,6 +22,7 @@ import {
   planFile,
   readPlanInput,
   registerRepo,
+  nightShapeProblems,
   saveNight,
   taskProblems,
   writeJson,
@@ -70,6 +71,8 @@ function relEvidence(repo: string, id: string, p: string): string {
   const rel = path.relative(dir, full).split(path.sep).join('/');
   return rel.startsWith('..') ? p : rel;
 }
+
+const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
 function normaliseBlock(repo: string, id: string, raw: unknown): Block {
   if (!raw || typeof raw !== 'object') throw new StoreError('an evidence block must be an object');
@@ -203,32 +206,34 @@ export function record(repo: string, input: RecordInput, now = new Date()): { ni
     throw new StoreError(input.task ? `night ${n.night} has no task ${input.task}; for work you did not plan, send "unplanned": true with a title and why` : 'say which task: "task": "T1" (or "unplanned": true)');
   }
   const checks: Check[] = [];
-  const given = input.checks ?? [];
-  if (!task.unplanned && given.length !== task.done_when.length) {
+  const given = Array.isArray(input.checks) ? input.checks : [];
+  const exempt = task.unplanned || (input.outcome === 'not_started' && !given.length);
+  if (!exempt && given.length !== task.done_when.length) {
     throw new StoreError(`${task.id} has ${task.done_when.length} done_when line(s); send one check per line, in order: ${task.done_when.map((d, i) => `${i + 1}. ${d}`).join(' ')}`);
   }
   given.forEach((c, i) => {
     const met = typeof c === 'boolean' ? c : !!c?.met;
-    const note = typeof c === 'object' && c?.note?.trim() ? c.note.trim() : undefined;
+    const note = typeof c === 'object' && text(c?.note) ? text(c?.note) : undefined;
     checks.push({ done_when: task.done_when[i] ?? `check ${i + 1}`, met, ...(note ? { note } : {}) });
   });
   task.outcome = input.outcome as Task['outcome'];
   task.checks = checks;
-  task.evidence = (input.evidence ?? []).map((b) => normaliseBlock(repo, n.night, b));
+  task.evidence = (Array.isArray(input.evidence) ? input.evidence : []).map((b) => normaliseBlock(repo, n.night, b));
   for (const k of ['blocked_by', 'why', 'reason'] as const) {
-    const v = input[k]?.trim();
+    const v = text(input[k]);
     if (v) task[k] = v;
     else delete task[k];
   }
   task.recorded_at = localIso(now);
+  const tasks = [...n.tasks];
+  const at = tasks.findIndex((t) => t.id === task.id);
+  if (at >= 0) tasks[at] = task;
+  else tasks.push(task);
+  const shape = nightShapeProblems({ ...n, tasks });
+  if (shape.length) throw new StoreError(`${task.id} was not recorded: ${shape.join('; ')}`);
   const problems = taskProblems(task, new Set(n.questions.map((q) => q.id)), nightDir(repo, n.night));
   if (problems.length) throw new StoreError(`${task.id} was not recorded: ${problems.join('; ')}`);
-  if (index >= 0) n.tasks[index] = task;
-  else {
-    const at = n.tasks.findIndex((t) => t.id === task.id);
-    if (at >= 0) n.tasks[at] = task;
-    else n.tasks.push(task);
-  }
+  n.tasks = tasks;
   saveNight(repo, n);
   const met = checks.filter((c) => c.met).length;
   const summary = `Recorded ${task.id} as ${task.outcome}${checks.length ? ` (${met}/${checks.length} checks met)` : ''}${task.evidence.length ? `, ${task.evidence.length} evidence block(s)` : ''}.`;
@@ -259,13 +264,15 @@ export function ask(repo: string, input: AskInput): { night: Night; question: Qu
     id: `Q${n.questions.length + 1}`,
     task: input.task ?? null,
     ask: input.ask.trim(),
-    ...(input.why?.trim() ? { why: input.why.trim() } : {}),
+    ...(text(input.why) ? { why: text(input.why) } : {}),
     options,
     recommended,
     answer: null,
     note: null,
   };
   const trial = { ...n, questions: [...n.questions, q] };
+  const shape = nightShapeProblems(trial);
+  if (shape.length) throw new StoreError(`the question was not added: ${shape.join('; ')}`);
   const problems = nightProblems(trial, nightDir(repo, n.night)).filter((p) => p.startsWith(`${q.id}:`));
   if (problems.length) throw new StoreError(`the question was not added: ${problems.join('; ')}`);
   n.questions.push(q);
@@ -278,10 +285,12 @@ const FEEDBACK_KINDS = ['missing-block', 'confusing-rule', 'bad-fit', 'tool-bug'
 
 export function feedback(repo: string, input: { kind?: string; title: string; tags?: string[]; body: string }): { night: Night; item: Feedback; message: string } {
   const n = openNight(repo);
-  if (!input?.title?.trim() || !input.body?.trim()) throw new StoreError('feedback needs a title and a body');
+  if (!text(input?.title) || !text(input?.body)) throw new StoreError('feedback needs a title and a body');
   const kind = input.kind ?? 'other';
   if (!FEEDBACK_KINDS.includes(kind)) throw new StoreError(`kind must be one of ${FEEDBACK_KINDS.join(', ')}`);
-  const item: Feedback = { id: `F${n.feedback.length + 1}`, kind, title: input.title.trim(), tags: (input.tags ?? []).map(String), body: input.body.trim(), sent: null };
+  const item: Feedback = { id: `F${n.feedback.length + 1}`, kind, title: text(input.title), tags: (Array.isArray(input.tags) ? input.tags : []).map(String), body: text(input.body), sent: null };
+  const shape = nightShapeProblems({ ...n, feedback: [...n.feedback, item] });
+  if (shape.length) throw new StoreError(`the feedback was not logged: ${shape.join('; ')}`);
   n.feedback.push(item);
   saveNight(repo, n);
   return { night: n, item, message: `${item.id} logged; the developer decides in the Viewer whether it goes to GitHub. ${nextStep(n)}` };
@@ -323,12 +332,13 @@ function finish(repo: string, n: Night, as: 'complete' | 'interrupted', now: Dat
 
 export function close(repo: string, summary: string, now = new Date()): { night: Night; message: string } {
   const n = openNight(repo);
-  if (!summary?.trim()) throw new StoreError('closing needs a summary: one or two sentences the developer reads first in the morning');
-  n.summary = summary.trim();
+  if (!text(summary)) throw new StoreError('closing needs a summary: one or two sentences the developer reads first in the morning');
+  n.summary = text(summary);
   const trial = structuredClone(n);
   for (const t of trial.tasks) if (t.outcome === null) t.outcome = 'not_started';
   trial.status = 'complete';
-  const problems = nightProblems(trial, nightDir(repo, n.night));
+  trial.ended_at = localIso(now);
+  const problems = [...nightShapeProblems(trial), ...nightProblems(trial, nightDir(repo, n.night))];
   if (problems.length) throw new StoreError(`the night was not closed: ${problems.join('; ')}`);
   finish(repo, n, 'complete', now);
   const c = commitPath(repo, '.night-shift/history', `night-shift: history of ${n.night}`);
