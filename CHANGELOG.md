@@ -22,7 +22,14 @@ files of a fixed shape, a tool that checks them, two skills and the
   to `.night-shift/history/` and committed on their own.
 - **Viewer:** Morning (unread nights, counts, metrics, tasks with their
   evidence, questions, follow-up, feedback to GitHub issues), Questions,
-  History; Trends is a placeholder.
+  History; Trends is a placeholder. Works at phone width. An answer changed
+  after the follow-up exists updates it, and is locked once an agent has
+  worked on it.
+- **Trial:** two headless Claude Code nights and one day follow-up on a
+  throwaway app; fixes from it include JSON handed over through
+  `.night-shift/input.json`, a schema guard on every write, and history
+  copies that survive a repository's own formatter. Sample files in
+  `examples/sample-repo/`.
 - **Retired:** the v6 protocol, contract and binding, board adapters, the
   Queue and buffer screens, templates and the old schemas. The only earlier
   `Adopter` trial was archived and unwired.
