@@ -1,0 +1,323 @@
+{
+  "schema": "night-shift/night@1",
+  "night": "2026-09-26-a",
+  "status": "complete",
+  "started_at": "2026-09-26T15:04:25+03:00",
+  "ended_at": "2026-09-26T15:18:18+03:00",
+  "summary": "Done/remaining counts are built, tested and reviewed but uncommitted and not yet seen running, because git commit and Docker needed approvals nobody could give overnight. Three decisions wait for you: the title error message (Q1), delete vs archive (Q2), and how to take the screenshot (Q3).",
+  "session": {
+    "harness": "claude-code",
+    "id": "38e1c1fe-a256-45c7-a9cf-d72e15a097a2",
+    "pid": 424,
+    "transcript": "/home/dev/.claude/projects/-home-dev-todo-app/38e1c1fe-a256-45c7-a9cf-d72e15a097a2.jsonl"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Reject task titles longer than 200 characters with a clear error",
+      "source": "developer prompt, item 1",
+      "done_when": [
+        "The domain rule rejects titles over 200 characters, covered by a unit test",
+        "The create and update request schemas reject titles over 200 characters, covered by unit tests",
+        "The API rejection tells the caller the title is too long"
+      ],
+      "outcome": "blocked",
+      "checks": [
+        {
+          "done_when": "The domain rule rejects titles over 200 characters, covered by a unit test",
+          "met": true
+        },
+        {
+          "done_when": "The create and update request schemas reject titles over 200 characters, covered by unit tests",
+          "met": true
+        },
+        {
+          "done_when": "The API rejection tells the caller the title is too long",
+          "met": false,
+          "note": "API answers 422 invalid_input with the generic 'Input is invalid'; a specific message needs a change to the shared error contract (Q1)."
+        }
+      ],
+      "evidence": [
+        {
+          "type": "note",
+          "text": "The limit was already in place before tonight: normalizeTaskTitle rejects over 200 characters (existing unit test at 201), both Zod schemas use max(200), and the form inputs use maxLength 200. Tonight added two tests in src/modules/tasks/presentation/task-entry.test.ts: create and update routes accept 200 and reject 201 with 422 before reaching the application, and the create and update Server Actions reject 201. Not committed: git add and git commit need a permission approval that could not be given unattended."
+        },
+        {
+          "type": "command",
+          "command": "pnpm vitest run src/modules/tasks",
+          "exit_code": 0,
+          "excerpt": "Test Files  3 passed (3)\n     Tests  23 passed (23)"
+        },
+        {
+          "type": "command",
+          "command": "pnpm vitest run src/modules/tasks/presentation  (with the create schema temporarily loosened to max(300), then restored)",
+          "exit_code": 1,
+          "excerpt": "AssertionError: expected { ok: true, ... } to match object { ok: false, ... }\n Test Files  1 failed (1)\n      Tests  2 failed | 10 passed (12)"
+        }
+      ],
+      "blocked_by": "Q1",
+      "recorded_at": "2026-09-26T15:05:53+03:00"
+    },
+    {
+      "id": "T2",
+      "title": "Show done and remaining task counts for a list",
+      "source": "developer prompt, item 2",
+      "done_when": [
+        "The task page view model carries done and remaining counts for the whole list, not just the loaded page",
+        "Unit tests cover the counts in the view model and the use case",
+        "The dashboard shows the counts and keeps them correct after adding, completing and deleting tasks",
+        "Typecheck, lint and unit tests pass"
+      ],
+      "outcome": "partial",
+      "checks": [
+        {
+          "done_when": "The task page view model carries done and remaining counts for the whole list, not just the loaded page",
+          "met": true
+        },
+        {
+          "done_when": "Unit tests cover the counts in the view model and the use case",
+          "met": true
+        },
+        {
+          "done_when": "The dashboard shows the counts and keeps them correct after adding, completing and deleting tasks",
+          "met": false,
+          "note": "Built and reviewed (dashboard shows 'N done · M remaining' under the list name and adjusts after add, status change and delete), and e2e assertions were added to e2e/core-journey.spec.ts, but nobody has seen it run: the dashboard and the Postgres and e2e suites need Docker, which could not be started unattended. Run pnpm test:integration and the core e2e journey once Docker is up."
+        },
+        {
+          "done_when": "Typecheck, lint and unit tests pass",
+          "met": true
+        }
+      ],
+      "evidence": [
+        {
+          "type": "command",
+          "command": "pnpm test",
+          "exit_code": 0,
+          "excerpt": " Test Files  76 passed (76)\n      Tests  733 passed (733)\n(baseline before tonight: 75 files, 727 tests)"
+        },
+        {
+          "type": "command",
+          "command": "pnpm typecheck",
+          "exit_code": 0,
+          "excerpt": "$ tsc --noEmit\n(no errors)"
+        },
+        {
+          "type": "command",
+          "command": "pnpm lint",
+          "exit_code": 0,
+          "excerpt": "app/layout.tsx 1:10 warning 'Geist' is defined but never used (pre-existing, file untouched)\n1 problem (0 errors, 1 warning)"
+        },
+        {
+          "type": "command",
+          "command": "git diff --stat",
+          "exit_code": 0,
+          "excerpt": "components/dashboard/dashboard-client.tsx | 76\ncomponents/dashboard/task-workspace.tsx | 12\ndocs/domain/task-lifecycle.md | 5\ne2e/core-journey.spec.ts | 4\nsrc/modules/dashboard/presentation/dashboard-state(.test).ts | 21 + 27\nsrc/modules/tasks/application/task-repository.ts | 13\nsrc/modules/tasks/application/task-use-cases(.test).ts | 9 + 27\nsrc/modules/tasks/domain/task.ts | 6\nsrc/modules/tasks/index.ts | 9\nsrc/modules/tasks/infrastructure/drizzle-task-repository(.integration.test).ts | 14 + 52\nsrc/modules/tasks/presentation/task-view-model.ts | 18\nsrc/modules/tasks/presentation/task-view-model.test.ts | new\npnpm-lock.yaml | pre-existing local change, not part of this work"
+        },
+        {
+          "type": "note",
+          "text": "How it works: a single Postgres aggregate counts done and not-done tasks for the whole list (the dashboard only loads 20 tasks per page, so counting loaded rows would be wrong). The counts ride on every task page response and the view model exposes them as counts: { done, remaining }. Remaining means todo plus in progress. Counts ignore the Show completed filter. docs/domain/task-lifecycle.md was updated because it said task pages return no total counts. Independent review: round 1 PASS with 3 notes, all applied (e2e assertions, removed a noisy screen-reader live region, exported the new types); round 2 PASS with no Blocking or Material findings. Not committed: git add and git commit need a permission approval that could not be given unattended."
+        }
+      ],
+      "recorded_at": "2026-09-26T15:17:19+03:00"
+    },
+    {
+      "id": "T3",
+      "title": "Clear completed tasks from a list",
+      "source": "developer prompt, item 3",
+      "done_when": [
+        "The developer has chosen between permanent delete and archive",
+        "A list offers a Clear completed action that does what was chosen",
+        "Tests cover the action"
+      ],
+      "outcome": "blocked",
+      "checks": [
+        {
+          "done_when": "The developer has chosen between permanent delete and archive",
+          "met": false,
+          "note": "Waiting on your answer to Q2."
+        },
+        {
+          "done_when": "A list offers a Clear completed action that does what was chosen",
+          "met": false,
+          "note": "Not started until the choice is made."
+        },
+        {
+          "done_when": "Tests cover the action",
+          "met": false,
+          "note": "Not started until the choice is made."
+        }
+      ],
+      "evidence": [
+        {
+          "type": "note",
+          "text": "No code written, on purpose: delete and archive start from different foundations (archive needs a schema migration), so building either half would be a guess. Relevant facts for the decision: docs/domain/task-lifecycle.md says completed tasks remain stored and may be hidden by a filter, and the dashboard already has a Show completed tasks toggle."
+        }
+      ],
+      "blocked_by": "Q2",
+      "recorded_at": "2026-09-26T15:17:42+03:00"
+    },
+    {
+      "id": "T4",
+      "title": "Screenshot of the dashboard showing done and remaining counts",
+      "source": "developer prompt, item 4",
+      "done_when": [
+        "A screenshot of the real running dashboard showing the counts is saved in the evidence folder"
+      ],
+      "outcome": "blocked",
+      "checks": [
+        {
+          "done_when": "A screenshot of the real running dashboard showing the counts is saved in the evidence folder",
+          "met": false,
+          "note": "No running dashboard: no database and no Docker access tonight (Q3)."
+        }
+      ],
+      "evidence": [
+        {
+          "type": "command",
+          "command": "docker info --format {{.ServerVersion}}",
+          "exit_code": 1,
+          "excerpt": "This command requires approval (permission gate; could not be approved unattended)"
+        },
+        {
+          "type": "note",
+          "text": "Preflight: no .env files exist in this copy, AGENTS.md says Postgres-backed work is skipped here, and the dashboard page requires a signed-in user backed by Postgres. A staged render was not made because it would not show the real feature."
+        }
+      ],
+      "blocked_by": "Q3",
+      "recorded_at": "2026-09-26T15:18:02+03:00"
+    }
+  ],
+  "skipped_follow_ups": [],
+  "questions": [
+    {
+      "id": "Q1",
+      "task": "T1",
+      "ask": "Should a too-long title get its own error message, instead of the generic 'Input is invalid'?",
+      "why": "The 200-character limit already existed in the domain, the request schemas and the form (the form stops typing at 200). What is missing is the clear message: the repo's shared error contract deliberately turns every validation failure into code invalid_input with the fixed text 'Input is invalid', for all modules. Changing that is a change to an accepted cross-cutting contract, so it is your call.",
+      "options": [
+        {
+          "id": "a",
+          "label": "Pass safe validation messages through",
+          "detail": "invalid_input errors carry their domain text, e.g. 'Task title must contain 1-200 characters'. Applies to lists too. About an hour, small shared change plus tests."
+        },
+        {
+          "id": "b",
+          "label": "Keep the generic message",
+          "detail": "No code change. Browser users never hit it because the form caps input at 200; only direct API callers see 'Input is invalid'. Tonight's tests already lock the limit."
+        }
+      ],
+      "recommended": "a",
+      "answer": "a",
+      "note": "Yes, and keep the messages short.",
+      "answered_at": "2026-09-26T15:20:26+03:00"
+    },
+    {
+      "id": "Q2",
+      "task": "T3",
+      "ask": "Should 'Clear completed' delete the done tasks for good, or archive them?",
+      "why": "You asked me not to guess. The two differ in size: delete reuses what exists, archive needs a database change and somewhere to see archived tasks. Note the dashboard already has a 'Show completed tasks' toggle that hides done tasks without deleting anything, which covers much of what archive would give.",
+      "options": [
+        {
+          "id": "a",
+          "label": "Delete for good",
+          "detail": "One action removes the list's done tasks after a confirm dialog like the existing delete. No database change. About half a day with tests."
+        },
+        {
+          "id": "b",
+          "label": "Archive",
+          "detail": "New archived state plus a migration; archived tasks disappear from the list but stay stored. Needs a decision on where people see or restore them. About one to two days."
+        }
+      ],
+      "recommended": "a",
+      "answer": "a",
+      "note": null,
+      "answered_at": "2026-09-26T15:20:27+03:00"
+    },
+    {
+      "id": "Q3",
+      "task": "T4",
+      "ask": "How should I get the dashboard screenshot, given the dashboard could not run tonight?",
+      "why": "The dashboard sits behind sign-in and needs Postgres. This copy has no .env and no database, and the Docker command that starts the local database needed a permission approval I could not get while you were asleep. The same approval gate also stopped git add and git commit.",
+      "options": [
+        {
+          "id": "a",
+          "label": "Start Docker and allow the commands, then I finish it",
+          "detail": "Open Docker Desktop and approve docker, git add and git commit for this repo. Next session I start the local stack, sign in as a test user, take the screenshot, run the Postgres and e2e suites, and commit. About 20 minutes."
+        },
+        {
+          "id": "b",
+          "label": "Accept a staged render",
+          "detail": "Render the dashboard component with made-up tasks, no real server or database. Quick, but it shows the layout, not the working feature."
+        }
+      ],
+      "recommended": "a",
+      "answer": "a",
+      "note": "Docker is running now; use pnpm dev:local.",
+      "answered_at": "2026-09-26T15:20:28+03:00"
+    }
+  ],
+  "feedback": [
+    {
+      "id": "F1",
+      "kind": "bad-fit",
+      "title": "Heredoc JSON input blocked by a common shell safety hook",
+      "tags": [
+        "cli",
+        "input"
+      ],
+      "body": "The skill documents start, record and ask with inline heredoc JSON. A shell safety hook in the agent harness refused that pattern (brace plus quote looks like expansion obfuscation), and redirecting from a temp file outside the repo was refused because the file lay outside the allowed working directory. What worked: writing the JSON into a git-ignored folder inside the repo and redirecting stdin from it. A --file <path> option, plus a documented git-ignored input location (for example under .night-shift/), would remove the guesswork.",
+      "sent": null
+    },
+    {
+      "id": "F2",
+      "kind": "missing-block",
+      "title": "Preflight check for unattended permissions before the night starts",
+      "tags": [
+        "start",
+        "preflight"
+      ],
+      "body": "Halfway through the night it turned out that git add, git commit and docker all needed an interactive permission approval, so no work could be committed and nothing could run against a database. A start-time preflight (or a documented checklist) that confirms the agent can commit and reach the services the plan needs would surface this while the developer is still awake.",
+      "sent": null
+    }
+  ],
+  "metrics": {
+    "source": "claude-code",
+    "harness_version": "2.1.283",
+    "session_id": "38e1c1fe-a256-45c7-a9cf-d72e15a097a2",
+    "measured_at": "2026-09-26T15:18:58+03:00",
+    "duration_min": {
+      "total": 18.09,
+      "model": 15.91,
+      "tools": 6.21
+    },
+    "models": {
+      "claude-opus-5-5": {
+        "tokens": {
+          "input": 266,
+          "output": 78119,
+          "reasoning": 24696,
+          "cache_read": 14281400,
+          "cache_write": 302317
+        },
+        "cost_usd": 6.46
+      }
+    },
+    "cost_usd": 6.46,
+    "sub_agents": [
+      {
+        "type": "general-purpose",
+        "model": "claude-opus-5-5",
+        "purpose": "Review round 2: task counts"
+      },
+      {
+        "type": "general-purpose",
+        "model": "claude-opus-5-5",
+        "purpose": "Review round 1: task counts"
+      }
+    ],
+    "lines": {
+      "added": 571,
+      "removed": 49
+    }
+  }
+}

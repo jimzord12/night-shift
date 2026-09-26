@@ -1,0 +1,47 @@
+{
+  "schema": "night-shift/plan@1",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Reject task titles longer than 200 characters with a clear error",
+      "source": "developer prompt, item 1",
+      "done_when": [
+        "The domain rule rejects titles over 200 characters, covered by a unit test",
+        "The create and update request schemas reject titles over 200 characters, covered by unit tests",
+        "The API rejection tells the caller the title is too long"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Show done and remaining task counts for a list",
+      "source": "developer prompt, item 2",
+      "done_when": [
+        "The task page view model carries done and remaining counts for the whole list, not just the loaded page",
+        "Unit tests cover the counts in the view model and the use case",
+        "The dashboard shows the counts and keeps them correct after adding, completing and deleting tasks",
+        "Typecheck, lint and unit tests pass"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Clear completed tasks from a list",
+      "source": "developer prompt, item 3",
+      "done_when": [
+        "The developer has chosen between permanent delete and archive",
+        "A list offers a Clear completed action that does what was chosen",
+        "Tests cover the action"
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Screenshot of the dashboard showing done and remaining counts",
+      "source": "developer prompt, item 4",
+      "done_when": [
+        "A screenshot of the real running dashboard showing the counts is saved in the evidence folder"
+      ]
+    }
+  ],
+  "skipped_follow_ups": [],
+  "night": "2026-09-26-a",
+  "started_at": "2026-09-26T15:04:25+03:00"
+}

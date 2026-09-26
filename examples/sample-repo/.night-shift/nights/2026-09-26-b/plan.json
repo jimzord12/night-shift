@@ -1,0 +1,60 @@
+{
+  "schema": "night-shift/plan@1",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Finish and commit done/remaining task counts",
+      "source": "follow-up 2026-09-26-a, item A2",
+      "follow_up": "2026-09-26-a/A2",
+      "done_when": [
+        "pnpm test:integration passes against local Postgres in Docker, including the new count tests",
+        "The core e2e journey passes, including the count assertions after add, complete and delete",
+        "The counts work is committed on night/2026-09-26"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Screenshot of the running dashboard showing done and remaining counts",
+      "source": "follow-up 2026-09-26-a, item A4",
+      "follow_up": "2026-09-26-a/A4",
+      "done_when": [
+        "A screenshot of the real dashboard started with pnpm dev:local, showing the counts, is saved in the evidence folder"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Too-long task titles get a short, clear error message",
+      "source": "follow-up 2026-09-26-a, item A1 (answer: pass safe validation messages through, keep them short)",
+      "follow_up": "2026-09-26-a/A1",
+      "done_when": [
+        "An API request with a title over 200 characters is rejected with a short message saying the title is too long",
+        "Other invalid_input errors keep working and never leak internal details",
+        "Unit tests cover the message, typecheck, lint and unit tests pass, committed"
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Clear completed tasks from a list (delete for good)",
+      "source": "follow-up 2026-09-26-a, item A3 (answer: delete for good)",
+      "follow_up": "2026-09-26-a/A3",
+      "done_when": [
+        "A list offers a Clear completed action, behind a confirm dialog, that permanently deletes that list's done tasks and only those",
+        "Tests cover the action, including that other lists and unfinished tasks are untouched",
+        "Typecheck, lint, unit and integration tests pass, committed"
+      ]
+    },
+    {
+      "id": "T5",
+      "title": "Sort the task list by newest first or by due date",
+      "source": "developer prompt",
+      "done_when": [
+        "The task list offers a toggle between newest first and due date",
+        "Due-date order puts the earliest due date first and tasks without a due date last",
+        "Unit tests cover both orders, typecheck, lint and unit tests pass, committed"
+      ]
+    }
+  ],
+  "skipped_follow_ups": [],
+  "night": "2026-09-26-b",
+  "started_at": "2026-09-26T15:23:51+03:00"
+}

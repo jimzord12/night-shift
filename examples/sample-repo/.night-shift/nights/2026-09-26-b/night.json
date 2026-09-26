@@ -1,0 +1,326 @@
+{
+  "schema": "night-shift/night@1",
+  "night": "2026-09-26-b",
+  "status": "complete",
+  "started_at": "2026-09-26T15:23:51+03:00",
+  "ended_at": "2026-09-26T15:43:01+03:00",
+  "summary": "Counts, the dashboard screenshot, short title errors and Clear completed are built, tested against real Postgres and the browser, reviewed, and committed on night/2026-09-26. The due-date sort is blocked: tasks have no due date yet, so Q1 asks whether to add one.",
+  "session": {
+    "harness": "claude-code",
+    "id": "4567bb5a-8834-43e4-a8d0-84dc34d7ad19",
+    "pid": 37008,
+    "transcript": "/home/dev/.claude/projects/-home-dev-todo-app/4567bb5a-8834-43e4-a8d0-84dc34d7ad19.jsonl"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Finish and commit done/remaining task counts",
+      "source": "follow-up 2026-09-26-a, item A2",
+      "follow_up": "2026-09-26-a/A2",
+      "done_when": [
+        "pnpm test:integration passes against local Postgres in Docker, including the new count tests",
+        "The core e2e journey passes, including the count assertions after add, complete and delete",
+        "The counts work is committed on night/2026-09-26"
+      ],
+      "outcome": "done",
+      "checks": [
+        {
+          "done_when": "pnpm test:integration passes against local Postgres in Docker, including the new count tests",
+          "met": true
+        },
+        {
+          "done_when": "The core e2e journey passes, including the count assertions after add, complete and delete",
+          "met": true
+        },
+        {
+          "done_when": "The counts work is committed on night/2026-09-26",
+          "met": true
+        }
+      ],
+      "evidence": [
+        {
+          "type": "command",
+          "command": "pnpm test:integration",
+          "exit_code": 0,
+          "excerpt": "Test Files  10 passed (10)\n     Tests  54 passed (54)\n...\n✓ drizzle-task-repository.integration.test.ts > counts done and remaining tasks for the whole owned list"
+        },
+        {
+          "type": "command",
+          "command": "pnpm test:e2e",
+          "exit_code": 0,
+          "excerpt": "[1/17] [chromium] core password journey creates a list and task, changes status, and signs out\n...\n[17/17] [chromium] TST-AUTH-005 explains an expired link and offers a fresh one by email\n  17 passed (1.1m)"
+        },
+        {
+          "type": "command",
+          "command": "pnpm test && pnpm typecheck && pnpm lint",
+          "exit_code": 0,
+          "excerpt": "Test Files  76 passed (76)\n     Tests  733 passed (733)\ntsc --noEmit: no errors\nlint: 0 errors, 1 pre-existing warning (app/layout.tsx unused Geist)"
+        },
+        {
+          "type": "command",
+          "command": "git log --oneline -1",
+          "exit_code": 0,
+          "excerpt": "d8fa639 Show done and remaining task counts for a list"
+        },
+        {
+          "type": "note",
+          "text": "The browser journey used to check the counts only after add and complete. Tonight it also adds a second task, deletes it through the confirm dialog, and checks the counts go 1 done / 1 remaining, then back to 1 done / 0 remaining. Left out of the commit on purpose because they are not this work: the local pnpm-lock.yaml change and the Night Shift skill file update."
+        }
+      ],
+      "recorded_at": "2026-09-26T15:28:59+03:00"
+    },
+    {
+      "id": "T2",
+      "title": "Screenshot of the running dashboard showing done and remaining counts",
+      "source": "follow-up 2026-09-26-a, item A4",
+      "follow_up": "2026-09-26-a/A4",
+      "done_when": [
+        "A screenshot of the real dashboard started with pnpm dev:local, showing the counts, is saved in the evidence folder"
+      ],
+      "outcome": "done",
+      "checks": [
+        {
+          "done_when": "A screenshot of the real dashboard started with pnpm dev:local, showing the counts, is saved in the evidence folder",
+          "met": true
+        }
+      ],
+      "evidence": [
+        {
+          "type": "image",
+          "path": "evidence/dashboard-counts.png",
+          "caption": "Real dashboard from pnpm dev:local, signed in as the local seed user: Inbox shows 2 done · 4 remaining (2 seeded tasks plus 4 added, 2 of them marked done)"
+        },
+        {
+          "type": "command",
+          "command": "pnpm local:postgres start, migrate, seed; pnpm dev:local; node .local/screenshot-counts.mjs",
+          "exit_code": 0,
+          "excerpt": "Next.js 16.3.5 (Turbopack)\n- Local:         http://localhost:3000\n- Environments: .env.local\nReady in 482ms\ncounts: 2 done · 4 remaining"
+        },
+        {
+          "type": "note",
+          "text": "pnpm dev:local needs a .env.local, which this copy did not have. I created one (git-ignored) from the local-only shape in the README: the Docker Postgres URL, the local mailbox, and a freshly generated local auth secret. No real service or account is referenced; the Sanity values are placeholders, which only the landing page would need. The screenshot script is a throwaway under the git-ignored .local folder."
+        }
+      ],
+      "recorded_at": "2026-09-26T15:30:21+03:00"
+    },
+    {
+      "id": "T3",
+      "title": "Too-long task titles get a short, clear error message",
+      "source": "follow-up 2026-09-26-a, item A1 (answer: pass safe validation messages through, keep them short)",
+      "follow_up": "2026-09-26-a/A1",
+      "done_when": [
+        "An API request with a title over 200 characters is rejected with a short message saying the title is too long",
+        "Other invalid_input errors keep working and never leak internal details",
+        "Unit tests cover the message, typecheck, lint and unit tests pass, committed"
+      ],
+      "outcome": "done",
+      "checks": [
+        {
+          "done_when": "An API request with a title over 200 characters is rejected with a short message saying the title is too long",
+          "met": true
+        },
+        {
+          "done_when": "Other invalid_input errors keep working and never leak internal details",
+          "met": true
+        },
+        {
+          "done_when": "Unit tests cover the message, typecheck, lint and unit tests pass, committed",
+          "met": true
+        }
+      ],
+      "evidence": [
+        {
+          "type": "command",
+          "command": "pnpm vitest run src/shared src/modules/tasks/presentation src/modules/lists/presentation (tests written first)",
+          "exit_code": 1,
+          "excerpt": "× passes through only a message the code marked as public\n× explains an over-long list name on create and rename\n× accepts 200-character titles and rejects longer ones before calling the application\n× explains blank titles and over-long notes, but keeps other input errors generic\n× rejects over-long titles in create and update actions\n Test Files  3 failed | 1 passed (4)"
+        },
+        {
+          "type": "command",
+          "command": "same tests after the change, plus pnpm typecheck and pnpm lint",
+          "exit_code": 0,
+          "excerpt": " Test Files  25 passed (25)\n      Tests  224 passed (224)\ntsc --noEmit: no errors\nlint: 0 errors, 1 pre-existing warning"
+        },
+        {
+          "type": "command",
+          "command": "git log --oneline -1 14121a2",
+          "exit_code": 0,
+          "excerpt": "14121a2 Explain too-long titles and names with short, safe messages"
+        },
+        {
+          "type": "note",
+          "text": "What a caller now sees: a task title over 200 characters answers 422 with 'Title is too long (max 200 characters)'. Also short: 'Title is required', 'Notes are too long (max 5,000 characters)', and for lists 'Name is required' and 'Name is too long (max 80 characters)'. Same on the JSON API and the Server Actions the dashboard uses. How it stays safe: an error only shows its text when our code marks it as public, and each module lists the exact messages it allows. Anything else, including the validation library's own wording or an internal error text, still answers 'Input is invalid'. The existing test that a database URL never leaks still passes. Independent review round 1: PASS, no Blocking or Material findings. Three notes, not acted on: (1) a missing or non-text title still gets the generic message, because only the length rules are labelled; no screen can send that. (2) The earlier counts commit d8fa639 may fail one unit test on its own, because an updated test mock landed in this commit; only matters when bisecting. (3) An e2e locator could in theory match an edit form's label; the journey never opens one."
+        }
+      ],
+      "recorded_at": "2026-09-26T15:40:27+03:00"
+    },
+    {
+      "id": "T4",
+      "title": "Clear completed tasks from a list (delete for good)",
+      "source": "follow-up 2026-09-26-a, item A3 (answer: delete for good)",
+      "follow_up": "2026-09-26-a/A3",
+      "done_when": [
+        "A list offers a Clear completed action, behind a confirm dialog, that permanently deletes that list's done tasks and only those",
+        "Tests cover the action, including that other lists and unfinished tasks are untouched",
+        "Typecheck, lint, unit and integration tests pass, committed"
+      ],
+      "outcome": "done",
+      "checks": [
+        {
+          "done_when": "A list offers a Clear completed action, behind a confirm dialog, that permanently deletes that list's done tasks and only those",
+          "met": true
+        },
+        {
+          "done_when": "Tests cover the action, including that other lists and unfinished tasks are untouched",
+          "met": true
+        },
+        {
+          "done_when": "Typecheck, lint, unit and integration tests pass, committed",
+          "met": true
+        }
+      ],
+      "evidence": [
+        {
+          "type": "image",
+          "path": "evidence/clear-completed-dialog.png",
+          "caption": "Real dashboard (pnpm dev:local): Clear completed opens a confirm dialog naming the list and warning it cannot be undone"
+        },
+        {
+          "type": "image",
+          "path": "evidence/clear-completed-after.png",
+          "caption": "After confirming: 'Deleted 2 completed tasks.', counter 0 done · 4 remaining, the 4 open tasks kept, button disabled"
+        },
+        {
+          "type": "command",
+          "command": "pnpm test && pnpm test:integration && pnpm test:e2e",
+          "exit_code": 0,
+          "excerpt": "unit:        Test Files 76 passed (76), Tests 738 passed (738)\nintegration: Test Files 10 passed (10), Tests 55 passed (55)\n  incl. 'deletes only the owned list's completed tasks'\ne2e:         17 passed (41.6s)\n  core journey: clear completed removes the done task, keeps the open one,\n  counter 0 done · 1 remaining, button disabled, still gone after reload"
+        },
+        {
+          "type": "command",
+          "command": "git log --oneline -1 4203ce8",
+          "exit_code": 0,
+          "excerpt": "4203ce8 Add Clear completed: permanently delete a list's done tasks"
+        },
+        {
+          "type": "note",
+          "text": "How it works: a Clear completed button sits next to Show completed. It reuses the existing delete confirm dialog. On confirm, the server checks the list belongs to you, then permanently deletes only that list's done tasks and reports how many. Someone else's list answers not found. The Postgres test proves other lists, other users and unfinished tasks are untouched. docs/domain/task-lifecycle.md now says completed tasks stay stored until you clear them. No JSON API route was added, because the dashboard uses Server Actions for every change. Independent review round 1: PASS, no Blocking or Material findings. Three notes, not acted on: (1) cosmetic: if every task on the loaded page was done and older tasks exist, clearing leaves the empty-list message next to a working Load more button; reloading the first page after clearing would fix it and also note 2; (2) a task marked done in another tab is deleted on the server but stays on screen here until reload; (3) the use-case and action tests follow the repo's fake/mock convention; the real delete is covered by the Postgres and browser tests."
+        }
+      ],
+      "recorded_at": "2026-09-26T15:42:51+03:00"
+    },
+    {
+      "id": "T5",
+      "title": "Sort the task list by newest first or by due date",
+      "source": "developer prompt",
+      "done_when": [
+        "The task list offers a toggle between newest first and due date",
+        "Due-date order puts the earliest due date first and tasks without a due date last",
+        "Unit tests cover both orders, typecheck, lint and unit tests pass, committed"
+      ],
+      "outcome": "blocked",
+      "checks": [
+        {
+          "done_when": "The task list offers a toggle between newest first and due date",
+          "met": false,
+          "note": "Not built: tasks have no due date to sort by (Q1)."
+        },
+        {
+          "done_when": "Due-date order puts the earliest due date first and tasks without a due date last",
+          "met": false,
+          "note": "Needs a due date on tasks first (Q1)."
+        },
+        {
+          "done_when": "Unit tests cover both orders, typecheck, lint and unit tests pass, committed",
+          "met": false,
+          "note": "Starts once Q1 is answered."
+        }
+      ],
+      "evidence": [
+        {
+          "type": "command",
+          "command": "search src/modules/tasks for 'due' (case-insensitive)",
+          "exit_code": 0,
+          "excerpt": "No matches found. Task fields: id, listId, userId, title, notes, status, createdAt, updatedAt"
+        },
+        {
+          "type": "note",
+          "text": "No code written, on purpose. A due-date sort needs a due date, and adding one is a new product field (database migration, date input on the forms, API and validation changes). That is your call, so I asked instead of guessing. If you pick option a, the natural shape is an optional date, a Newest first / Due date toggle in the task toolbar next to Show completed, earliest date first and undated tasks last, with its own paging."
+        }
+      ],
+      "blocked_by": "Q1",
+      "recorded_at": "2026-09-26T15:40:38+03:00"
+    }
+  ],
+  "skipped_follow_ups": [],
+  "questions": [
+    {
+      "id": "Q1",
+      "task": "T5",
+      "ask": "Tasks have no due date yet. Should I add one so the list can sort by it?",
+      "why": "A task today stores only title, notes, status and created/updated times, so there is nothing to sort by due date. Adding a due date is a new product field: a database migration, a date input on the create and edit forms, API and validation changes, and a change to the accepted task model in .dwf. That is bigger than a sort toggle and changes an accepted contract, so it is your call. The list is newest first today, with 20 tasks per page loaded by cursor, so any new sort also needs its own paging.",
+      "options": [
+        {
+          "id": "a",
+          "label": "Add an optional due date, then the sort toggle",
+          "detail": "Optional date on each task (migration, form input, API), plus a Newest first / Due date toggle; tasks without a date sort last. About one day with tests."
+        },
+        {
+          "id": "b",
+          "label": "Sort by something that exists instead",
+          "detail": "For example Newest first / Oldest first, or by status. No database change, a few hours. Does not give you due dates."
+        },
+        {
+          "id": "c",
+          "label": "Drop it for now",
+          "detail": "No change; keep it in the backlog."
+        }
+      ],
+      "recommended": "a",
+      "answer": "a",
+      "note": "Optional date only, no time. Keep the sort toggle simple.",
+      "answered_at": "2026-09-26T15:47:08+03:00"
+    }
+  ],
+  "feedback": [],
+  "metrics": {
+    "source": "claude-code",
+    "harness_version": "2.1.283",
+    "session_id": "4567bb5a-8834-43e4-a8d0-84dc34d7ad19",
+    "measured_at": "2026-09-26T15:43:26+03:00",
+    "duration_min": {
+      "total": 20.46,
+      "model": 13.37,
+      "tools": 9.29
+    },
+    "models": {
+      "claude-opus-5-5": {
+        "tokens": {
+          "input": 254,
+          "output": 78930,
+          "reasoning": 18677,
+          "cache_read": 13583695,
+          "cache_write": 323592
+        },
+        "cost_usd": 6.51
+      }
+    },
+    "cost_usd": 6.51,
+    "sub_agents": [
+      {
+        "type": "general-purpose",
+        "model": "claude-opus-5-5",
+        "purpose": "Review round 1: safe messages"
+      },
+      {
+        "type": "general-purpose",
+        "model": "claude-opus-5-5",
+        "purpose": "Review round 1: clear completed"
+      }
+    ],
+    "lines": {
+      "added": 761,
+      "removed": 137
+    }
+  }
+}

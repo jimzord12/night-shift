@@ -1,0 +1,85 @@
+{
+  "schema": "night-shift/follow-up@1",
+  "id": "2026-09-26-a",
+  "from_night": "2026-09-26-a",
+  "created_at": "2026-09-26T15:20:31+03:00",
+  "items": [
+    {
+      "id": "A1",
+      "status": "done",
+      "task": "T1",
+      "title": "Reject task titles longer than 200 characters with a clear error",
+      "done_when": [
+        "The domain rule rejects titles over 200 characters, covered by a unit test",
+        "The create and update request schemas reject titles over 200 characters, covered by unit tests",
+        "The API rejection tells the caller the title is too long"
+      ],
+      "kind": "decision",
+      "question": "Should a too-long title get its own error message, instead of the generic 'Input is invalid'?",
+      "decision": "a",
+      "decision_label": "Pass safe validation messages through",
+      "owner_note": "Yes, and keep the messages short.",
+      "resolved": {
+        "at": "2026-09-26T15:43:01+03:00",
+        "by": "2026-09-26-b"
+      }
+    },
+    {
+      "id": "A2",
+      "status": "done",
+      "task": "T2",
+      "title": "Show done and remaining task counts for a list",
+      "done_when": [
+        "The task page view model carries done and remaining counts for the whole list, not just the loaded page",
+        "Unit tests cover the counts in the view model and the use case",
+        "The dashboard shows the counts and keeps them correct after adding, completing and deleting tasks",
+        "Typecheck, lint and unit tests pass"
+      ],
+      "kind": "unfinished",
+      "left": [
+        "The dashboard shows the counts and keeps them correct after adding, completing and deleting tasks: Built and reviewed (dashboard shows 'N done · M remaining' under the list name and adjusts after add, status change and delete), and e2e assertions were added to e2e/core-journey.spec.ts, but nobody has seen it run: the dashboard and the Postgres and e2e suites need Docker, which could not be started unattended. Run pnpm test:integration and the core e2e journey once Docker is up."
+      ],
+      "resolved": {
+        "at": "2026-09-26T15:43:01+03:00",
+        "by": "2026-09-26-b"
+      }
+    },
+    {
+      "id": "A3",
+      "status": "done",
+      "task": "T3",
+      "title": "Clear completed tasks from a list",
+      "done_when": [
+        "The developer has chosen between permanent delete and archive",
+        "A list offers a Clear completed action that does what was chosen",
+        "Tests cover the action"
+      ],
+      "kind": "decision",
+      "question": "Should 'Clear completed' delete the done tasks for good, or archive them?",
+      "decision": "a",
+      "decision_label": "Delete for good",
+      "resolved": {
+        "at": "2026-09-26T15:43:01+03:00",
+        "by": "2026-09-26-b"
+      }
+    },
+    {
+      "id": "A4",
+      "status": "done",
+      "task": "T4",
+      "title": "Screenshot of the dashboard showing done and remaining counts",
+      "done_when": [
+        "A screenshot of the real running dashboard showing the counts is saved in the evidence folder"
+      ],
+      "kind": "decision",
+      "question": "How should I get the dashboard screenshot, given the dashboard could not run tonight?",
+      "decision": "a",
+      "decision_label": "Start Docker and allow the commands, then I finish it",
+      "owner_note": "Docker is running now; use pnpm dev:local.",
+      "resolved": {
+        "at": "2026-09-26T15:43:01+03:00",
+        "by": "2026-09-26-b"
+      }
+    }
+  ]
+}
