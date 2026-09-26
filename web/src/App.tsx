@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { isOpenQuestion } from '../../src/types.ts';
 import type { NightDetail, Overview } from '../../src/types.ts';
 import { getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
@@ -20,8 +21,18 @@ const VIEWS: { id: View; label: string }[] = [
 const keyOf = (repo: string, night: string) => `${repo}/${night}`;
 
 export function App() {
-  const [overview, setOverview] = useState<Overview | null>(null);
+  const [loaded, setOverview] = useState<Overview | null>(null);
   const [details, setDetails] = useState<Record<string, NightDetail>>({});
+  // The overview as loaded, with each night's counts taken from its detail once the detail is here,
+  // so an answer saved in the deck updates the badges without a reload.
+  const overview = useMemo<Overview | null>(() => {
+    if (!loaded) return null;
+    const nights = loaded.nights.map((n) => {
+      const d = details[keyOf(n.repo, n.id)];
+      return d ? { ...n, questions_open: d.night.questions.filter(isOpenQuestion).length, feedback_unsent: d.night.feedback.filter((f) => !f.sent).length } : n;
+    });
+    return { ...loaded, nights };
+  }, [loaded, details]);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
