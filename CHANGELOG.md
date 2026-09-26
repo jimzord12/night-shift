@@ -3,7 +3,7 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
-## v10, 2026-09-26
+## v10 (55fd855), 2026-09-26
 
 - Morning is an inbox (D22): only the nights still unread or needing you
   (an open question, or unfinished work or answers not yet handed over); otherwise
