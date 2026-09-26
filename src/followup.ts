@@ -2,7 +2,7 @@
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
 import type { FollowUp, FollowUpItem, Night, Question } from './types.ts';
-import { StoreError, followUpFile, listFollowUpIds, localIso, readFollowUp, saveFollowUp } from './store.ts';
+import { StoreError, followUpFile, listFollowUpIds, listNightIds, loadNight, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
 
 // Every task that was not done or skipped, with the decision the developer made for it; answered
@@ -59,14 +59,29 @@ export function createFollowUp(repo: string, n: Night, now = new Date()): Follow
   return f;
 }
 
-// An answer changed after the follow-up exists: its open item follows the change. An item an agent
-// already worked on refuses it, so no agent ever acts on a decision the developer took back.
+// An answer changed after the follow-up exists: its open item follows the change. A decision an
+// agent is working on (a running night took it on) or already worked on refuses the change, so no
+// agent acts on a decision the developer took back. A question handed over unanswered and settled
+// since (asked again, or answered in a day session) just saves the answer in the night.
 // Returns the updated follow-up to save once the night is saved, or null when there is none.
 export function followAnswer(repo: string, night: string, q: Question): FollowUp | null {
   if (!fs.existsSync(followUpFile(repo, night))) return null;
   const f = readFollowUp(repo, night);
-  const item = f.items.find((i) => i.question === q.ask);
+  const item = f.items.find((i) => i.question === q.ask && i.task === q.task) ?? f.items.find((i) => i.question === q.ask);
   if (!item) return null;
+  const ref = `${night}/${item.id}`;
+  for (const id of listNightIds(repo)) {
+    let n: Night;
+    try {
+      n = loadNight(repo, id).night;
+    } catch {
+      continue;
+    }
+    if (n.status === 'open' && (n.tasks.some((t) => t.follow_up === ref) || n.skipped_follow_ups.some((s) => s.follow_up === ref))) {
+      throw new StoreError(`night ${id} is working on this right now (${ref}); change the answer after it closes`, 409);
+    }
+  }
+  if (item.status !== 'open' && item.kind === 'waiting') return null;
   if (item.status !== 'open') {
     const by = item.resolved?.by === 'day' ? 'by day' : `in night ${item.resolved?.by ?? '?'}`;
     throw new StoreError(`the follow-up already handed this over and it was worked on ${by} (${night}/${item.id} is ${item.status}); the answer can no longer change`, 409);

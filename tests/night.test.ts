@@ -74,6 +74,11 @@ test('outcome rules are enforced and nothing is written when a record is refused
   refused(() => ask(repo, { ask: 'Which?', options: 'abcdefg'.split('').map((l) => ({ label: l })), recommended: 'a' }), /question was not added/);
   refused(() => feedback(repo, { title: 'x'.repeat(5000), body: 'too long a title' }), /feedback was not logged/);
   refused(() => close(repo, 'x'.repeat(5000)), /night was not closed: \/summary/);
+  // Malformed input is a refusal that names what to send, never a crash.
+  refused(() => record(repo, null as never), /send one JSON object/);
+  refused(() => record(repo, { unplanned: true, title: 5 as never, outcome: 'done' }), /unplanned task needs a title/);
+  refused(() => ask(repo, { ask: 5 as never, options: [{ label: 'a' }, { label: 'b' }], recommended: 'a' }), /needs "ask"/);
+  refused(() => ask(repo, { ask: 'Which?', options: [null as never, { label: 'b' }], recommended: 'a' }), /each option is an object/);
   assert.equal(fs.readFileSync(nightFile(repo, night.night), 'utf8'), before);
   // A task never reached may be recorded without checks.
   assert.equal(record(repo, { task: 'T3', outcome: 'not_started' }).task.checks.length, 0);

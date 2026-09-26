@@ -79,6 +79,26 @@ test('follow-up: created once from a closed night', async () => {
   assert.equal(fs.readFileSync(path.join(repo, '.night-shift', 'nights', id, 'night.json'), 'utf8'), before);
 });
 
+test('answers after the follow-up: a running night on the item blocks a change; a settled waiting item takes it quietly', async () => {
+  const { ref, id, repo } = closedNight();
+  const app = createApp({ version: 'test' });
+  await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  const answer = (a: string) =>
+    app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: a, baseHash: loadNight(repo, id).hash }) });
+  // A night took the waiting item on and is still running: the answer must wait for it.
+  start(repo, plan([{ ...TASKS[1], follow_up: `${id}/A1` }]), session('live', process.pid), new Date('2026-09-27T23:00:00'));
+  const busy = await answer('b');
+  assert.equal(busy.status, 409);
+  assert.match(((await busy.json()) as { error: string }).error, /working on this right now/);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+  // That night settles it. A late answer is kept in the night; the settled item is left alone.
+  record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  close(repo, 'Login fixed.');
+  assert.equal((await answer('b')).status, 200);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, 'b');
+  assert.deepEqual([readFollowUp(repo, id).items[0].status, readFollowUp(repo, id).items[0].kind], ['done', 'waiting']);
+});
+
 test('feedback without gh: a pre-filled issue link, and the entry is marked sent', async () => {
   const { ref, id, repo } = closedNight();
   const app = createApp({ version: 'test' });
