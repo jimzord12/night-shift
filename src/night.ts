@@ -4,6 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import type { Block, Check, Feedback, Night, Option, PlanInput, Question, Session, Task } from './types.ts';
 import { BLOCK_TYPES, OUTCOMES, countOutcomes } from './types.ts';
 import {
@@ -23,6 +24,7 @@ import {
   readPlanInput,
   registerRepo,
   nightShapeProblems,
+  parseJson,
   saveNight,
   taskProblems,
   writeJson,
@@ -409,13 +411,21 @@ export function onSessionEnd(repo: string, sessionId: string, transcript: string
 // ------------------------------------------------------------------ history
 
 // Copies every night file and follow-up file into history/ (only what changed). Returns true when
-// something changed.
+// something changed. "Changed" means the data, not the text: a repository's own formatter (a
+// pre-commit prettier, say) may reformat the committed copy, and that must not look like a change.
 export function copyHistory(repo: string): boolean {
   const dir = historyDir(repo);
   let changed = false;
+  const same = (to: string, text: string) => {
+    try {
+      return isDeepStrictEqual(parseJson(fs.readFileSync(to, 'utf8')), parseJson(text));
+    } catch {
+      return false;
+    }
+  };
   const put = (from: string, to: string) => {
     const text = fs.readFileSync(from, 'utf8');
-    if (fs.existsSync(to) && fs.readFileSync(to, 'utf8') === text) return;
+    if (fs.existsSync(to) && same(to, text)) return;
     fs.mkdirSync(path.dirname(to), { recursive: true });
     fs.writeFileSync(to, text);
     changed = true;

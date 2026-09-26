@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DEAD_PID, TASKS, evidenceFile, git, gitRepo, plan, session } from './helpers.ts';
-import { ask, close, feedback, onSessionEnd, record, recover, start, status } from '../src/night.ts';
+import { ask, close, copyHistory, feedback, onSessionEnd, record, recover, start, status } from '../src/night.ts';
 import { createFollowUp, openItems, resolveItem } from '../src/followup.ts';
 import { StoreError, listRepos, loadNight, nightFile, readNight, saveNight } from '../src/store.ts';
 import { commitPath, ensureGitignore } from '../src/repo.ts';
@@ -41,6 +41,12 @@ test('a whole night: plan, records, a question, feedback, close, history committ
   assert.equal(n.metrics, null);
   // The history copy is committed, and only it.
   assert.match(git(repo, 'log', '-1', '--name-only', '--format=%s'), /night-shift: history of 2026-09-26-a\s+\.night-shift\/history\/2026-09-26-a\.json/);
+  assert.equal(git(repo, 'status', '--porcelain', '--', '.night-shift/history'), '');
+  // A repository's own formatter may rewrite the committed copy; that is not a change to copy back.
+  const copy = path.join(repo, '.night-shift', 'history', `${id}.json`);
+  fs.writeFileSync(copy, JSON.stringify(JSON.parse(fs.readFileSync(copy, 'utf8'))));
+  git(repo, 'commit', '-q', '-am', 'format');
+  assert.equal(copyHistory(repo), false);
   assert.equal(git(repo, 'status', '--porcelain', '--', '.night-shift/history'), '');
 });
 
