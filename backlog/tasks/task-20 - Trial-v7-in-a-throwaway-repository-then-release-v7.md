@@ -4,10 +4,12 @@ title: 'Trial v7 in a throwaway repository, then release v7'
 status: Queued
 assignee: []
 created_date: '2026-09-26 11:40'
+updated_date: '2026-09-26 12:42'
 labels:
-  - spike
+  - release
 dependencies: []
 priority: high
+type: spike
 ordinal: 20000
 ---
 

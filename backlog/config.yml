@@ -1,7 +1,7 @@
 project_name: "Night Shift"
 default_status: "Queued"
 statuses: ["Queued", "Active", "Review", "Ready", "Done"]
-labels: ["night-ready", "blocked", "triage", "external", "app", "cli", "protocol", "practices", "templates", "release", "ci"]
+labels: ["blocked", "triage", "external", "viewer", "cli", "skills", "meter", "practices", "release", "ci"]
 types: ["bug", "feature", "enhancement", "chore", "docs", "spike"]
 priorities: ["High", "Medium", "Low"]
 definition_of_done:

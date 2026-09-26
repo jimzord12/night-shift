@@ -4,10 +4,12 @@ title: Install a tagged release from a fresh clone
 status: Queued
 assignee: []
 created_date: '2026-09-26 12:36'
+updated_date: '2026-09-26 12:42'
 labels:
   - release
 dependencies: []
 priority: medium
+type: chore
 ordinal: 21000
 ---
 

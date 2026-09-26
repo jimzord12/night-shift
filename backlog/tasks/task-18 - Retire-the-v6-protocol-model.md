@@ -4,10 +4,12 @@ title: Retire the v6 protocol model
 status: Queued
 assignee: []
 created_date: '2026-09-26 11:40'
+updated_date: '2026-09-26 12:42'
 labels:
-  - chore
+  - practices
 dependencies: []
 priority: high
+type: chore
 ordinal: 18000
 ---
 

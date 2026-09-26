@@ -25,7 +25,7 @@ files of a fixed shape, a tool that checks them, two skills and the
   History; Trends is a placeholder.
 - **Retired:** the v6 protocol, contract and binding, board adapters, the
   Queue and buffer screens, templates and the old schemas. The only earlier
-  Adopter trial was archived and unwired.
+  `Adopter` trial was archived and unwired.
 
 ## v6 (83f4694), 2026-09-25
 

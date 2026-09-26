@@ -29,7 +29,7 @@ skills and a local app.
   proof and notes inside it come from a small set of blocks. The constraint
   keeps output predictable, cheap to write and quick to read.
 - **Claims and measurements stay apart.** Task outcomes are the agent's
-  claim (except `not_started`, set by Close); metrics are measured by the
+  claim (except `not_started`, normally set by Close); metrics are measured by the
   tool from the harness.
 - **Grows on request.** Agents and developers report what they missed; the
   vocabulary grows release by release, versioned like a library's API.
@@ -75,8 +75,10 @@ are in `docs/glossary.md`.
 
 - **Start.** The developer says "start night shift" (or runs
   `/start-night-shift`). The agent reads any open follow-up file, checks each
-  open item against the real code (an item already fixed by other means is
-  `skipped` with a one-line reason), writes the plan, and the tool opens the
+  open item against the real code, and links each one in the plan: as a
+  task with `follow_up`, or under `skipped_follow_ups` with a one-line
+  reason (for example, already fixed by other means). The tool refuses a
+  plan that leaves an open item out. The agent writes the plan, and the tool opens the
   night, recording the harness session it runs in. The same start refreshes
   the history copies of earlier nights (see The files). The first night in
   a repository registers it with the local Night Shift install and adds
@@ -196,6 +198,7 @@ The agent's promise. `source` is free text so it fits any workflow.
       "id": "T2",
       "title": "Fix the login redirect loop on Safari",
       "source": "follow-up 2026-09-25-a, item A3",
+      "follow_up": "2026-09-25-a/A3",
       "done_when": ["Safari login lands on the account page"]
     },
     {
@@ -204,6 +207,9 @@ The agent's promise. `source` is free text so it fits any workflow.
       "source": "developer prompt",
       "done_when": ["Build passes", "All tests pass"]
     }
+  ],
+  "skipped_follow_ups": [
+    { "follow_up": "2026-09-25-a/A1", "reason": "Already fixed in commit 4e1a9c2" }
   ]
 }
 ```
@@ -333,7 +339,8 @@ it up, in a night or by day, does the digging for context.
   carries it from here. A task left `not_started` leaves the item `open`.
 - The developer may fix things outside Night Shift, so statuses can go
   stale. The next plan therefore checks every open item against the code
-  before turning it into a task, and cites it as the task's `source`.
+  before linking it: a task with `follow_up`, or a `skipped_follow_ups`
+  entry with a reason.
 
 ## Skills
 
