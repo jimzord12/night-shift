@@ -1,7 +1,7 @@
 // Follow-up files: what the developer hands to the next agent after answering a night's questions.
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
-import type { FollowUp, FollowUpItem, Night } from './types.ts';
+import type { FollowUp, FollowUpItem, Night, Question } from './types.ts';
 import { StoreError, followUpFile, listFollowUpIds, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
 
@@ -56,6 +56,31 @@ export function createFollowUp(repo: string, n: Night, now = new Date()): Follow
   });
   if (!f.items.length) throw new StoreError('nothing to follow up: every task is done or skipped, every question is settled, and any item this night did not reach is still open in its own follow-up', 422);
   saveFollowUp(repo, f);
+  return f;
+}
+
+// An answer changed after the follow-up exists: its open item follows the change. An item an agent
+// already worked on refuses it, so no agent ever acts on a decision the developer took back.
+// Returns the updated follow-up to save once the night is saved, or null when there is none.
+export function followAnswer(repo: string, night: string, q: Question): FollowUp | null {
+  if (!fs.existsSync(followUpFile(repo, night))) return null;
+  const f = readFollowUp(repo, night);
+  const item = f.items.find((i) => i.question === q.ask);
+  if (!item) return null;
+  if (item.status !== 'open') {
+    const by = item.resolved?.by === 'day' ? 'by day' : `in night ${item.resolved?.by ?? '?'}`;
+    throw new StoreError(`the follow-up already handed this over and it was worked on ${by} (${night}/${item.id} is ${item.status}); the answer can no longer change`, 409);
+  }
+  delete item.decision;
+  delete item.decision_label;
+  delete item.owner_note;
+  if (q.answer === null) item.kind = 'waiting';
+  else {
+    item.kind = 'decision';
+    item.decision = q.answer;
+    item.decision_label = q.options.find((o) => o.id === q.answer)?.label ?? q.answer;
+    if (q.note) item.owner_note = q.note;
+  }
   return f;
 }
 

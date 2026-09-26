@@ -5,7 +5,8 @@ import path from 'node:path';
 import { DEAD_PID, TASKS, evidenceFile, gitRepo, plan, session } from './helpers.ts';
 import { createApp } from '../src/server.ts';
 import { ask, close, feedback, record, start } from '../src/night.ts';
-import { loadNight, registerRepo } from '../src/store.ts';
+import { loadNight, readFollowUp, registerRepo } from '../src/store.ts';
+import { resolveItem } from '../src/followup.ts';
 import type { NightDetail, Overview } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -62,6 +63,20 @@ test('follow-up: created once from a closed night', async () => {
   assert.deepEqual(d.follow_up?.items.map((i) => [i.kind, i.task]), [['waiting', 'T2']]);
   assert.ok(fs.existsSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`)));
   assert.equal((await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' })).status, 409);
+
+  // An answer given after the follow-up exists follows into its open item.
+  const answer = async (a: string | null, note = '') =>
+    app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: a, note, baseHash: loadNight(repo, id).hash }) });
+  assert.equal((await answer('b', 'We own it')).status, 200);
+  const item = () => readFollowUp(repo, id).items[0];
+  assert.deepEqual([item().kind, item().decision, item().decision_label, item().owner_note], ['decision', 'b', 'Own domain', 'We own it']);
+  // Once an agent has worked on the item, the answer can no longer change, and nothing is written.
+  resolveItem(repo, `${id}/A1`, 'done', 'day', undefined);
+  const before = fs.readFileSync(path.join(repo, '.night-shift', 'nights', id, 'night.json'), 'utf8');
+  const refused = await answer('a');
+  assert.equal(refused.status, 409);
+  assert.match(((await refused.json()) as { error: string }).error, /worked on by day/);
+  assert.equal(fs.readFileSync(path.join(repo, '.night-shift', 'nights', id, 'night.json'), 'utf8'), before);
 });
 
 test('feedback without gh: a pre-filled issue link, and the entry is marked sent', async () => {

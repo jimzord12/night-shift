@@ -266,7 +266,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
       <aside className="slide-in h-full w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-night-900 p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4">
+        <div className="sticky -top-6 z-10 -mx-6 -mt-6 flex items-start justify-between gap-4 bg-night-900 px-6 pt-6 pb-3">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 15%, transparent)` }}>
               <Icon name={s.icon} className="size-3.5" strokeWidth={2.6} /> {s.label}
@@ -331,10 +331,14 @@ function FeedbackSection({ detail, onDetail }: { detail: NightDetail; onDetail: 
   const unsent = detail.night.feedback.filter((f) => !f.sent);
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [gh, setGh] = useState<boolean | null>(null);
+  const [issuesRepo, setIssuesRepo] = useState('the Night Shift repository');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   useEffect(() => {
-    void ghStatus().then((s) => setGh(s.ready)).catch(() => setGh(false));
+    void ghStatus().then((s) => {
+      setGh(s.ready);
+      setIssuesRepo(s.repo);
+    }).catch(() => setGh(false));
   }, []);
   const toggle = (id: string) => setTicked((s) => {
     const next = new Set(s);
@@ -391,6 +395,7 @@ function FeedbackSection({ detail, onDetail }: { detail: NightDetail; onDetail: 
           <Icon name="send" className="size-4" /> {busy ? 'Sending…' : `Send ${ticked.size || ''} to GitHub`}
         </button>
       )}
+      {unsent.length > 0 && <p className="mt-2 text-xs text-white/50">Sending creates a public issue on github.com/{issuesRepo}. Read each entry first; remove anything private.</p>}
       {message && <div className="mt-2 text-sm text-white/70">{message}</div>}
     </section>
   );

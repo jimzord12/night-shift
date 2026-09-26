@@ -124,6 +124,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
     const onKey = (e: KeyboardEvent) => {
       if (zoom) return;
       const typing = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
+      if (e.key === 'Escape' && typing) return (e.target as HTMLElement).blur();
       if (e.key === 'Escape') return onClose();
       if (finished) {
         if (e.key === 'Enter') onClose();
@@ -182,7 +183,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <Icon name="moon" className="size-14" strokeWidth={1.6} />
             </div>
             <h2 className="font-display mt-6 text-4xl font-semibold">All clear</h2>
-            <p className="mt-2 text-white/60">Every question has an answer. Create the follow-up so the next agent picks them up.</p>
+            <p className="mt-2 text-white/60">{order.every((k) => byKey.get(k)?.detail.follow_up) ? 'Every question has an answer. The follow-up already handed over now carries them.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
             <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the morning</button>
           </div>
         ) : !q || !draft || !item ? (

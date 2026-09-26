@@ -7,10 +7,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Hono } from 'hono';
 import { contentType, insideDir } from './files.ts';
-import { createFollowUp } from './followup.ts';
-import { createIssue, ghReady, newIssueUrl } from './github.ts';
+import { createFollowUp, followAnswer } from './followup.ts';
+import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
-import { REPO_ROOT, StoreError, findRepo, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveNight, followUpFile } from './store.ts';
+import { REPO_ROOT, StoreError, findRepo, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
 import { countOutcomes, emptyCounts, isOpenQuestion } from './types.ts';
 
@@ -167,7 +167,9 @@ export function createApp({ version, port }: AppOptions): Hono {
     q.note = b.note?.trim() ? b.note.trim() : null;
     if (q.answer) q.answered_at = localIso(new Date());
     else delete q.answered_at;
+    const followUp = followAnswer(repo.path, r.night.night, q);
     saveNight(repo.path, r.night);
+    if (followUp) saveFollowUp(repo.path, followUp);
     return c.json(detail(repo.id, r.night.night));
   });
 
@@ -186,7 +188,7 @@ export function createApp({ version, port }: AppOptions): Hono {
     return c.json(detail(repo.id, r.night.night));
   });
 
-  app.get('/api/gh', (c) => c.json({ ready: ghReady() }));
+  app.get('/api/gh', (c) => c.json({ ready: ghReady(), repo: ISSUES_REPO() }));
 
   // Sends ticked feedback entries: with gh when it is ready, else hands back pre-filled links.
   app.post('/api/nights/:repo/:night/feedback/send', async (c) => {

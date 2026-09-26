@@ -27,7 +27,7 @@ export const getOverview = () => call<Overview>('/api/overview');
 export const getNight = (repo: string, night: string) => call<NightDetail>(nightUrl(repo, night));
 export const markRead = (repo: string, night: string) => post<{ ok: true }>(`${nightUrl(repo, night)}/read`);
 export const createFollowUp = (repo: string, night: string) => post<NightDetail>(`${nightUrl(repo, night)}/follow-up`);
-export const ghStatus = () => call<{ ready: boolean }>('/api/gh');
+export const ghStatus = () => call<{ ready: boolean; repo: string }>('/api/gh');
 
 export function postAnswer(repo: string, night: string, body: { question: string; answer: string | null; note: string; baseHash: string }) {
   return post<NightDetail>(`${nightUrl(repo, night)}/answer`, body);
