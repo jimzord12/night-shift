@@ -1,10 +1,11 @@
 ---
 id: TASK-18
 title: Retire the v6 protocol model
-status: Queued
-assignee: []
+status: Active
+assignee:
+  - '@claude'
 created_date: '2026-09-26 11:40'
-updated_date: '2026-09-26 12:42'
+updated_date: '2026-09-26 12:48'
 labels:
   - practices
 dependencies: []

@@ -22,7 +22,7 @@ name what v7 builds.
 | `Block` | One item of the fixed vocabulary for evidence and notes in a `Night file`: `image`, `compare`, `video`, `pdf`, `link`, `command`, `note` | `type` of an `evidence[]` entry | 2026-09-26, owner |
 | `Question` | An entry in the `Night file` that the `Owner` answers in the `Viewer` | `questions[]` in the `Night file` | 2026-09-25; redefined 2026-09-26, owner |
 | `Feedback` | Friction with Night Shift an agent logs in the `Night file`; the `Owner` may send it to GitHub as an issue labelled `proposal` | `feedback[]` in the `Night file` | 2026-09-26, owner |
-| `Follow-up file` | What the `Owner` hands to the next agent: unfinished tasks plus the `Owner`'s decisions | schema `night-shift/follow-up@1` | 2026-09-26, owner |
+| `Follow-up file` | What the `Owner` hands to the next agent: unfinished tasks plus the `Owner`'s decisions | `.night-shift/follow-ups/<night id>.json`, schema `night-shift/follow-up@1` | 2026-09-26, owner |
 | `Viewer` | The local app that shows every `Night` of every registered repository | `web/` | 2026-09-26, owner |
 | `Meter` | The part of the tool that reads the harness's logs and writes the metrics | docs/design.md, "Meter" | 2026-09-26, owner |
 | `Owner File` | A repository's shared, committed rules for working with its `Owner`: who decides what, how to report | `docs/owner.md` | 2026-09-25 |
@@ -36,6 +36,7 @@ name what v7 builds.
 | Word | Say instead |
 |---|---|
 | "night shift" for one session | `Night`; Night Shift is the product |
+| "developer" (in docs/design.md and the skills) | The `Owner` of an `Adopter`; kept there because it is the word an `Adopter`'s agent understands |
 | "decision" for an open choice | `Question` (a decision is settled) |
 | "owner" for the agent holding a task | "assignee" (the `Owner` is the human) |
 | "project" for this repository | `Night Shift Repo` ("project" is an `Adopter`) |

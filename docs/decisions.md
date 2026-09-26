@@ -192,8 +192,12 @@ choices below were made unattended and are open to review:
 - **A `carried` item status.** A follow-up item a later night reached
   but did not finish is `carried`, with the reason, and the new night's
   own follow-up picks it up, keeping the developer's decision; an item
-  the night never reached stays `open`. **Why:** without it an unfinished item would stay
-  `open` in two follow-up files at once.
+  the night never reached stays `open`. **Why:** without it an unfinished
+  item would stay `open` in two follow-up files at once.
+- **A plan must account for every open follow-up item.** Each is linked
+  as a task (`follow_up`) or skipped with a reason (`skipped_follow_ups`);
+  the tool refuses a plan that leaves one out. **Why:** otherwise stale
+  items pile up silently and the developer's answers are never acted on.
 - **Liveness is the recorded process id plus recent change.** A night counts
   as running while the harness process that started it is alive and its
   files or transcript changed within 24 hours; otherwise recovery closes it
@@ -217,6 +221,6 @@ choices below were made unattended and are open to review:
   Night Shift wiring removed.
 
 **Rejected:** keeping the v6 screens behind a flag (two models to maintain
-for no user); inline JSON with a documented permission rule (every Adopter
+for no user); inline JSON with a documented permission rule (every `Adopter`
 would need to change their permissions). Replaces D7, D13, D14 and D17;
 D5 and D9 stay open (D20).

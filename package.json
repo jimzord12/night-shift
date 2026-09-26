@@ -1,7 +1,7 @@
 {
   "name": "night-shift",
   "private": true,
-  "description": "The Night Shift Protocol: prepare work by day, let agents build it at night, review it in the morning. Protocol text, JSON contract and a local app for the morning review.",
+  "description": "Night Shift: read a night of unattended agent work in minutes. Files of a fixed shape, a tool that checks them, two skills and a local Viewer.",
   "license": "MIT",
   "type": "module",
   "engines": {

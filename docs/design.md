@@ -29,8 +29,8 @@ skills and a local app.
   proof and notes inside it come from a small set of blocks. The constraint
   keeps output predictable, cheap to write and quick to read.
 - **Claims and measurements stay apart.** Task outcomes are the agent's
-  claim (except `not_started`, normally set by Close); metrics are measured by the
-  tool from the harness.
+  claim (except `not_started`, normally set by Close); metrics are
+  measured by the tool from the harness.
 - **Grows on request.** Agents and developers report what they missed; the
   vocabulary grows release by release, versioned like a library's API.
 - **Claude Code first.** Other harnesses later.
@@ -78,8 +78,8 @@ are in `docs/glossary.md`.
   open item against the real code, and links each one in the plan: as a
   task with `follow_up`, or under `skipped_follow_ups` with a one-line
   reason (for example, already fixed by other means). The tool refuses a
-  plan that leaves an open item out. The agent writes the plan, and the tool opens the
-  night, recording the harness session it runs in. The same start refreshes
+  plan that leaves an open item out. The agent writes the plan, and the
+  tool opens the night, recording the harness session it runs in. The same start refreshes
   the history copies of earlier nights (see The files). The first night in
   a repository registers it with the local Night Shift install and adds
   `.night-shift/*` and `!.night-shift/history/` to `.gitignore` (git cannot
