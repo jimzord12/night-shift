@@ -244,7 +244,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                       {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                     </span>
                     {o.id === q.recommended && <Icon name="sparkle" className="size-4 text-moon" />}
-                    {!lock && <kbd className="text-white/40">{i + 1}</kbd>}
+                    {!lock && <kbd className="hidden text-white/40 sm:inline">{i + 1}</kbd>}
                   </button>
                 );
               })}

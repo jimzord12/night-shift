@@ -79,15 +79,15 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
           </div>
           <h1 className="font-display mt-1 text-3xl font-semibold">{nightTitle(n.night)}</h1>
           {n.summary ? <p className="mt-3 text-lg leading-snug text-white/85">{n.summary}</p> : <p className="mt-3 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
-          <div className="mt-5 flex flex-wrap gap-2.5">
+          <div className="mt-5 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
             {OUTCOMES.map((o) => (
-              <div key={o} className="flex items-center gap-2.5 rounded-2xl bg-white/5 px-3 py-2" style={{ opacity: counts[o] ? 1 : 0.35 }}>
-                <span className="grid size-8 place-items-center rounded-full" style={{ background: `color-mix(in srgb, ${STATUS[o].color} 18%, transparent)`, color: STATUS[o].color }}>
+              <div key={o} className="flex min-w-0 items-center gap-2 rounded-2xl bg-white/5 px-2 py-2 sm:gap-2.5 sm:px-3" style={{ opacity: counts[o] ? 1 : 0.35 }}>
+                <span className="grid size-7 shrink-0 place-items-center rounded-full sm:size-8" style={{ background: `color-mix(in srgb, ${STATUS[o].color} 18%, transparent)`, color: STATUS[o].color }}>
                   <Icon name={STATUS[o].icon} className="size-4" strokeWidth={2.4} />
                 </span>
-                <span>
+                <span className="min-w-0">
                   <span className="block text-xl leading-none font-bold">{counts[o]}</span>
-                  <span className="text-xs text-white/60">{STATUS[o].label}</span>
+                  <span className="block truncate text-xs text-white/60">{STATUS[o].label}</span>
                 </span>
               </div>
             ))}
@@ -101,7 +101,7 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
 
         <button onClick={() => onOpenDeck()} disabled={!n.questions.length} className="glass pop-in group flex flex-col items-center justify-center gap-6 rounded-3xl p-6 text-center transition hover:bg-white/10 disabled:cursor-default disabled:hover:bg-transparent" style={{ animationDelay: '60ms' }}>
           {n.questions.length > 0 && (
-            <span className="cta inline-flex items-center gap-2 text-lg">
+            <span className="cta inline-flex items-center gap-2 text-lg whitespace-nowrap">
               <span className="cta-shine" />
               <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
               {openQ ? 'Start answering' : 'Review answers'}
