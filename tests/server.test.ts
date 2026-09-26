@@ -85,16 +85,9 @@ test('morning inbox: a night stays while unread or needing the developer, and le
 
 test('morning inbox: a night stopped early with work left needs a hand-over; a read mark from while it ran does not count', async () => {
   const repo = gitRepo('stopped');
-  const id = start(repo, plan(TASKS.slice(0, 2)), session('mine', DEAD_PID), NOW).night.night;
+  const id = start(repo, plan(TASKS.slice(0, 2)), session('mine', process.pid), NOW).night.night;
   record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
   const ref = registerRepo(repo);
-  markRead(ref.id, id, new Date('2026-09-26T23:30:00'));
-  onSessionEnd(repo, 'mine', null, new Date('2026-09-27T02:00:00'));
-  const night = loadNight(repo, id).night;
-  assert.equal(night.status, 'interrupted');
-  // The Viewer's rule and the follow-up builder agree on whether there is anything to hand over.
-  assert.equal(needsHandOver(night, null), buildFollowUp(night).items.length > 0);
-
   const app = createApp({ version: 'test' });
   const summary = async () => {
     const o = (await (await app.request('/api/overview')).json()) as Overview;
@@ -102,13 +95,28 @@ test('morning inbox: a night stopped early with work left needs a hand-over; a r
     assert.ok(n);
     return n;
   };
+  // Opened while it runs: read, and nothing to hand over yet.
+  markRead(ref.id, id, new Date('2026-09-26T23:30:00'));
   let n = await summary();
+  assert.deepEqual([n.running, n.read, n.hand_over, inMorning(n)], [true, true, false, false]);
+
+  onSessionEnd(repo, 'mine', null, new Date('2026-09-27T02:00:00'));
+  const night = loadNight(repo, id).night;
+  assert.equal(night.status, 'interrupted');
+  // The Viewer's rule and the follow-up builder agree on whether there is anything to hand over.
+  assert.equal(needsHandOver(night, null), buildFollowUp(night).items.length > 0);
+
+  n = await summary();
   assert.deepEqual([n.read, n.questions_open, n.hand_over, ownerSide(n), inMorning(n)], [false, 0, true, 'needs_you', true]);
   markRead(ref.id, id, new Date('2026-09-27T08:00:00'));
   assert.equal(inMorning(await summary()), true, 'read, but T2 is not handed over');
   assert.equal((await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' })).status, 200);
   n = await summary();
   assert.deepEqual([n.hand_over, ownerSide(n), inMorning(n)], [false, 'handed_over', false]);
+  // A follow-up file that no longer reads still blocks a second one, so it is not asked for again.
+  fs.writeFileSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`), '{ broken');
+  n = await summary();
+  assert.deepEqual([n.follow_up, n.hand_over, inMorning(n)], [true, false, false]);
 });
 
 test('answers: round trip, a stale write is refused, an unknown option is refused', async () => {

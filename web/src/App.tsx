@@ -38,8 +38,9 @@ export function App() {
             ...live,
             questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up)).length,
             feedback_unsent: d.night.feedback.filter((f) => !f.sent).length,
-            follow_up: !!d.follow_up,
-            hand_over: needsHandOver(d.night, d.follow_up),
+            // A follow-up file the server found but could not read still counts as handed over.
+            follow_up: n.follow_up || !!d.follow_up,
+            hand_over: !n.follow_up && needsHandOver(d.night, d.follow_up),
           }
         : live;
     });

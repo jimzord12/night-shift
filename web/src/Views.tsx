@@ -65,7 +65,8 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
                   <span className="inline-flex items-center gap-1"><Icon name="coin" /> {dollars(n.cost_usd)}</span>
                   <span className="inline-flex items-center gap-2">
                     <span className="font-semibold" style={{ color: st.color }}>{st.label}</span>
-                    {!n.running && !n.problems.length && <OwnerPill side={ownerSide(n)} />}
+                    {/* A night file that could not be read has no started_at and nothing to judge. */}
+                    {!n.running && n.started_at && <OwnerPill side={ownerSide(n)} />}
                   </span>
                 </span>
               </div>
