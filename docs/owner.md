@@ -11,11 +11,11 @@ that stays in this file ([practices/local-folder.md](practices/local-folder.md))
 
 ## Who the owner is
 
-The product owner and designer of Night Shift. They decide what the
-tool, the skills and the `Viewer` are for and what gets built next; AI agents write and
-review every line of code and documentation. They do not read the code, so
-a report says what changed for a person using Night Shift, not which
-function moved.
+The product owner and designer of Night Shift. They decide what the tool,
+the skills and the `Viewer` are for and what gets built next; AI agents
+write and review every line of code and documentation. They do not read the
+code, so a report says what changed for a person using Night Shift, not
+which function moved.
 
 ## How to talk to the owner
 

@@ -1,27 +1,26 @@
 ---
-id: TASK-8
-title: Cover the question deck with UI tests
+id: TASK-22
+title: 'Idea: a preflight at start that the night can commit and reach its services'
 status: Queued
 assignee: []
-created_date: '2026-09-25 17:59'
-updated_date: '2026-09-26 12:36'
+created_date: '2026-09-26 12:36'
 labels:
-  - viewer
+  - feature
+  - skills
 dependencies: []
-priority: medium
-type: enhancement
-ordinal: 8000
+priority: low
+ordinal: 22000
 ---
 
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-The web UI has no tests beyond typecheck and build. Add a few Playwright checks for the question deck, the owner's most-used screen, against a copy of examples/sample-repo.
+Night 1 of the v7 trial found halfway through that git commit and docker needed permission approvals nobody could give, so nothing was committed and nothing ran against a database. A start-time check (or a documented checklist in the skill) would surface this while the developer is still awake. Raised by the agent as night feedback F2.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A test answers a question in the deck through the real app and reads the answer back from the file
+- [ ] #1 The owner decides whether start checks permissions, the skill documents a checklist, or neither
 <!-- AC:END -->
 
 ## Definition of Done

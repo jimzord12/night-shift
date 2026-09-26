@@ -4,8 +4,9 @@ title: 'Idea: history charts of shipped and blocked per night'
 status: Queued
 assignee: []
 created_date: '2026-09-25 17:59'
+updated_date: '2026-09-26 12:36'
 labels:
-  - app
+  - viewer
 dependencies: []
 priority: low
 type: feature

@@ -189,7 +189,10 @@ export interface RecordInput {
   reason?: string;
 }
 
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
 export function record(repo: string, input: RecordInput, now = new Date()): { night: Night; task: Task; message: string } {
+  if (!isObject(input)) throw new StoreError('send one JSON object: { "task": "T1", "outcome": "done", "checks": [...], "evidence": [...] }');
   const n = openNight(repo);
   if (!OUTCOMES.includes(input.outcome as never)) throw new StoreError(`outcome must be one of ${OUTCOMES.join(', ')}`);
   let task: Task;
@@ -197,11 +200,11 @@ export function record(repo: string, input: RecordInput, now = new Date()): { ni
   if (index >= 0) {
     task = { ...n.tasks[index] };
   } else if (input.unplanned) {
-    if (!input.title?.trim()) throw new StoreError('an unplanned task needs a title');
+    if (!text(input.title)) throw new StoreError('an unplanned task needs a title');
     const existing = input.task ? n.tasks.find((t) => t.id === input.task && t.unplanned) : undefined;
     const nextU = `U${n.tasks.filter((t) => t.unplanned).length + 1}`;
-    task = existing ? { ...existing } : { id: nextU, title: input.title.trim(), unplanned: true, done_when: [], outcome: null, checks: [], evidence: [] };
-    task.title = input.title.trim();
+    task = existing ? { ...existing } : { id: nextU, title: text(input.title), unplanned: true, done_when: [], outcome: null, checks: [], evidence: [] };
+    task.title = text(input.title);
   } else {
     throw new StoreError(input.task ? `night ${n.night} has no task ${input.task}; for work you did not plan, send "unplanned": true with a title and why` : 'say which task: "task": "T1" (or "unplanned": true)');
   }
@@ -249,21 +252,23 @@ export interface AskInput {
 }
 
 export function ask(repo: string, input: AskInput): { night: Night; question: Question; message: string } {
+  if (!isObject(input)) throw new StoreError('send one JSON object: { "ask": "...", "options": [...], "recommended": "a" }');
   const n = openNight(repo);
-  if (!input?.ask?.trim()) throw new StoreError('a question needs "ask"');
+  if (!text(input.ask)) throw new StoreError('a question needs "ask"');
   if (!Array.isArray(input.options) || input.options.length < 2) throw new StoreError('a question needs at least two options; every question has a recommended answer');
+  if (input.options.some((o) => !isObject(o))) throw new StoreError('each option is an object: { "label": "...", "detail": "..." }');
   const options: Option[] = input.options.map((o, i) => ({
     id: o.id ?? String.fromCharCode(97 + i),
     label: String(o.label ?? '').trim(),
     ...(o.detail ? { detail: o.detail } : {}),
-    ...(o.image ? { image: relEvidence(repo, n.night, o.image) } : {}),
+    ...(typeof o.image === 'string' && o.image ? { image: relEvidence(repo, n.night, o.image) } : {}),
   }));
   const rec = String(input.recommended ?? '');
   const recommended = options.find((o) => o.id === rec)?.id ?? options.find((o) => o.label === rec)?.id ?? rec;
   const q: Question = {
     id: `Q${n.questions.length + 1}`,
     task: input.task ?? null,
-    ask: input.ask.trim(),
+    ask: text(input.ask),
     ...(text(input.why) ? { why: text(input.why) } : {}),
     options,
     recommended,

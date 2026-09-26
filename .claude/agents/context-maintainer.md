@@ -51,8 +51,8 @@ decision entry, written by the lead, not by you.
 1. **Find the owner.** Grep for the concept, follow the router rows, and
    read each candidate file whole. Separate the file that states the rule
    from the files that repeat it, point at it or apply it (a row in
-   `AGENTS.md`, an agent's report shape). The change goes into the owner; the others change
-   only if they would otherwise contradict it.
+   `AGENTS.md`, an agent's report shape). The change goes into the owner;
+   the others change only if they would otherwise contradict it.
 2. **Understand before editing:** the file's purpose and scope, its
    headings, its list and table shapes, its sentence length, how it
    phrases rules, what it leaves out.

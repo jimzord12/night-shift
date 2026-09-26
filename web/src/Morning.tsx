@@ -157,7 +157,8 @@ function FollowUpCard({ detail, onDetail }: { detail: NightDetail; onDetail: (d:
   const [error, setError] = useState<string | null>(null);
   const f = detail.follow_up;
   const n = detail.night;
-  const pending = n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped').length;
+  // A follow-up item the night never reached stays open where it is; it is not handed over again.
+  const pending = n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped' && !(t.follow_up && t.outcome === 'not_started')).length;
   const create = async () => {
     setBusy(true);
     setError(null);

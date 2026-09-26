@@ -294,9 +294,10 @@ as "unknown". An abridged example (the schema has every field):
 ### Follow-up file
 
 Made by the Viewer's "Create follow-up" button after the developer has
-answered. It holds every task that was not `done` or `skipped`, plus the
-developer's decisions and notes. The agent that picks it up, in a night
-or by day, does the digging for context.
+answered. It holds every task that was not `done` or `skipped` (except a
+task that took on an earlier item and was never reached: that item simply
+stays open), plus the developer's decisions and notes. The agent that picks
+it up, in a night or by day, does the digging for context.
 
 ```json
 {
@@ -327,8 +328,9 @@ or by day, does the digging for context.
   developer did not answer; the next agent plans it, asks again instead of
   guessing, and records it `blocked` if it still needs the answer).
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
-  night took the item on as a task that did not end done or skipped, so that
-  task (and that night's own follow-up) carries it from here.
+  night reached the item as a task that did not end done or skipped, so that
+  task (and that night's own follow-up, which keeps a decision's answer)
+  carries it from here. A task left `not_started` leaves the item `open`.
 - The developer may fix things outside Night Shift, so statuses can go
   stale. The next plan therefore checks every open item against the code
   before turning it into a task, and cites it as the task's `source`.
@@ -348,9 +350,9 @@ No `/ns:ask` in version 1: outside a night the developer is at the terminal.
 `night-shift install` (run once in a repository) copies both skills into its
 `.claude/skills/`, with the exact command that runs the tool written into
 them, and adds the Meter's session-end hook to its `.claude/settings.json`,
-keeping every other setting. Agents write the JSON to `.night-shift/input.json` and pass `--file`
-(D21); the tool also reads stdin and `--json`. Every reply ends with the
-next step.
+keeping every other setting. Agents write the JSON to
+`.night-shift/input.json` and pass `--file` (D21); the tool also reads stdin
+and `--json`. Every reply ends with the next step.
 
 ## Viewer
 

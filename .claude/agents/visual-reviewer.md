@@ -27,8 +27,9 @@ to you.
    `NIGHT_SHIFT_ROOT` at it, copy the repositories or night folders you
    were given into a temporary folder, and register the copies there
    (`night-shift install <copy>` or the lead's instructions).
-2. Build and start the `Viewer` as `AGENTS.md` "Commands" says, on a free
-   port, with `NIGHT_SHIFT_ROOT` set to your scratch folder.
+2. Build the `Viewer` (`npm run build`) and start it as `AGENTS.md`
+   "Commands" says, on a free port, with `NIGHT_SHIFT_ROOT` set to your
+   scratch folder.
 3. Drive it with Playwright from a Node script (this repository has no
    Playwright of its own: import it from a sibling checkout the lead names,
    or `npx playwright` when it is available). If the session gives you the

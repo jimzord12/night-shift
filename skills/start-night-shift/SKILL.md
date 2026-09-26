@@ -98,8 +98,9 @@ then run:
 {{cli}} record --file .night-shift/input.json
 ```
 
-Every record of a planned task sends `checks`: one per `done_when` line,
-in order, each `true`, `false`, or `{ "met": false, "note": "what is left" }`.
+Every record of a planned task, except `not_started`, sends `checks`: one
+per `done_when` line, in order, each `true`, `false`, or
+`{ "met": false, "note": "what is left" }`.
 Outcomes, and what each needs on top of that:
 
 | Outcome | When | Needs |
@@ -144,8 +145,8 @@ then run:
 {{cli}} ask --file .night-shift/input.json
 ```
 
-Options get ids `a`, `b`, `c`… in order. Every question has a
-recommendation.
+A question has two to six options; they get ids `a`, `b`, `c`… in order.
+Every question has a recommendation.
 
 ## 5. Friction with Night Shift itself
 

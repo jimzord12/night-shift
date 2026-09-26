@@ -1,27 +1,25 @@
 ---
-id: TASK-8
-title: Cover the question deck with UI tests
+id: TASK-21
+title: Install a tagged release from a fresh clone
 status: Queued
 assignee: []
-created_date: '2026-09-25 17:59'
-updated_date: '2026-09-26 12:36'
+created_date: '2026-09-26 12:36'
 labels:
-  - viewer
+  - release
 dependencies: []
 priority: medium
-type: enhancement
-ordinal: 8000
+ordinal: 21000
 ---
 
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-The web UI has no tests beyond typecheck and build. Add a few Playwright checks for the question deck, the owner's most-used screen, against a copy of examples/sample-repo.
+npm run release builds a tag only when the tag is new, and switch needs an existing ~/.night-shift/releases/vN. A stranger who clones the repository cannot get a night-shift command on PATH; the README tells them to run node src/cli.ts from the clone. Add a way to install an existing tag (for example npm run release install vN) and point the README at it.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A test answers a question in the deck through the real app and reads the answer back from the file
+- [ ] #1 From a fresh clone, one documented command puts a working night-shift for the latest tag on PATH
 <!-- AC:END -->
 
 ## Definition of Done

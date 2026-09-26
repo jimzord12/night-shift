@@ -43,15 +43,20 @@ Needs Node 24 or newer and git.
 git clone https://github.com/jimzord12/night-shift.git
 cd night-shift
 npm ci
-npm run release install-launchers   # writes ~/.night-shift/bin/night-shift(.cmd); add that folder to PATH
-npm run release switch v7            # the release the launcher runs
+npm run build                        # the Viewer
 ```
 
 Then, in each repository you want to run nights in:
 
 ```sh
-night-shift install      # the two skills, the session-end hook, the .gitignore lines
+node <path to the clone>/src/cli.ts install   # the two skills, the session-end hook, the .gitignore lines
 ```
+
+The installed skills and hook run the tool from your clone. Below,
+`night-shift` stands for `node <path to the clone>/src/cli.ts`. Installing a
+tagged release as a `night-shift` command on PATH works on the maintainer's
+machine today (`npm run release`); making it work from a fresh clone is
+open work.
 
 ## Use
 

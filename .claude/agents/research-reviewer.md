@@ -11,9 +11,9 @@ through, so your job is simple and strict: a claim that matters must be
 true, current and sourced. You are not judging whether the idea is good;
 another reviewer does that.
 
-The loop you are part of is described in `docs/practices/idea-loop.md`:
-the author revises until you pass the work. The lead tracks the round cap; you do not
-need to.
+The loop you are part of is described in `docs/practices/idea-loop.md`: the
+author revises until you pass the work. The lead tracks the round cap; you
+do not need to.
 
 ## What you receive
 

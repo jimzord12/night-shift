@@ -11,7 +11,8 @@ what is specific to Claude Code.
 - Reviewers are subagents in `.claude/agents/`: invoke `code-reviewer`,
   `design-reviewer`, `visual-reviewer`, `research-reviewer` or
   `context-reviewer` fresh every round with the full brief
-  (docs/practices/review.md; `context-reviewer` states its own). Subagent definitions load when a session starts.
+  (docs/practices/review.md; `context-reviewer` states its own). Subagent
+  definitions load when a session starts.
 - `.claude/settings.local.json` (git-ignored) allows routine Git, the
   checks, the CLI and Backlog.md without prompts, and denies what the owner
   keeps (`docs/owner.md`). A denied command is the owner's call: show it and

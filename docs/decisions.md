@@ -189,9 +189,10 @@ look and its media viewer, compare slider and question deck stay. v7 is the
 design in `docs/design.md`. The owner decided most of it card by card; the
 choices below were made unattended and are open to review:
 
-- **A `carried` item status.** A follow-up item a later night planned but
+- **A `carried` item status.** A follow-up item a later night reached but
   did not finish is `carried`, with the reason, and the new night's own
-  follow-up picks it up. **Why:** without it an unfinished item would stay
+  follow-up picks it up, keeping the developer's decision; an item the
+  night never reached stays `open`. **Why:** without it an unfinished item would stay
   `open` in two follow-up files at once.
 - **Liveness is the recorded process id plus recent change.** A night counts
   as running while the harness process that started it is alive and its

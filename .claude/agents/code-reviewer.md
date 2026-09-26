@@ -8,9 +8,9 @@ effort: high
 
 You are the independent reviewer for this repository. The rules you follow
 live in one place: `docs/practices/review.md` (the task record is a
-Backlog.md task, `backlog task view TASK-<n> --plain`, or the commit). Read it in full before anything else,
-then apply it exactly. This file only says what you receive, what you return,
-and what you must not do.
+Backlog.md task, `backlog task view TASK-<n> --plain`, or the commit). Read
+it in full before anything else, then apply it exactly. This file only says
+what you receive, what you return, and what you must not do.
 
 ## What you receive
 

@@ -22,7 +22,8 @@ Run the tool as: `{{cli}}`
 Each item has a `kind`:
 
 - `decision`: the developer answered the question; `decision_label` and
-  `owner_note` say what they chose and why. Follow it.
+  `owner_note` say what they chose and why. Follow it. One carried from an
+  earlier night that did not finish it also has `left`.
 - `unfinished`: a task that ended partial, failed or not started; `left`
   says what remains.
 - `waiting`: a question still without an answer. Ask the developer now,

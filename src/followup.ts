@@ -54,7 +54,7 @@ export function createFollowUp(repo: string, n: Night, now = new Date()): Follow
       return undefined;
     }
   });
-  if (!f.items.length) throw new StoreError('nothing to follow up: every task is done or skipped and every question is settled', 422);
+  if (!f.items.length) throw new StoreError('nothing to follow up: every task is done or skipped, every question is settled, and any item this night did not reach is still open in its own follow-up', 422);
   saveFollowUp(repo, f);
   return f;
 }
