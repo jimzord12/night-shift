@@ -3,7 +3,7 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
-## v7 (unreleased), 2026-09-26
+## v7 (b680823), 2026-09-26
 
 A new model (D20, D21): Night Shift no longer imposes a process. It adds
 files of a fixed shape, a tool that checks them, two skills and the

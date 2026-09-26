@@ -3,7 +3,7 @@ id: doc-1
 title: Session handoff
 type: other
 created_date: '2026-09-25 18:18'
-updated_date: '2026-09-25 18:26'
+updated_date: '2026-09-26 14:34'
 ---
 # session-handoff
 
@@ -11,38 +11,26 @@ Read this first on every fresh session, then derive the state from the tasks
 (`backlog task list --plain`), Git and evidence; they win when they disagree
 with this document. Rewritten in place at the end of every session.
 
-**Written:** 2026-09-25, Backlog.md adoption, Backlog.md board adapter, agent-context merge (claude)
+**Written:** 2026-09-26, v6 retired, v7 built, trialled and released (claude, unattended)
 
 ## Where things stand
-- v6 released and current (83f4694): the app reads Backlog.md boards
-  (TASK-16, Done). This repository tracks its work in `backlog/`.
-- Agent context: `docs/owner.md`, `.local/preferences/owner-profile.md`
-  (local only), reviewer agents in `.claude/agents/`, practices upgraded.
-- No task carries `night-ready` yet: nothing is decided enough for a night.
+- v7 released and current (b680823): files of a fixed shape, the
+  `night-shift` tool, two skills, the Meter and the `Viewer` (D20, D21).
+  TASK-18, 19 and 20 are Done. The v6 model is gone from the repository.
+- The trial repository (a throwaway todo-list copy, outside this repo) is
+  registered in the owner's install and runs the installed `night-shift`.
+  Its two nights and follow-ups are also in `examples/sample-repo/`.
+- Review loops ended on PASS: code R6, context R4, visual R7, design R7.
 
 ## Next, in order
-1. With the owner: pick which of TASK-1..3 (outcome, ask/resolve, init
-   helpers) become Night-ready, and write their card headers.
-2. TASK-4: run a first real night and file the friction.
+1. The owner uses v7 for real and decides what the trial left open:
+   TASK-22 (preflight for unattended permissions) and TASK-21 (installing a
+   tagged release from a fresh clone).
+2. Trends is still a placeholder; what it measures is the owner's call.
 
-## Parked owner decisions
-- The four `Idea:` tasks (TASK-12..15) wait for the owner.
-- Whether `Adopter`s should get the upgraded templates re-copied
-  (they do not update themselves).
-
-## Machine facts
-- Backlog.md 1.52.0 is installed globally. `backlog task create -s "<active
-  status>"` needs `--plan`; `backlog doc update` takes no `--plain`.
-- `.night-shift/project.json` (local) points the app at this backlog:
-  `night-shift serve . --open`.
-- No Playwright in this repo; the walk script in
-  `.local/evidence/2026-09-25-backlog-adapter/walk.mjs` borrows a sibling
-  checkout's install.
-
-## Pitfalls
-- The RTK shell hook can swallow command output; use `rtk proxy <cmd>` when
-  a result looks empty.
-
-## Constraints in force
-- The protocol is a v1 trial; the contract stays `/1` (the backlog board was
-  additive).
+## Watch out
+- Releases: the branch and the tag must not share a name (`v7` did; the
+  tag push failed until the merged branch was deleted).
+- Reviewer subagents must set NIGHT_SHIFT_ROOT in the same command as the
+  CLI, or they write to the owner's real `~/.night-shift/`.
+- Not verified: sending feedback with `gh` (it creates public issues).
