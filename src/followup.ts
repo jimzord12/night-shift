@@ -2,6 +2,7 @@
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
 import type { FollowUp, FollowUpItem, Night, Question } from './types.ts';
+import { handedItem } from './types.ts';
 import { StoreError, followUpFile, listFollowUpIds, listNightIds, loadNight, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
 
@@ -67,7 +68,7 @@ export function createFollowUp(repo: string, n: Night, now = new Date()): Follow
 export function followAnswer(repo: string, night: string, q: Question): FollowUp | null {
   if (!fs.existsSync(followUpFile(repo, night))) return null;
   const f = readFollowUp(repo, night);
-  const item = f.items.find((i) => i.question === q.ask && i.task === q.task) ?? f.items.find((i) => i.question === q.ask);
+  const item = handedItem(f, q);
   if (!item) return null;
   const ref = `${night}/${item.id}`;
   for (const id of listNightIds(repo)) {
@@ -81,7 +82,10 @@ export function followAnswer(repo: string, night: string, q: Question): FollowUp
       throw new StoreError(`night ${id} is working on this right now (${ref}); change the answer after it closes`, 409);
     }
   }
-  if (item.status !== 'open' && item.kind === 'waiting') return null;
+  if (item.status !== 'open' && item.kind === 'waiting') {
+    const where = item.status === 'carried' ? `a later night asked it again (${item.resolved?.reason ?? item.status})` : `it was settled ${item.resolved?.by === 'day' ? 'by day' : `in night ${item.resolved?.by ?? '?'}`} (${item.status})`;
+    throw new StoreError(`this question was handed over unanswered and ${where}; answer it where it is open now`, 409);
+  }
   if (item.status !== 'open') {
     const by = item.resolved?.by === 'day' ? 'by day' : `in night ${item.resolved?.by ?? '?'}`;
     throw new StoreError(`the follow-up already handed this over and it was worked on ${by} (${night}/${item.id} is ${item.status}); the answer can no longer change`, 409);

@@ -11,8 +11,8 @@ import { createFollowUp, followAnswer } from './followup.ts';
 import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
-import type { NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
-import { countOutcomes, emptyCounts, isOpenQuestion } from './types.ts';
+import type { FollowUp, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
+import { countOutcomes, emptyCounts, isOpenQuestionIn } from './types.ts';
 
 const WEB_DIST = path.join(REPO_ROOT, 'web', 'dist');
 
@@ -62,6 +62,14 @@ async function body<T>(c: { req: { json: () => Promise<unknown> } }): Promise<T>
   }
 }
 
+function followUpOf(repo: string, id: string): FollowUp | null {
+  try {
+    return fs.existsSync(followUpFile(repo, id)) ? readFollowUp(repo, id) : null;
+  } catch {
+    return null;
+  }
+}
+
 function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>, now: number): NightSummary {
   const r = readNight(repo.path, id);
   const base: NightSummary = {
@@ -92,7 +100,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     summary: n.summary,
     counts: countOutcomes(n.tasks),
     tasks: n.tasks.length,
-    questions_open: n.questions.filter(isOpenQuestion).length,
+    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUpOf(repo.path, id))).length,
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
     duration_min: n.metrics?.duration_min.total ?? null,
     cost_usd: n.metrics?.cost_usd ?? null,
@@ -141,12 +149,7 @@ export function createApp({ version, port }: AppOptions): Hono {
     const repo = findRepo(repoId);
     const r = readNight(repo.path, id);
     if (!r.night) throw new StoreError(`night ${id} is invalid: ${r.problems.join('; ')}`, 422);
-    let followUp = null;
-    try {
-      followUp = fs.existsSync(followUpFile(repo.path, id)) ? readFollowUp(repo.path, id) : null;
-    } catch {
-      followUp = null;
-    }
+    const followUp = followUpOf(repo.path, id);
     return { repo, night: r.night, hash: r.hash, running: r.night.status === 'open' && sessionRunning(repo.path, r.night), follow_up: followUp, problems: r.problems };
   };
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { isOpenQuestion } from '../../src/types.ts';
+import { isOpenQuestionIn } from '../../src/types.ts';
 import type { NightDetail, Overview } from '../../src/types.ts';
 import { getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
@@ -29,7 +29,7 @@ export function App() {
     if (!loaded) return null;
     const nights = loaded.nights.map((n) => {
       const d = details[keyOf(n.repo, n.id)];
-      return d ? { ...n, questions_open: d.night.questions.filter(isOpenQuestion).length, feedback_unsent: d.night.feedback.filter((f) => !f.sent).length } : n;
+      return d ? { ...n, questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up)).length, feedback_unsent: d.night.feedback.filter((f) => !f.sent).length } : n;
     });
     return { ...loaded, nights };
   }, [loaded, details]);
@@ -127,7 +127,7 @@ export function App() {
           </nav>
           <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
             <span className="hidden sm:inline">{overview?.version}</span>
-            <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights">
+            <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -138,7 +138,7 @@ export function App() {
         {overview && (
           <main className="mt-4">
             {view === 'morning' && <Morning overview={overview} detail={detail} onPick={pick} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
-            {view === 'questions' && <QuestionsView items={allItems.filter((i) => i.question.answer === null || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
+            {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
             {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
             {view === 'trends' && <TrendsView />}
           </main>

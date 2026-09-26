@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { handedItem, isOpenQuestionIn } from '../../src/types.ts';
 import type { NightDetail, Question } from '../../src/types.ts';
 import { ApiError, fileUrl, postAnswer } from './api.ts';
 import { MediaThumb, MediaViewer } from './Evidence.tsx';
@@ -34,7 +35,7 @@ export const deckKey = (d: NightDetail, q: Question) => `${d.repo.id}/${d.night.
 // answers can be reviewed and changed.
 export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: Props) {
   const order = useMemo(() => {
-    const open = items.filter((i) => i.question.answer === null);
+    const open = items.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
     const base = (open.length ? open : items).map((i) => i.key);
     if (startKey) return [startKey, ...base.filter((k) => k !== startKey)];
     return base;
@@ -60,6 +61,10 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const handled = (k: string, saved: Set<string>) => saved.has(k) || (byKey.get(k)?.question.answer ?? null) !== null;
   const setDraft = (d: Draft) => key && setDrafts((all) => ({ ...all, [key]: d }));
   const url = (rel: string) => (item ? fileUrl(item.detail.repo.id, item.detail.night.night, rel) : rel);
+  // The follow-up item this question was handed over as; once an agent worked on its decision, the
+  // answer is locked (the server refuses a change too).
+  const handed = q && item ? handedItem(item.detail.follow_up, q) : undefined;
+  const lock = handed && handed.status !== 'open' ? (handed.status === 'carried' && handed.kind === 'waiting' ? 'follow-up item was asked again in a later night' : `follow-up's ${handed.id} is ${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in night ${handed.resolved?.by ?? ''}`}`) : null;
 
   useEffect(() => {
     setMessage(null);
@@ -81,7 +86,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   };
 
   const save = useCallback(async () => {
-    if (!q || !item || !draft || !key || busy) return;
+    if (!q || !item || !draft || !key || busy || lock) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -183,7 +188,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <Icon name="moon" className="size-14" strokeWidth={1.6} />
             </div>
             <h2 className="font-display mt-6 text-4xl font-semibold">All clear</h2>
-            <p className="mt-2 text-white/60">{order.every((k) => byKey.get(k)?.detail.follow_up) ? 'Every question has an answer. The follow-up already handed over now carries them.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
+            <p className="mt-2 text-white/60">{order.every((k) => { const i = byKey.get(k); return i && handedItem(i.detail.follow_up, i.question)?.status === 'open'; }) ? 'Every question has an answer. The follow-up already handed over now carries them.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
             <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the morning</button>
           </div>
         ) : !q || !draft || !item ? (
@@ -194,7 +199,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <span className="rounded-full bg-white/10 px-2.5 py-1 font-semibold tracking-wide uppercase">{item.detail.repo.name}</span>
               <span className="rounded-full bg-white/5 px-2.5 py-1 text-white/60">{nightTitle(item.detail.night.night)}</span>
               {q.task && <span className="rounded-full bg-blocked/20 px-2.5 py-1 font-mono font-semibold text-blocked">{q.task}</span>}
-              {q.answer !== null && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
+              {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
+              {lock && <span className="rounded-full bg-white/10 px-2.5 py-1 text-white/70">{q.answer === null ? 'not answerable here' : 'answered'} · locked: the {lock}</span>}
             </div>
             <h2 className="font-display mt-4 text-3xl leading-tight font-semibold sm:text-4xl">{q.ask}</h2>
             {q.why && <p className="mt-2 text-lg text-white/60">{q.why}</p>}
@@ -206,6 +212,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                   <button
                     key={o.id}
                     onClick={() => setDraft({ ...draft, answer: o.id })}
+                    disabled={!!lock}
                     className="flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition hover:bg-white/5"
                     style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)' }}
                   >
@@ -259,13 +266,15 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
             {message && <div className="mt-4 rounded-xl bg-blocked/15 px-4 py-2 text-sm text-blocked">{message}</div>}
 
             <footer className="mt-auto flex items-center gap-2 pt-8">
-              <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
-              <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
+              <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
+              <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
               <div className="flex-1" />
-              <button onClick={() => advance(savedKeys)} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold" title="Leave it unanswered; the next agent asks again">Not now <kbd>D</kbd></button>
-              <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
-                {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 !border-white/40">Enter</kbd>
-              </button>
+              <button onClick={() => advance(savedKeys)} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title="Leave it unanswered; the next agent asks again">Not now <kbd className="hidden sm:inline">D</kbd></button>
+              {!lock && (
+                <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold whitespace-nowrap text-white shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
+                  {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">Enter</kbd>
+                </button>
+              )}
             </footer>
           </div>
         )}

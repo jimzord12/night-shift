@@ -171,6 +171,12 @@ export function start(repo: string, planText: string, session: Session | null = 
   if (ensureGitignore(repo)) messages.push('Added the Night Shift lines to .gitignore.');
   const h = refreshHistory(repo, true, id);
   if (h) messages.push(h);
+  // The decisions as they stand now: the developer may have changed an answer while the plan was written.
+  for (const t of night.tasks) {
+    if (!t.follow_up) continue;
+    const item = checkRef(repo, t.follow_up).item;
+    if (item.kind === 'decision') messages.push(`${t.id} follows ${t.follow_up}: the developer chose "${item.decision_label}"${item.owner_note ? ` (note: ${item.owner_note})` : ''}.`);
+  }
   messages.push(`Night ${id} is open with ${night.tasks.length} task(s)${session ? '' : ' (no Claude Code session found: metrics will be unknown)'}.`);
   messages.push(`Evidence goes in ${path.relative(repo, evidenceDir(repo, id)).split(path.sep).join('/')}/ and is referenced as evidence/<file>.`);
   messages.push(nextStep(night));

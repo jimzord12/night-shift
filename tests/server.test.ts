@@ -79,7 +79,7 @@ test('follow-up: created once from a closed night', async () => {
   assert.equal(fs.readFileSync(path.join(repo, '.night-shift', 'nights', id, 'night.json'), 'utf8'), before);
 });
 
-test('answers after the follow-up: a running night on the item blocks a change; a settled waiting item takes it quietly', async () => {
+test('answers after the follow-up: a running night on the item blocks a change; a settled waiting question is no longer open', async () => {
   const { ref, id, repo } = closedNight();
   const app = createApp({ version: 'test' });
   await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
@@ -91,12 +91,16 @@ test('answers after the follow-up: a running night on the item blocks a change; 
   assert.equal(busy.status, 409);
   assert.match(((await busy.json()) as { error: string }).error, /working on this right now/);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
-  // That night settles it. A late answer is kept in the night; the settled item is left alone.
+  // That night settles it. The old copy of the question is no longer open, and an answer there,
+  // which would reach no agent, is refused with the reason.
   record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
   close(repo, 'Login fixed.');
-  assert.equal((await answer('b')).status, 200);
-  assert.equal(loadNight(repo, id).night.questions[0].answer, 'b');
-  assert.deepEqual([readFollowUp(repo, id).items[0].status, readFollowUp(repo, id).items[0].kind], ['done', 'waiting']);
+  const overview = (await (await app.request('/api/overview')).json()) as Overview;
+  assert.equal(overview.nights.find((n) => n.repo === ref.id && n.id === id)?.questions_open, 0);
+  const late = await answer('b');
+  assert.equal(late.status, 409);
+  assert.match(((await late.json()) as { error: string }).error, /handed over unanswered and it was settled in night/);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, null);
 });
 
 test('feedback without gh: a pre-filled issue link, and the entry is marked sent', async () => {

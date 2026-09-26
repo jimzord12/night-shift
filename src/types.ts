@@ -229,3 +229,15 @@ export function countOutcomes(tasks: Task[]): Record<Outcome, number> {
 
 // A question still waits for the owner while it has no answer.
 export const isOpenQuestion = (q: Question) => q.answer === null;
+
+// The follow-up item a question was handed over as, if any.
+export const handedItem = (f: FollowUp | null | undefined, q: Question): FollowUpItem | undefined =>
+  f ? (f.items.find((i) => i.question === q.ask && i.task === q.task) ?? f.items.find((i) => i.question === q.ask)) : undefined;
+
+// Waiting for the developer: unanswered, and not handed over unanswered and settled since (asked
+// again by a later night, or worked on by day). An answer there would reach no agent.
+export const isOpenQuestionIn = (q: Question, f: FollowUp | null | undefined) => {
+  if (q.answer !== null) return false;
+  const h = handedItem(f, q);
+  return !h || h.status === 'open';
+};

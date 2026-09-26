@@ -177,7 +177,7 @@ export function BlockView({ block: b, url, onZoom }: { block: Block; url: (rel: 
         <figure className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
           <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2 font-mono text-sm">
             <Icon name="terminal" className="size-4 text-white/60" />
-            <span className="min-w-0 flex-1 truncate text-white/85">{b.command}</span>
+            <span className="min-w-0 flex-1 truncate text-white/85" title={b.command}>{b.command}</span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${b.exit_code === 0 ? 'bg-shipped/15 text-shipped' : 'bg-blocked/15 text-blocked'}`}>exit {b.exit_code}</span>
           </div>
           <pre className="max-h-72 overflow-auto px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap text-white/75">{b.excerpt}</pre>

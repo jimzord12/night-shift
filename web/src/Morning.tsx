@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { NightDetail, NightSummary, Overview, Task } from '../../src/types.ts';
-import { OUTCOMES, countOutcomes, isOpenQuestion } from '../../src/types.ts';
+import { OUTCOMES, countOutcomes, isOpenQuestionIn } from '../../src/types.ts';
 import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import type { Media } from './Evidence.tsx';
@@ -61,7 +61,7 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
   const [open, setOpen] = useState<Task | null>(null);
   const n = detail.night;
   const counts = countOutcomes(n.tasks);
-  const openQ = n.questions.filter(isOpenQuestion).length;
+  const openQ = n.questions.filter((q) => isOpenQuestionIn(q, detail.follow_up)).length;
   const answered = n.questions.length - openQ;
   const st = NIGHT_STATUS[detail.running ? 'running' : n.status];
   const m = n.metrics;
@@ -266,18 +266,16 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
       <aside className="slide-in h-full w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-night-900 p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky -top-6 z-10 -mx-6 -mt-6 flex items-start justify-between gap-4 bg-night-900 px-6 pt-6 pb-3">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 15%, transparent)` }}>
-              <Icon name={s.icon} className="size-3.5" strokeWidth={2.6} /> {s.label}
-            </span>
-            <h2 className="font-display mt-3 text-2xl font-semibold"><span className="font-mono">{t.id}</span> · {t.title}</h2>
-            {t.source && <div className="mt-1 text-sm text-white/50">from {t.source}</div>}
-          </div>
+        <div className="sticky -top-6 z-10 -mx-6 -mt-6 flex items-center justify-between gap-4 bg-night-900 px-6 pt-6 pb-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 15%, transparent)` }}>
+            <Icon name={s.icon} className="size-3.5" strokeWidth={2.6} /> {s.label}
+          </span>
           <button onClick={onClose} className="rounded-full p-2 hover:bg-white/10" aria-label="Close">
             <Icon name="close" className="size-5" />
           </button>
         </div>
+        <h2 className="font-display mt-1 text-2xl font-semibold"><span className="font-mono">{t.id}</span> · {t.title}</h2>
+        {t.source && <div className="mt-1 text-sm text-white/50">from {t.source}</div>}
 
         {(t.why || t.reason) && <p className="mt-4 rounded-xl bg-white/5 px-4 py-3 text-white/85">{t.why ?? t.reason}</p>}
 
@@ -331,7 +329,7 @@ function FeedbackSection({ detail, onDetail }: { detail: NightDetail; onDetail: 
   const unsent = detail.night.feedback.filter((f) => !f.sent);
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [gh, setGh] = useState<boolean | null>(null);
-  const [issuesRepo, setIssuesRepo] = useState('the Night Shift repository');
+  const [issuesRepo, setIssuesRepo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   useEffect(() => {
@@ -395,7 +393,7 @@ function FeedbackSection({ detail, onDetail }: { detail: NightDetail; onDetail: 
           <Icon name="send" className="size-4" /> {busy ? 'Sending…' : `Send ${ticked.size || ''} to GitHub`}
         </button>
       )}
-      {unsent.length > 0 && <p className="mt-2 text-xs text-white/50">Sending creates a public issue on github.com/{issuesRepo}. Read each entry first; remove anything private.</p>}
+      {unsent.length > 0 && <p className="mt-2 text-xs text-white/50">Sending creates a public issue{issuesRepo ? ` on github.com/${issuesRepo}` : ' on GitHub'}. Read each entry first and untick anything private.</p>}
       {message && <div className="mt-2 text-sm text-white/70">{message}</div>}
     </section>
   );

@@ -171,6 +171,7 @@ test('follow-ups: built from answers, the next plan must cover every open item, 
     session('b'),
     later,
   );
+  assert.match(s2.messages.join('\n'), /T2 follows 2026-09-26-a\/A2: the developer chose "Own domain" \(note: We own the domain already\.\)/);
   // The history of the first night, its answer and its follow-up are committed at this start.
   assert.match(git(repo, 'log', '-1', '--name-only', '--format=%s'), /update the history before 2026-09-27-a[\s\S]*follow-ups\/2026-09-26-a\.json/);
   evidenceFile(repo, s2.night.night, 'shot.svg');
