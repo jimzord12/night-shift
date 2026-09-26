@@ -86,7 +86,8 @@ test('answers after the follow-up: a running night on the item blocks a change; 
   const answer = (a: string) =>
     app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: a, baseHash: loadNight(repo, id).hash }) });
   // A night took the waiting item on and is still running: the answer must wait for it.
-  start(repo, plan([{ ...TASKS[1], follow_up: `${id}/A1` }]), session('live', process.pid), new Date('2026-09-27T23:00:00'));
+  const live = start(repo, plan([{ ...TASKS[1], follow_up: `${id}/A1` }]), session('live', process.pid), new Date('2026-09-27T23:00:00'));
+  assert.match(live.messages.join('\n'), /T2 follows 2026-09-26-a\/A1: no answer yet; ask again/);
   const busy = await answer('b');
   assert.equal(busy.status, 409);
   assert.match(((await busy.json()) as { error: string }).error, /working on this right now/);

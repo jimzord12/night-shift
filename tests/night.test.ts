@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { DEAD_PID, TASKS, evidenceFile, git, gitRepo, plan, session } from './helpers.ts';
 import { ask, close, copyHistory, feedback, onSessionEnd, record, recover, start, status } from '../src/night.ts';
 import { createFollowUp, openItems, resolveItem } from '../src/followup.ts';
-import { StoreError, listRepos, loadNight, nightFile, readNight, saveNight } from '../src/store.ts';
+import { StoreError, listRepos, loadNight, nightFile, readNight, registerRepo, saveNight } from '../src/store.ts';
 import { commitPath, ensureGitignore } from '../src/repo.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -197,6 +198,16 @@ test('follow-ups: built from answers, the next plan must cover every open item, 
     { kind: 'decision', label: 'Own domain', note: 'We own the domain already.', left: ['failed: Safari still loops', 'Login lands on the account page'] },
   );
   refused(() => resolveItem(repo, `${id}/A9`, 'done', 'day', undefined), /no item A9/);
+});
+
+test('one folder registers once, whichever spelling of its path is given', () => {
+  const short = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-reg-'));
+  const long = fs.realpathSync.native(short);
+  const a = registerRepo(short);
+  const b = registerRepo(long);
+  assert.equal(a.id, b.id);
+  if (process.platform === 'win32') assert.equal(registerRepo(long.toUpperCase()).id, a.id);
+  assert.equal(listRepos().filter((r) => r.id === a.id).length, 1);
 });
 
 test('status reads the open night and says the next step', () => {

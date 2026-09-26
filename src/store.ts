@@ -284,7 +284,7 @@ function realPath(p: string): string {
 export function registerRepo(repo: string, now = new Date()): RepoRef {
   const full = realPath(path.resolve(repo));
   const repos = readRegistry();
-  const found = repos.find((r) => samePath(r.path, full));
+  const found = repos.find((r) => samePath(realPath(r.path), full));
   if (found) return { ...found, missing: false };
   const base = path.basename(full).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'repo';
   let id = base;

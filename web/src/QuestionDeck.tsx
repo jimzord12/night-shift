@@ -57,7 +57,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const key = order[index];
   const item = key ? byKey.get(key) : undefined;
   const q = item?.question ?? null;
-  const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? q.recommended, note: q.note ?? '' }) : null;
+  const settledHere = !!q && !!item && (handedItem(item.detail.follow_up, q)?.status ?? 'open') !== 'open';
+  const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? (settledHere ? '' : q.recommended), note: q.note ?? '' }) : null;
   const locked = (i: DeckItem | undefined) => {
     const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
     return !!h && h.status !== 'open';
@@ -193,7 +194,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <Icon name="moon" className="size-14" strokeWidth={1.6} />
             </div>
             <h2 className="font-display mt-6 text-4xl font-semibold">All clear</h2>
-            <p className="mt-2 text-white/60">{order.some((k) => byKey.get(k)?.detail.follow_up) ? 'Every question is settled. The follow-up already handed over carries your answers.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
+            <p className="mt-2 text-white/60">{order.every((k) => byKey.get(k)?.detail.follow_up) ? 'Every question is settled. The follow-up already handed over carries your answers.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
             <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the morning</button>
           </div>
         ) : !q || !draft || !item ? (
@@ -278,7 +279,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                 <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
               </div>
               <div className="flex-1" />
-              <button onClick={() => advance(savedKeys)} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">D</kbd>}</button>
+              <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">D</kbd>}</button>
               {!lock && (
                 <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-5 py-2.5 font-semibold whitespace-nowrap text-white sm:px-6 shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
                   {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">Enter</kbd>
