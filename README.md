@@ -1,83 +1,96 @@
 # Night Shift
 
-**Decide by day. Build by night. Review in the morning.**
+**Your agents work unattended. Night Shift tells you, in five minutes the
+next morning, what they did.**
 
-A working protocol for one owner and a team of AI agents, plus the small local
-app that makes the morning review take minutes instead of an hour of reading.
+You already run AI agents your own way: your rules, your tracker (or none),
+your prompts. What goes missing is the morning: a terminal full of scrollback,
+questions buried in it, no history, and no idea how well the agents do alone.
 
-- **Day Shift**: owner and lead agent decide and design; the output is a buffer
-  of cards that are *Night-ready*: nothing left to decide.
-- **Night Shift**: agents build those cards unattended, and raise a question
-  instead of guessing when something is not decided.
-- **Morning Review**: the owner opens the app: what shipped (renders,
-  before/after sliders), the night's questions as a clickable deck, and a
-  rev counter showing whether the queue sits in its sweet spot.
+Night Shift adds a record of each unattended session, nothing more:
 
-The protocol is project-neutral. A project plugs in its own board, test
-command and review rules through a short *binding*.
+- **The plan**: at the start, the agent writes what it will do tonight and
+  what "done" means for each task.
+- **The night file**: after each task, it records the outcome (done, partial,
+  blocked, failed, not started, skipped), the checks, and proof from a small
+  fixed set of blocks: screenshots, before/after comparisons, videos, PDFs,
+  links, command output, short notes. When it needs a decision, it asks
+  instead of guessing.
+- **The Viewer**: one local page for all your repositories. Read the night,
+  open the proof, answer the questions with a click, hand the answers back
+  to the next agent as a follow-up, and send friction you want fixed to the
+  Night Shift maintainers.
+- **The Meter**: duration, tokens, sub-agents and cost, read from Claude
+  Code's own session logs, never claimed by the agent.
+
+The `night-shift` tool checks everything the agent writes; a record that
+breaks the rules (a task marked done with a check unmet, proof that does not
+exist) is refused with a message that says how to fix it. Claude Code is the
+first supported harness.
 
 | Read | For |
 |---|---|
-| [docs/protocol.md](docs/protocol.md) | The protocol: roles, the cycle, the Night-ready contract, night rules |
-| [docs/contract.md](docs/contract.md) | Exactly what agents write: `project.json`, question files, the card header, the outcome comment |
-| [docs/binding.md](docs/binding.md) | How a project adopts it |
-| [docs/practices/](docs/practices/README.md) | Default working practices: task flow, handoff, review gate, evidence, Git, glossary, proposals, board discipline |
-| [templates/](templates/) | Copy-ready task card, handoff card, glossary, bypass log, owner file, owner profile, Backlog.md starter and reviewer agents |
+| [docs/design.md](docs/design.md) | How it works: the files, the outcomes, the blocks, the life of a night |
 | [docs/decisions.md](docs/decisions.md) | Why it is built this way |
 | [docs/glossary.md](docs/glossary.md) | The official terms |
 | [CHANGELOG.md](CHANGELOG.md) | What each release changed |
 
-`night-shift docs` prints only the protocol, contract and binding; read the
-practices and templates from this repository or on GitHub.
-
 ## Install
 
-Needs Node 24 or newer.
+Needs Node 24 or newer and git.
 
 ```sh
 git clone https://github.com/jimzord12/night-shift.git
 cd night-shift
 npm ci
 npm run release install-launchers   # writes ~/.night-shift/bin/night-shift(.cmd); add that folder to PATH
+npm run release switch v7            # the release the launcher runs
 ```
 
-Releases are git tags (`v1`, `v2`, …). The launcher runs the `current`
-release from `~/.night-shift/releases/`:
+Then, in each repository you want to run nights in:
 
 ```sh
-npm run release v2          # from a clean, pushed main: check, export, install, build, tag, push
-npm run release switch v1   # run an older one
-npm run release list
+night-shift install      # the two skills, the session-end hook, the .gitignore lines
 ```
 
 ## Use
 
+In that repository, tell Claude Code **"start night shift"** and what to do
+tonight. The agent plans, works, records and closes the night on its own.
+
+In the morning:
+
 ```sh
-night-shift serve ../my-project --open    # the morning review app on http://127.0.0.1:4747
-night-shift check ../my-project --board   # validate questions, card headers and outcomes
-night-shift docs protocol                  # the protocol text of the installed version
+night-shift view --open  # the Viewer on http://127.0.0.1:4747, every repository at once
 ```
 
-Try it without a board: `night-shift serve examples/demo --open` (a
-fictional project on a `file` board). The demo's question files are tracked,
-so answer them in a copy.
+After answering, **Create follow-up** hands your decisions and the unfinished
+work to the next agent: the next night picks it up, or tell an agent by day
+"work on the follow-up".
 
-Or on a Backlog.md board: `night-shift serve examples/backlog-demo --open`
-(tasks in the project's own `backlog/` folder; no account needed).
+`night-shift --help` lists every command. `night-shift check` validates a
+repository's night files.
 
-A Trello board needs `TRELLO_API_KEY` and `TRELLO_API_TOKEN` in the shell
-that runs `serve`; they stay on the server and never reach the browser.
+## Releases
+
+Releases are git tags (`v1`, `v2`, …); the launcher runs the `current` one
+from `~/.night-shift/releases/`:
+
+```sh
+npm run release v8          # from a clean, pushed main: check, export, install, build, tag, push
+npm run release switch v7   # run another one
+npm run release list
+```
 
 ## Develop
 
 ```sh
-npm run dev      # the UI with hot reload; start `node src/cli.ts serve <project>` beside it
 npm run check    # typecheck, tests, web build: the release gate
+npm run dev      # the Viewer with hot reload; start `node src/cli.ts view` beside it
 ```
 
-The server is TypeScript that Node runs directly (no build step): Hono for
-HTTP, Ajv for the JSON Schemas in `schemas/`. The UI is React, Tailwind and
-Vite under `web/`. Board adapters live in `src/board/`; a new board is one
-file implementing `BoardAdapter`.
+The tool is TypeScript that Node runs directly (no build step): Hono for
+HTTP, Ajv for the JSON Schemas in `schemas/`. The Viewer is React, Tailwind
+and Vite under `web/`. The skills' sources are in `skills/`.
 
 MIT licence.

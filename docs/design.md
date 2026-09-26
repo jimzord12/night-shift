@@ -1,10 +1,8 @@
-# Night Shift design (agreed, not built)
+# Night Shift design
 
-Status: agreed with the owner on 2026-09-26 (decision D20). Nothing here is
-built yet. Where this file and the older docs (`protocol.md`, `contract.md`,
-`binding.md`, `practices/`, `templates/`) disagree, this file describes the
-direction; the older docs describe what v6 ships. The file shapes below are
-first drafts: expect field testing to change them.
+Status: agreed with the owner on 2026-09-26 (D20) and built in v7 (D21,
+which also lists the details decided while building). The file shapes are
+first versions: expect field testing to change them.
 
 ## The problem
 
@@ -37,22 +35,11 @@ skills and a local app.
   vocabulary grows release by release, versioned like a library's API.
 - **Claude Code first.** Other harnesses later.
 
-## Terms (proposed; enter the glossary when built)
+## Terms
 
-| Term | Meaning |
-|---|---|
-| Night | One unattended agent session, whenever it runs |
-| Plan | The agent's promise at the start of a night: the tasks and what "done" means for each |
-| Night file | The single record of one night: the plan's tasks with outcomes, questions, feedback, metrics |
-| Follow-up file | What the developer hands to the next agent: unfinished tasks plus the decisions they made |
-| Viewer | The local app that shows every night of every registered repository |
-| Meter | The part of the tool that reads the harness's logs and writes the metrics |
-
-Existing glossary terms change meaning too: `Outcome` gets six values
-instead of four, a `Question` becomes an entry in the night file instead of
-its own file, `Night Shift` means one unattended session at any hour, and
-the `Owner` is any developer using Night Shift. The glossary is rewritten
-when the design is built.
+The official terms (`Night`, `Plan`, `Night file`, `Follow-up file`,
+`Viewer`, `Meter`, `Outcome`, `Block`, `Question`, `Feedback`, `Adopter`)
+are in `docs/glossary.md`.
 
 ## The parts
 
@@ -94,7 +81,8 @@ when the design is built.
   the history copies of earlier nights (see The files). The first night in
   a repository registers it with the local Night Shift install and adds
   `.night-shift/*` and `!.night-shift/history/` to `.gitignore` (git cannot
-  re-include a folder inside an ignored one).
+  re-include a folder inside an ignored one); `night-shift install` does
+  both up front.
 - **During.** After each task the agent records its outcome and evidence at
   once, so a crash loses at most the task in progress. Every tool reply ends
   with the next step, so the agent stays on track even after the harness has
@@ -111,10 +99,11 @@ when the design is built.
   in the same repository leaves the night alone.
 - **Hard crash** (no hook ran). The next night start or Viewer load finds a
   night that is still open, or closed without metrics, and checks whether
-  its session is still running. If it is, the night is left alone; an open
-  one shows as running and a second start in that repository is refused.
-  If not, it runs
-  the tool's close (for an open night) and the Meter, marking an open night
+  its session is still running: the Claude Code process the night recorded
+  (`CLAUDE_PID`) is alive and the night file or session log changed within
+  a day. If it is, the night is left alone; an open one shows as running and
+  a second start in that repository is refused. If not, it runs the tool's
+  close (for an open night) and the Meter, marking an open night
   `interrupted`. A session paused at a usage limit is still running: its
   night stays open until the session ends. A close run by the Viewer does
   not commit; the next start's history refresh does. The tool stays the
@@ -157,13 +146,25 @@ Proof and notes inside a task come only from these.
 | `command` | Proof for work that cannot be seen: tests, builds | `command`, `exit_code`, `excerpt` (about 20 lines at most) |
 | `note` | A short explanation | `text`, plain text with line breaks, no Markdown |
 
-File paths must point to files that exist in the night's evidence folder.
+File paths are relative to the night's folder and must point to files
+that exist in its `evidence/` folder (`evidence/invoice.png`).
 Left out on purpose: diffs (link the commit), tables, charts, headings.
 
 ## The files
 
-Everything lives in the `Adopter`'s `.night-shift/` folder, which git
-ignores except `.night-shift/history/`. At close, the night file is copied
+```
+.night-shift/
+  nights/2026-09-26-a/plan.json      the plan as the agent gave it, plus night and started_at
+  nights/2026-09-26-a/night.json     the night file
+  nights/2026-09-26-a/evidence/      screenshots, PDFs, recordings
+  follow-ups/2026-09-26-a.json       one per night at most, named after it
+  history/2026-09-26-a.json          committed copies of closed nights
+  history/follow-ups/2026-09-26-a.json
+```
+
+A night's id is the local date it started plus `a`, `b`, … for later nights
+that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
+git ignores except `.night-shift/history/`. At close, the night file is copied
 into `history/` and committed on the agent's branch, which reaches `main`
 when the branch is merged. Metrics, answers and follow-up files arrive after
 that commit, so every night start refreshes the history copies of earlier
@@ -171,6 +172,9 @@ nights and their follow-ups and commits them on its own branch. Evidence is
 never committed: evidence paths in committed history resolve only on the
 machine that ran the night. A merge conflict inside `history/` is resolved
 by taking either side; the next start rewrites the file from local state.
+Every history commit is `git commit --only -- .night-shift/history`, so the
+developer's staged or unfinished work is never swept into it; git hooks run
+as usual.
 
 ### plan.json
 
@@ -231,7 +235,7 @@ as "unknown".
         { "done_when": "Screenshot attached", "met": true }
       ],
       "evidence": [
-        { "type": "image", "path": "evidence/2026-09-26-a/invoice.png", "caption": "Invoice next to the order page" }
+        { "type": "image", "path": "evidence/invoice.png", "caption": "Invoice next to the order page" }
       ]
     },
     {
@@ -322,7 +326,9 @@ or by day, does the digging for context.
 - Item kinds: `decision`, `unfinished`, and `waiting` (a question the
   developer did not answer; the next agent leaves that task alone and asks
   again instead of guessing).
-- Item status: `open`, `done`, `skipped` (with a reason).
+- Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
+  night took the item on as a task that did not end done or skipped, so that
+  task (and that night's own follow-up) carries it from here.
 - The developer may fix things outside Night Shift, so statuses can go
   stale. The next plan therefore checks every open item against the code
   before turning it into a task, and cites it as the task's `source`.
@@ -339,19 +345,31 @@ slash command.
 
 No `/ns:ask` in version 1: outside a night the developer is at the terminal.
 
+`night-shift install` (run once in a repository) copies both skills into its
+`.claude/skills/`, with the exact command that runs the tool written into
+them, and adds the Meter's session-end hook to its `.claude/settings.json`,
+keeping every other setting. Agents hand the tool JSON on stdin (a heredoc),
+with `--file` or with `--json`; every reply ends with the next step.
+
 ## Viewer
 
 One local web app for every registered repository, opened with one command
 from any folder. Screens:
 
-1. **Morning:** every unread night, newest first. Header (complete or
-   interrupted, duration, cost), summary, tasks with outcome (open one for
-   its checks and proof), questions as cards (options, recommendation, a
-   free note, the pick) with **Create follow-up**, and feedback with tick
-   boxes and **Send to GitHub**.
-2. **History:** one row per night: date, repository, outcome counts,
+1. **Morning:** every unread night as a chip, newest first, and the chosen
+   night in full: header (complete, interrupted or running, duration, cost,
+   sub-agents), summary, the six outcome counts, tasks (open one for its
+   checks, questions and proof), the questions as a deck (one per screen,
+   the recommendation preselected, a free note), **Create follow-up**, and
+   feedback with tick boxes and **Send to GitHub**. Opening a night marks
+   it read.
+2. **Questions:** every open question across nights.
+3. **History:** one row per night: date, repository, outcome counts,
    duration, cost, status; a row opens that night.
-3. **Trends:** empty until measurement is designed.
+4. **Trends:** empty until measurement is designed.
+
+The registry of repositories and the read marks live in the local install
+folder (`~/.night-shift/repos.json`, `viewer.json`), never in a repository.
 
 ## Feedback to the Night Shift Repo
 
@@ -391,13 +409,8 @@ update. Rejected: headless mode (imposes how nights run) and OpenTelemetry
 
 - **Measurement:** which trends matter (promised versus delivered, cost per
   finished task, …); needs weeks of real nights first.
-- **Distribution:** a Claude Code plugin or files copied into each
-  repository; how updates reach `Adopter`s.
+- **Distribution:** v7 copies the skills into each repository with
+  `night-shift install`; whether a Claude Code plugin should replace that,
+  and how updates reach `Adopter`s, is open.
 - **Growing the shapes:** versioning, adding and retiring blocks.
-- **The v6 model:** what happens to the protocol text, practices, templates,
-  bindings, board adapters and existing `Adopter` set-ups.
-- **Details for the build:** how a night's session is detected as still
-  running, where the Viewer keeps its unread state, where the open-night
-  marker and per-task records live before close, how follow-up files are
-  named when one night gets more than one, and that a history commit takes
-  only the history path, never the developer's staged work.
+- **Other harnesses** than Claude Code.

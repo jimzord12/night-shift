@@ -17,7 +17,7 @@ test('install adds the skills and the hook, keeps existing settings, and is idem
   assert.match(out.join('\n'), /Added the start-night-shift skill/);
   const skill = fs.readFileSync(path.join(repo, '.claude', 'skills', 'start-night-shift', 'SKILL.md'), 'utf8');
   assert.match(skill, /^name: start-night-shift$/m);
-  assert.match(skill, /ns start <<'EOF'/);
+  assert.match(skill, /^ns start --file \.night-shift\/input\.json$/m);
   assert.doesNotMatch(skill, /\{\{cli\}\}/);
   assert.ok(fs.existsSync(path.join(repo, '.claude', 'skills', 'do-night-shift-follow-up', 'SKILL.md')));
   const settings = JSON.parse(fs.readFileSync(path.join(repo, '.claude', 'settings.json'), 'utf8'));

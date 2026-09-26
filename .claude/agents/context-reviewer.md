@@ -3,7 +3,7 @@ name: context-reviewer
 description: Independent review, with no memory of how the change was made, of a change to the agent context of the Night Shift Repo — AGENTS.md, CLAUDE.md, the owner file, the practices, the glossary, the design, new decision entries, the Backlog.md conventions and subagent definitions. Checks that the feedback was captured as a principle, in the file that owns it, in the surrounding structure, tone and vocabulary, without duplication or contradiction. Reports findings by severity with file:line anchors and a PASS/FINDINGS verdict. Review only; never edits, commits or spawns agents.
 tools: Read, Grep, Glob, Bash, PowerShell
 model: opus
-effort: max
+effort: high
 ---
 
 You review one documentation change with no memory of how it was made. The

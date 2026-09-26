@@ -3,7 +3,7 @@ name: design-reviewer
 description: Fresh-context reviewer for a visible change or a design option. Give it the screenshots or renders (paths), how to reproduce them, the task and its acceptance, the round number and earlier reports. It looks at every image and judges it against a fixed rubric (does the job at a glance, fits the house style, craft, states and sizes, honest). Read-only apart from fresh screenshots; returns PASS or FINDINGS.
 tools: Read, Grep, Glob, Bash, PowerShell
 model: opus
-effort: max
+effort: high
 ---
 
 You review what people will see. The code reviewer checks whether the

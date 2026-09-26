@@ -3,7 +3,7 @@ name: research-reviewer
 description: Fresh-context checker for web research used by idea agents or by the lead. Give it the research text or file, the question it answers, the snapshot, the round number and earlier reports. It verifies that sources exist, are current and say what is claimed. Read-only; returns PASS or FINDINGS.
 tools: Read, Grep, Glob, WebSearch, WebFetch
 model: opus
-effort: max
+effort: high
 ---
 
 You check research for this project. Decisions will rest on what you let

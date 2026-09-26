@@ -43,7 +43,7 @@ in it. Orient in this order, read-only, then give the four-line briefing
 | Creating, taking or closing work | `backlog/README.md`, docs/practices/task-flow.md |
 | Committing, branching, integrating, releasing | docs/practices/git.md |
 | Before calling anything done | docs/practices/evidence.md, docs/practices/review.md |
-| Changing what agents write or the `Viewer` reads | `docs/design.md`, `schemas/` (being rebuilt), the file-shape versioning rule below |
+| Changing what agents write or the `Viewer` reads | `docs/design.md`, `schemas/`, `skills/`, the file-shape versioning rule below |
 | Changing how agents behave here, beyond the small-change path (this file, `CLAUDE.md`, the owner file, practices, `backlog/README.md`, agent files) | `.claude/agents/context-maintainer.md`, `.claude/agents/context-reviewer.md` |
 | Saving a draft or scratch proof | docs/practices/local-folder.md |
 | Making a design decision | `docs/decisions.md` (append D<n+1>) |
@@ -53,42 +53,45 @@ in it. Orient in this order, read-only, then give the four-line briefing
 
 | Path | Role |
 |---|---|
-| `docs/design.md` | The agreed next design (D20); wins over the v6 docs on direction |
-| `docs/protocol.md` | The protocol. Printed by `night-shift docs protocol` |
-| `docs/contract.md`, `schemas/*.schema.json` | What agents write and the app reads |
-| `docs/binding.md` | Template a project fills to adopt the protocol |
-| `docs/practices/` | Default working practices a binding adopts or overrides; project-neutral, examples use the demo project |
+| `docs/design.md` | What Night Shift is and how it works: the files, outcomes, blocks, the life of a night (D20) |
+| `docs/practices/` | This repository's own working practices |
 | `docs/owner.md` | This repository's owner file: who decides what, how to report |
 | `docs/decisions.md` | Design decisions with their reasons (append-only) |
 | `docs/glossary.md` | Official terms |
+| `schemas/*.schema.json` | The file shapes: `plan`, `night`, `follow-up` |
+| `skills/` | The two skills `night-shift install` copies into an `Adopter` (`{{cli}}` becomes the command) |
 | `backlog/` | Backlog.md: every open task, idea and known gap; `doc-1` is the session handoff |
 | `CHANGELOG.md` | One entry per release tag |
-| `templates/` | Copy-ready files for `Adopter`s: cards, glossary, bypass log, owner file, owner profile, Backlog.md starter, reviewer agents |
-| `.claude/agents/` | This repository's subagents: `code-reviewer`, `design-reviewer`, `research-reviewer`, `context-reviewer`, `context-maintainer` |
+| `.claude/agents/` | This repository's subagents: `code-reviewer`, `design-reviewer`, `visual-reviewer`, `research-reviewer`, `context-reviewer`, `context-maintainer` |
 | `.local/` | Git-ignored: owner profile, planning drafts, scratch evidence |
-| `src/cli.ts` | `night-shift serve / check / docs / --version` |
-| `src/server.ts` | Hono app: JSON API plus the built web app; Host check, media rules |
-| `src/store.ts` | `.night-shift/` folder: project, questions, answer writes (hash guard) |
-| `src/overview.ts`, `src/parse.ts` | Queue and shifts from the board; card header and outcome parsers |
-| `src/board/` | `BoardAdapter` and its implementations (`trello`, `backlog`, `file`) |
-| `src/types.ts` | Shapes shared by server and web app, plus `isOpen` and `bufferZone` |
-| `web/` | React + Tailwind + Vite UI; `web/dist` is built, ignored |
-| `examples/demo/`, `examples/backlog-demo/` | Fictional Lighthouse project on a `file` board and on a Backlog.md board; tests copy them |
-| `tests/` | `node --test` suites |
+| `src/cli.ts` | The `night-shift` commands |
+| `src/night.ts` | The life of a night: start, record, ask, feedback, close, recovery, history |
+| `src/followup.ts` | Follow-up files: built from a closed night, items resolved by nights and by day |
+| `src/meter.ts` | Metrics read from Claude Code's session logs |
+| `src/store.ts` | The files on disk and their validation; the install folder (registry, Viewer state) |
+| `src/repo.ts` | Git and `.gitignore`: the only places Night Shift touches outside `.night-shift/` |
+| `src/install.ts`, `src/github.ts` | `night-shift install`; feedback to GitHub issues |
+| `src/server.ts` | The `Viewer`'s JSON API plus the built web app; Host check, media rules |
+| `src/types.ts` | Shapes shared by the tool and the web app |
+| `web/` | React + Tailwind + Vite `Viewer`; `web/dist` is built, ignored |
+| `examples/sample-repo/` | Sample night files from a real trial, for the `Viewer` and reviewers; serve a copy |
+| `tests/` | `node --test` suites against real files, git and the server |
 | `scripts/release.ts` | Tag releases and the `night-shift` launcher |
 
 ## Commands
 
 ```sh
-npm ci                                             # once
-npm run check                                      # typecheck + tests + web build: the gate for every commit and release
-node src/cli.ts serve examples/demo --port 4799    # try the app on a COPY of the demo (answers write into the files)
-npm run dev                                        # UI with hot reload beside a running serve
-npm run release v<N>                               # from a clean, pushed main; then `npm run release switch v<N>`
-backlog task list --plain                          # the work (Backlog.md 1.52.0, installed globally)
+npm ci                                  # once
+npm run check                           # typecheck + tests + web build: the gate for every commit and release
+node src/cli.ts --help                  # every night-shift command
+NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts install <copy of examples/sample-repo>
+NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts view --port 4799   # the Viewer on sample data, never your real install
+npm run dev                             # the Viewer with hot reload beside a running view
+npm run release v<N>                    # from a clean, pushed main; then `npm run release switch v<N>`
+backlog task list --plain               # the work (Backlog.md 1.52.0, installed globally)
 ```
 
-After a release, a running `night-shift serve` keeps the old version until it
+After a release, a running `night-shift view` keeps the old version until it
 is restarted.
 
 ## Reviewers
@@ -100,6 +103,8 @@ never a fork of the author:
   docs/practices/review.md.
 - `design-reviewer`: every visible change to the `Viewer`; looks at the
   screenshots against D12 and a fixed rubric.
+- `visual-reviewer`: every change to how the `Viewer` behaves; drives it in
+  a real browser through the owner's journeys, at laptop and phone width.
 - `research-reviewer`: web research a decision rests on; follows
   docs/practices/idea-loop.md.
 - `context-reviewer`: every non-trivial change to the documentation agents

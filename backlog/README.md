@@ -15,7 +15,7 @@ backlog --version                                # 1.52.0
 
 Never run an unqualified `npx backlog`: it can resolve to an unrelated
 package. Upgrade deliberately, then update the version above and in
-`docs/contract.md`.
+`AGENTS.md` ("Commands").
 
 ## Before touching a task
 
@@ -59,11 +59,10 @@ Ready is not Done (docs/practices/task-flow.md).
 
 | Label | Use |
 |---|---|
-| `night-ready` | Nothing left to decide; its Description starts with the `Card Header` (`night-shift: kind=… size=… touches=…`). A night may take it |
 | `blocked` | Keeps its status; the notes say the blocker and what unblocks it |
 | `triage` | An observation not yet confirmed as a defect (type `spike`) |
 | `external` | Limited by something outside this repository |
-| `app`, `cli`, `protocol`, `practices`, `templates`, `release`, `ci` | The area it touches |
+| `viewer`, `cli`, `skills`, `meter`, `practices`, `release`, `ci` | The area it touches |
 
 Types: `bug` (a confirmed defect), `feature`, `enhancement`, `chore`,
 `docs`, `spike` (find out, not build). Priority: High for correctness,
@@ -92,25 +91,12 @@ backlog task edit TASK-7 -s Done
 ## Handoff
 
 - **The session handoff** is one Backlog.md document, `doc-1` (shape:
-  `templates/handoff-card.md`), rewritten in place at the end of every
+  docs/practices/orientation-and-handoff.md), rewritten in place at the end of every
   session with `backlog doc update doc-1 --content "…"`. Never a task:
   it would sit in the queue and could be moved by `backlog cleanup`.
 - **A task's own handoff** goes in its implementation notes
   (`backlog task edit TASK-<n> --append-notes "…"`); parallel builders
   write only their own task's notes.
-
-## This repository on its own protocol
-
-The Night Shift app can show this backlog: create `.night-shift/project.json`
-(git-ignored) with
-
-```json
-{ "schema": "project/1", "name": "Night Shift", "repo": "https://github.com/jimzord12/night-shift",
-  "board": { "type": "backlog", "readyLabel": "night-ready", "doneLists": ["Done"] } }
-```
-
-then `night-shift serve . --open`. A night's builders post Outcomes as task
-comments (`docs/contract.md`, "A Backlog.md board").
 
 ## Notes that are not bugs
 

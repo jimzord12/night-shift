@@ -16,7 +16,7 @@ import type { AskInput, RecordInput } from './night.ts';
 
 const USAGE = `night-shift — unattended agent work, read in the morning
 
-For agents (JSON on stdin, or --file <path>, or --json '<json>'):
+For agents (JSON with --file .night-shift/input.json, on stdin, or with --json '<json>'):
   night-shift status                          where the open night stands, and the next step
   night-shift start                           open a night from a plan (night-shift/plan@1)
   night-shift record                          record one task's outcome, checks and evidence
@@ -72,7 +72,7 @@ function input<T>(p: Parsed): T {
     if (!fs.existsSync(p.flags.file)) throw new UsageError(`no such file: ${p.flags.file}`);
     text = fs.readFileSync(p.flags.file, 'utf8');
   } else if (!process.stdin.isTTY) text = fs.readFileSync(0, 'utf8');
-  else throw new UsageError('send the JSON on stdin (a heredoc), with --file <path>, or with --json \'<json>\'');
+  else throw new UsageError('write the JSON to .night-shift/input.json and pass --file .night-shift/input.json (or send it on stdin)');
   if (!text.trim()) throw new UsageError('the JSON input is empty');
   try {
     return parseJson(text) as T;
@@ -85,7 +85,7 @@ function inputText(p: Parsed): string {
   if (typeof p.flags.json === 'string') return p.flags.json;
   if (typeof p.flags.file === 'string') return fs.readFileSync(p.flags.file, 'utf8');
   if (!process.stdin.isTTY) return fs.readFileSync(0, 'utf8');
-  throw new UsageError('send the plan on stdin (a heredoc), with --file <path>, or with --json \'<json>\'');
+  throw new UsageError('write the plan to .night-shift/input.json and pass --file .night-shift/input.json (or send it on stdin)');
 }
 
 function openBrowser(url: string): void {

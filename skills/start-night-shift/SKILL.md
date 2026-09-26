@@ -15,6 +15,12 @@ the tool ends with the next step.
 
 Run the tool as: `{{cli}}`
 
+**How to hand it JSON.** Write the JSON with your file-writing tool to
+`.night-shift/input.json` in this repository (git ignores that folder), then
+pass it with `--file .night-shift/input.json`. Overwrite the same file for
+each command. Do not put JSON inline in a shell command or in a file outside
+the repository: Claude Code blocks both.
+
 ## 1. Where things stand
 
 ```bash
@@ -41,8 +47,9 @@ List the tasks you will attempt tonight, from the developer's instructions,
 their tracker, or the follow-ups. Each has a `done_when` list: the checks
 that make it done. Write them so a person can verify them.
 
-```bash
-{{cli}} start <<'EOF'
+Write to `.night-shift/input.json`:
+
+```json
 {
   "schema": "night-shift/plan@1",
   "tasks": [
@@ -53,7 +60,12 @@ that make it done. Write them so a person can verify them.
   ],
   "skipped_follow_ups": [ { "follow_up": "2026-09-25-a/A1", "reason": "Already fixed in commit 4e1a9c2" } ]
 }
-EOF
+```
+
+then run:
+
+```bash
+{{cli}} start --file .night-shift/input.json
 ```
 
 `source` is free text: a ticket, "developer prompt", a follow-up item. The
@@ -66,8 +78,9 @@ Work each task the repository's normal way (branch, tests, review, commit).
 Right after a task ends, record it, before you start the next one, so a
 crash loses at most the task in progress:
 
-```bash
-{{cli}} record <<'EOF'
+Write to `.night-shift/input.json`:
+
+```json
 {
   "task": "T1",
   "outcome": "done",
@@ -77,7 +90,12 @@ crash loses at most the task in progress:
     { "type": "command", "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed" }
   ]
 }
-EOF
+```
+
+then run:
+
+```bash
+{{cli}} record --file .night-shift/input.json
 ```
 
 Outcomes, and what each needs:
@@ -103,8 +121,9 @@ Work you did but did not plan: record it with `"unplanned": true`, a
 **Never guess a decision that belongs to the developer.** Ask, then move on
 to the next task:
 
-```bash
-{{cli}} ask <<'EOF'
+Write to `.night-shift/input.json`:
+
+```json
 {
   "task": "T2",
   "ask": "Which fix for the Safari login loop?",
@@ -115,7 +134,12 @@ to the next task:
   ],
   "recommended": "a"
 }
-EOF
+```
+
+then run:
+
+```bash
+{{cli}} ask --file .night-shift/input.json
 ```
 
 Options get ids `a`, `b`, `c`… in order. Every question has a
@@ -127,11 +151,17 @@ When the vocabulary, a rule or the tool gets in your way (a block you
 needed, a confusing message), log it and carry on. The developer decides
 whether it goes to the Night Shift maintainers:
 
-```bash
-{{cli}} feedback <<'EOF'
+Write to `.night-shift/input.json`:
+
+```json
 { "kind": "missing-block", "title": "Side-by-side comparison of two PDFs", "tags": ["blocks"],
   "body": "T1's proof needed the invoice next to the expected layout; an image pair lost the text." }
-EOF
+```
+
+then run:
+
+```bash
+{{cli}} feedback --file .night-shift/input.json
 ```
 
 Kinds: `missing-block`, `confusing-rule`, `bad-fit`, `tool-bug`, `other`.
