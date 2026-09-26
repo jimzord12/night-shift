@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { gitRepo } from './helpers.ts';
-import { allowRules, cliCommand, install } from '../src/install.ts';
+import { allow, allowRules, cliCommand, install } from '../src/install.ts';
 import { listRepos } from '../src/store.ts';
 
 const CLI = path.resolve(import.meta.dirname, '..', 'src', 'cli.ts');
@@ -99,4 +99,20 @@ test('allow: the tool and .night-shift/ edits go into the developer\'s own setti
   const bad = cli(repo, ['allow'], '', env);
   assert.equal(bad.status, 1);
   assert.equal(fs.readFileSync(local, 'utf8'), '{ broken');
+});
+
+test('allow: exact rule shapes for a launcher and a checkout; a tracked settings file gets a warning, not a promise', () => {
+  assert.deepEqual(allowRules('ns'), ['Bash(ns:*)', 'PowerShell(ns:*)', 'Edit(/.night-shift/**)']);
+  assert.deepEqual(allowRules('node "C:/x/cli.ts"'), ['Bash(node "C:/x/cli.ts":*)', 'PowerShell(node "C:/x/cli.ts":*)', 'Edit(/.night-shift/**)']);
+
+  const repo = gitRepo();
+  const local = path.join(repo, '.claude', 'settings.local.json');
+  fs.mkdirSync(path.dirname(local));
+  fs.writeFileSync(local, '{}');
+  assert.equal(spawnSync('git', ['add', '-f', '.claude/settings.local.json'], { cwd: repo }).status, 0);
+  assert.equal(spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'track it'], { cwd: repo }).status, 0);
+  const out = allow(repo, 'ns').join('\n');
+  assert.match(out, /git already tracks \.claude\/settings\.local\.json.*git rm --cached/);
+  assert.doesNotMatch(out, /permissions are yours/);
+  assert.deepEqual(JSON.parse(fs.readFileSync(local, 'utf8')).permissions.allow, allowRules('ns'));
 });

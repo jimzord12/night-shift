@@ -45,6 +45,9 @@ export function ensureIgnored(repo: string, rel: string): boolean {
   return true;
 }
 
+// A file git already tracks: .gitignore no longer keeps its changes out of commits.
+export const isTracked = (repo: string, rel: string) => isGitRepo(repo) && git(repo, ['ls-files', '--error-unmatch', '--', rel]).status === 0;
+
 export interface CommitResult {
   committed: boolean;
   message: string;

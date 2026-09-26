@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { REPO_ROOT, parseJson, registerRepo, writeJson } from './store.ts';
 import { readReleaseManifest } from './version.ts';
-import { ensureGitignore, ensureIgnored } from './repo.ts';
+import { ensureGitignore, ensureIgnored, isTracked } from './repo.ts';
 
 export const SKILLS = ['start-night-shift', 'do-night-shift-follow-up'];
 
@@ -91,7 +91,9 @@ export function allow(repo: string, cli = cliCommand()): string[] {
     writeJson(file, settings);
     out.push(`Allowed in ${rel}: ${added.join(', ')}.`);
   } else out.push(`${rel} already allows the tool; nothing changed.`);
-  if (ensureIgnored(repo, rel)) out.push(`Added ${rel} to .gitignore: permissions are yours, not the repository's.`);
+  const ignored = ensureIgnored(repo, rel);
+  if (isTracked(repo, rel)) out.push(`Warning: git already tracks ${rel}, so these rules would be committed for everyone. Untrack it with: git rm --cached ${rel}`);
+  else if (ignored) out.push(`Added ${rel} to .gitignore: permissions are yours, not the repository's.`);
   out.push('Agents here can now run the tool and write .night-shift/ without asking. Anything else a night needs (tests, git, a database) follows your own permissions; allow it before you leave a night running.');
   return out;
 }

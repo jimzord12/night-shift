@@ -56,6 +56,9 @@ node <path to the clone>/src/cli.ts allow     # let agents run the tool without 
 `allow` writes to your own `.claude/settings.local.json` (never committed):
 the tool itself and edits inside `.night-shift/`. Anything else a night
 needs, such as tests, git or a database, follows your own permissions.
+The rules name the command as it is when you run `allow`, so run it again
+after moving from a clone to a release, and start night sessions at the
+repository root, where the file lives.
 
 The installed skills and hook run the tool from your clone. Below,
 `night-shift` stands for `node <path to the clone>/src/cli.ts`. Installing a
