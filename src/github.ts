@@ -34,10 +34,12 @@ const KIND_MEANING: Record<string, string> = {
 // repository's name stays out: it may be private.
 export function issueBody(f: Feedback, context: { repo: string; night: string; version: string }): string {
   const line = (s: string) => s.replace(/\r?\n/g, ' ');
+  // A code block the agent left open would swallow everything after it.
+  const fences = f.body.split(/\r?\n/).filter((l) => /^\s*```/.test(l)).length;
   return [
     '## What the agent ran into',
     '',
-    f.body,
+    fences % 2 ? `${f.body}\n${'`'.repeat(3)}` : f.body,
     '',
     '## Details',
     '',
@@ -50,9 +52,17 @@ export function issueBody(f: Feedback, context: { repo: string; night: string; v
   ].join('\n');
 }
 
+// GitHub refuses new-issue links much past 8 KB; a long entry (non-Latin text triples in size once
+// encoded) is cut, and the issue says where the full text is.
+const MAX_URL = 8000;
+
 export function newIssueUrl(f: Feedback, context: { repo: string; night: string; version: string }): string {
-  const q = new URLSearchParams({ title: issueTitle(f), body: issueBody(f, context), labels: 'proposal' });
-  return `https://github.com/${ISSUES_REPO()}/issues/new?${q.toString()}`;
+  const url = (body: string) => `https://github.com/${ISSUES_REPO()}/issues/new?${new URLSearchParams({ title: issueTitle(f), body: issueBody({ ...f, body }, context), labels: 'proposal' }).toString()}`;
+  let full = url(f.body);
+  for (let keep = Math.floor(f.body.length * 0.8); full.length > MAX_URL && keep > 0; keep = Math.floor(keep * 0.8)) {
+    full = url(`${f.body.slice(0, keep)}…\n\n_Cut to fit a GitHub link; the full text is in the night file (${context.night})._`);
+  }
+  return full;
 }
 
 // Creates one issue; retries without the label when the label does not exist on the repository.

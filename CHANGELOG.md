@@ -3,6 +3,14 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v8 (unreleased), 2026-09-26
+
+- Feedback issues read better on GitHub: the agent's words under a
+  heading, then kind (with what it means), tags, night and version as a
+  list. An open code block in the agent's text is closed; a long entry is
+  cut to fit a GitHub link. Checked with a real test issue sent from the
+  Viewer; the `proposal` label now exists on the repository.
+
 ## v7 (b680823), 2026-09-26
 
 A new model (D20, D21): Night Shift no longer imposes a process. It adds

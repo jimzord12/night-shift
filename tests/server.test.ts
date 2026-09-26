@@ -7,6 +7,7 @@ import { createApp } from '../src/server.ts';
 import { ask, close, feedback, record, start } from '../src/night.ts';
 import { loadNight, readFollowUp, registerRepo } from '../src/store.ts';
 import { resolveItem } from '../src/followup.ts';
+import { issueBody, newIssueUrl } from '../src/github.ts';
 import type { NightDetail, Overview } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -145,6 +146,14 @@ test('evidence is served from the night\'s evidence folder only, with the media 
   assert.equal((await app.request(`/api/files/nobody/${id}/evidence/invoice.svg`)).status, 404);
 });
 
+test('issue text: an open code block is closed; a long entry is cut to fit a GitHub link', () => {
+  const ctx = { repo: 'shop', night: '2026-09-26-a', version: 'test' };
+  const f = { id: 'F1', kind: 'tool-bug', title: 'Crash', tags: [], body: 'It printed:\n```\nTypeError', sent: null };
+  assert.match(issueBody(f, ctx), /TypeError\n```\n\n## Details/);
+  const long = newIssueUrl({ ...f, body: 'Ω'.repeat(4000) }, ctx);
+  assert.ok(long.length <= 8000, `${long.length} characters`);
+  assert.match(decodeURIComponent(long.replace(/\+/g, ' ')), /Cut to fit a GitHub link; the full text is in the night file \(2026-09-26-a\)/);
+});
 test('a foreign Host is refused when the port is known', async () => {
   const app = createApp({ version: 'test', port: 4747 });
   assert.equal((await app.request('http://evil.example/api/overview')).status, 403);
