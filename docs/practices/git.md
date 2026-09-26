@@ -14,7 +14,7 @@ Read this before committing, pushing, branching, integrating or tagging.
 - Only an explicit owner instruction ("I will handle Git this session")
   suspends this, for that session.
 - Routine Git never approves a pending product design; the owner still
-  decides those ([owner.md](owner.md)).
+  decides those ([owner.md](../owner.md)).
 
 ## Branches
 
@@ -27,13 +27,13 @@ Read this before committing, pushing, branching, integrating or tagging.
   `feat/search-filters`, `fix/cart-rounding`, `docs/checkout-guide`.
 - **One topic per branch.** A branch that grows a second topic is split.
 - Parallel work: separate worktrees, one writer per checkout, each held by
-  a named session or builder (the card's `Held by`).
+  a named session or agent (the task's assignee).
 - A child task reaching its feature branch is not the feature reaching
-  `main`; record the intended target on the card.
+  `main`; record the intended target on the task.
 
 ## Integration
 
-- **No pull requests by default.** Review and verification live on the card
+- **No pull requests by default.** Review and verification live on the task
   and in the commits; a PR is not the review.
 - Run the required checks and pass the review gate (or record the
   small-change path in the commit) before pushing to `main`.
@@ -47,8 +47,8 @@ gh run list --commit 3f2a1c9 --limit 1     # repeat until the run is listed
 gh run watch <run-id> --exit-status
 ```
 
-- If CI is unavailable, the card stays in Ready, not Done, and its Outcome
-  says CI could not be checked. A failed run is investigated before
+- If CI is unavailable, the task stays in Ready, not Done, and its final
+  summary says CI could not be checked. A failed run is investigated before
   anything is called done.
 - Never bypass hooks or remote protections.
 
@@ -95,8 +95,8 @@ Agents may amend, rebase, reset and `--force-with-lease` a feature branch,
 and delete ordinary tags and branches that are merged, or unmerged ones
 once a backup tag holds their tip. Never:
 
-- delete a branch during a Night Shift while other builders run: an
-  unmerged branch may be another builder's work in progress;
+- delete a branch while other agents work in parallel: an unmerged branch
+  may be another agent's work in progress;
 - rewrite or force-push published `main`;
 - move or delete an `archive/*` tag (a snapshot before a large removal);
 - move or delete a release tag (`v1`, `v2`, ...): a bad release takes the
@@ -104,5 +104,5 @@ once a backup tag holds their tip. Never:
 - run `git clean -x` or `-X`: they also wipe ignored folders that may hold
   data nothing else restores. Clear output folders by path.
 
-Anything the project's owner file lists as needing an explicit go stays
-with the owner, with the exact command shown first.
+Anything the owner file ([owner.md](../owner.md)) lists as needing an
+explicit go stays with the owner, with the exact command shown first.

@@ -1,0 +1,205 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { DEAD_PID, TASKS, evidenceFile, git, gitRepo, plan, session } from './helpers.ts';
+import { ask, close, feedback, onSessionEnd, record, recover, start, status } from '../src/night.ts';
+import { createFollowUp, openItems, resolveItem } from '../src/followup.ts';
+import { StoreError, listRepos, loadNight, nightFile, readNight, saveNight } from '../src/store.ts';
+import { commitPath, ensureGitignore } from '../src/repo.ts';
+
+const NOW = new Date('2026-09-26T23:10:00');
+
+function refused(fn: () => unknown, pattern: RegExp) {
+  assert.throws(fn, (e: unknown) => e instanceof StoreError && pattern.test(e.message));
+}
+
+test('a whole night: plan, records, a question, feedback, close, history committed', () => {
+  const repo = gitRepo();
+  const s = start(repo, plan(TASKS), session(), NOW);
+  const id = s.night.night;
+  assert.equal(id, '2026-09-26-a');
+  assert.match(s.messages.join('\n'), /Next: work on T1/);
+  assert.ok(listRepos().some((r) => path.resolve(r.path) === path.resolve(repo)));
+  assert.match(fs.readFileSync(path.join(repo, '.gitignore'), 'utf8'), /^\.night-shift\/\*$/m);
+
+  const shot = evidenceFile(repo, id, 'invoice.svg');
+  const r1 = record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: shot, caption: 'Invoice' }, { type: 'command', command: 'npm test', exit_code: 0, excerpt: '12 passed' }] });
+  assert.match(r1.message, /Recorded T1 as done \(2\/2 checks met\), 2 evidence block\(s\)\. Next: work on T2/);
+
+  const q = ask(repo, { task: 'T2', ask: 'Which fix for the login loop?', options: [{ label: 'Relax the cookie' }, { label: 'Own-domain login' }], recommended: 'a' });
+  assert.equal(q.question.id, 'Q1');
+  record(repo, { task: 'T2', outcome: 'blocked', checks: [false], blocked_by: 'Q1' });
+  record(repo, { unplanned: true, title: 'Fix crash on an empty cart name', outcome: 'done', why: 'Found while testing T1', evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  feedback(repo, { kind: 'missing-block', title: 'Compare two PDFs', body: 'An image pair lost the text.' });
+
+  const c = close(repo, 'Invoices shipped. Login blocked on your decision.', new Date('2026-09-27T04:22:00'));
+  assert.match(c.message, /1 not started/);
+  const n = loadNight(repo, id).night;
+  assert.equal(n.status, 'complete');
+  assert.deepEqual(n.tasks.map((t) => [t.id, t.outcome]), [['T1', 'done'], ['T2', 'blocked'], ['T3', 'not_started'], ['U1', 'done']]);
+  assert.equal(n.metrics, null);
+  // The history copy is committed, and only it.
+  assert.match(git(repo, 'log', '-1', '--name-only', '--format=%s'), /night-shift: history of 2026-09-26-a\s+\.night-shift\/history\/2026-09-26-a\.json/);
+  assert.equal(git(repo, 'status', '--porcelain', '--', '.night-shift/history'), '');
+});
+
+test('outcome rules are enforced and nothing is written when a record is refused', () => {
+  const repo = gitRepo();
+  const { night } = start(repo, plan(TASKS), session(), NOW);
+  const before = fs.readFileSync(nightFile(repo, night.night), 'utf8');
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, false], evidence: [{ type: 'link', url: 'https://example.com' }] }), /done needs every check met/);
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'note', text: 'trust me' }] }), /evidence block that is not a note/);
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true] }), /2 done_when line/);
+  refused(() => record(repo, { task: 'T1', outcome: 'partial', checks: [true, false] }), /unmet check needs a note/);
+  refused(() => record(repo, { task: 'T2', outcome: 'blocked', checks: [false] }), /blocked needs blocked_by/);
+  refused(() => record(repo, { task: 'T2', outcome: 'blocked', checks: [false], blocked_by: 'Q9' }), /Q9 is not a question/);
+  refused(() => record(repo, { task: 'T3', outcome: 'failed', checks: [false, false] }), /failed needs why/);
+  refused(() => record(repo, { task: 'T3', outcome: 'skipped', checks: [false, false] }), /skipped needs a reason/);
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: 'evidence/missing.png' }] }), /does not exist/);
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: '../../../README.md' }] }), /not inside the night's evidence/);
+  refused(() => record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'table', rows: [] }] }), /unknown block type "table"/);
+  refused(() => record(repo, { task: 'T9', outcome: 'done' }), /no task T9/);
+  assert.equal(fs.readFileSync(nightFile(repo, night.night), 'utf8'), before);
+  // A path given from the repository root is accepted and stored relative to the night.
+  evidenceFile(repo, night.night, 'a.svg');
+  const r = record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: `.night-shift/nights/${night.night}/evidence/a.svg` }] });
+  assert.deepEqual(r.task.evidence, [{ type: 'image', path: 'evidence/a.svg' }]);
+  refused(() => close(repo, ''), /needs a summary/);
+});
+
+test('one night at a time: a running night refuses a second start; a dead one is recovered as interrupted', () => {
+  const repo = gitRepo();
+  start(repo, plan(TASKS), session('a', process.pid), NOW);
+  refused(() => start(repo, plan(TASKS), session('a', process.pid), NOW), /already open in this session/);
+  refused(() => start(repo, plan(TASKS), session('b', process.pid), NOW), /still running in another session/);
+  refused(() => record(gitRepo(), { task: 'T1', outcome: 'done' }), /no open night/);
+
+  const other = gitRepo();
+  const first = start(other, plan(TASKS), session('gone', DEAD_PID), NOW).night.night;
+  record(other, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'link', url: 'https://example.com/pr/1' }] });
+  const second = start(other, plan(TASKS), session('new', process.pid), new Date('2026-09-27T23:00:00'));
+  assert.match(second.messages.join('\n'), new RegExp(`Night ${first} had stopped without closing`));
+  const n = loadNight(other, first).night;
+  assert.equal(n.status, 'interrupted');
+  assert.equal(n.summary, null);
+  assert.deepEqual(n.tasks.map((t) => t.outcome), ['done', 'not_started', 'not_started']);
+  assert.equal(second.night.night, '2026-09-27-a');
+});
+
+test('the session-end hook closes only its own session\'s night, then measures it', async () => {
+  const { transcript } = await import('./helpers.ts');
+  const repo = gitRepo();
+  const log = transcript({ costState: true });
+  const id = start(repo, plan(TASKS), session('mine', process.pid, log), NOW).night.night;
+  assert.deepEqual(onSessionEnd(repo, 'someone-else', null), []);
+  assert.equal(loadNight(repo, id).night.status, 'open');
+  const done = onSessionEnd(repo, 'mine', log);
+  assert.deepEqual(done, [`night ${id} closed as interrupted`, `night ${id} measured`]);
+  const n = loadNight(repo, id).night;
+  assert.equal(n.status, 'interrupted');
+  assert.equal(n.metrics?.cost_usd, 18.4);
+  assert.equal(n.metrics?.duration_min.total, 312);
+  // A second session end changes nothing.
+  assert.deepEqual(onSessionEnd(repo, 'mine', log), []);
+});
+
+test('recovery measures a closed night whose session has ended, and leaves a running one alone', async () => {
+  const { transcript } = await import('./helpers.ts');
+  const repo = gitRepo();
+  const log = transcript();
+  const id = start(repo, plan([TASKS[1]]), session('s', process.pid, log), NOW).night.night;
+  record(repo, { task: 'T2', outcome: 'skipped', checks: [false], reason: 'Fixed yesterday' });
+  close(repo, 'Nothing to do.');
+  assert.deepEqual(recover(repo), []);
+  assert.equal(loadNight(repo, id).night.metrics, null); // the session still runs
+  const n = loadNight(repo, id).night;
+  n.session = session('s', DEAD_PID, log);
+  saveNight(repo, n);
+  recover(repo);
+  assert.equal(loadNight(repo, id).night.metrics?.harness_version, '2.1.3');
+});
+
+test('follow-ups: built from answers, the next plan must cover every open item, outcomes settle them', () => {
+  const repo = gitRepo();
+  const id = start(repo, plan(TASKS), session('a', DEAD_PID), NOW).night.night;
+  ask(repo, { task: 'T2', ask: 'Which fix?', options: [{ label: 'Cookie' }, { label: 'Own domain' }], recommended: 'a' });
+  ask(repo, { ask: 'Rename the shop?', options: [{ label: 'Yes' }, { label: 'No' }], recommended: 'b' });
+  record(repo, { task: 'T1', outcome: 'partial', checks: [true, { met: false, note: 'screenshot missing' }] });
+  record(repo, { task: 'T2', outcome: 'blocked', checks: [false], blocked_by: 'Q1' });
+  record(repo, { task: 'T3', outcome: 'skipped', checks: [false, false], reason: 'Not wanted' });
+  close(repo, 'Half done.');
+  // The developer answers Q1 in the Viewer (only answer and note change) and leaves Q2 open.
+  const n = loadNight(repo, id).night;
+  n.questions[0].answer = 'b';
+  n.questions[0].note = 'We own the domain already.';
+  saveNight(repo, n);
+
+  const f = createFollowUp(repo, loadNight(repo, id).night);
+  assert.deepEqual(f.items.map((i) => [i.id, i.kind, i.task]), [['A1', 'unfinished', 'T1'], ['A2', 'decision', 'T2'], ['A3', 'waiting', null]]);
+  assert.deepEqual(f.items[0].left, ['Screenshot attached: screenshot missing']);
+  assert.equal(f.items[1].decision_label, 'Own domain');
+  assert.equal(f.items[1].owner_note, 'We own the domain already.');
+  refused(() => createFollowUp(repo, loadNight(repo, id).night), /already exists/);
+
+  const later = new Date('2026-09-27T23:00:00');
+  refused(() => start(repo, plan([{ ...TASKS[1], follow_up: `${id}/A2` }]), session('b'), later), /open follow-up items are not in the plan: .*A1.*A3/);
+  const s2 = start(
+    repo,
+    plan([{ ...TASKS[0], follow_up: `${id}/A1` }, { ...TASKS[1], follow_up: `${id}/A2` }], { skipped_follow_ups: [{ follow_up: `${id}/A3`, reason: 'Asked again below' }] }),
+    session('b'),
+    later,
+  );
+  // The history of the first night, its answer and its follow-up are committed at this start.
+  assert.match(git(repo, 'log', '-1', '--name-only', '--format=%s'), /update the history before 2026-09-27-a[\s\S]*follow-ups\/2026-09-26-a\.json/);
+  evidenceFile(repo, s2.night.night, 'shot.svg');
+  record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'image', path: 'evidence/shot.svg' }] });
+  close(repo, 'Carried on.');
+  const items = openItems(repo);
+  assert.equal(items.length, 0);
+  const after = JSON.parse(fs.readFileSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`), 'utf8'));
+  assert.deepEqual(after.items.map((i: { status: string }) => i.status), ['done', 'carried', 'skipped']);
+  assert.equal(after.items[1].resolved.reason, 'T2 ended not_started in 2026-09-27-a');
+  refused(() => resolveItem(repo, `${id}/A9`, 'done', 'day', undefined), /no item A9/);
+});
+
+test('status reads the open night and says the next step', () => {
+  const repo = gitRepo();
+  assert.match(status(repo), /No night is open/);
+  start(repo, plan(TASKS), session(), NOW);
+  record(repo, { task: 'T1', outcome: 'failed', checks: [false, false], why: 'The PDF library crashes' });
+  const s = status(repo);
+  assert.match(s, /T1 failed/);
+  assert.match(s, /Next: work on T2/);
+});
+
+test('a hand-edited night file shows its problems instead of breaking', () => {
+  const repo = gitRepo();
+  const id = start(repo, plan(TASKS), session(), NOW).night.night;
+  const file = nightFile(repo, id);
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  data.tasks[0].outcome = 'done';
+  data.tasks[0].checks = [{ done_when: 'x', met: true }];
+  fs.writeFileSync(file, `﻿${JSON.stringify(data)}`);
+  const r = readNight(repo, id);
+  assert.ok(r.night);
+  assert.ok(r.problems.some((p) => /T1: has 1 checks for 2 done_when lines/.test(p)));
+  fs.writeFileSync(file, '{ not json');
+  assert.match(readNight(repo, id).problems[0], /not valid JSON/);
+});
+
+test('git: the ignore lines replace an old bare entry; a history commit never takes staged work', () => {
+  const repo = gitRepo();
+  fs.writeFileSync(path.join(repo, '.gitignore'), 'node_modules/\n.night-shift/\n');
+  assert.equal(ensureGitignore(repo), true);
+  assert.equal(fs.readFileSync(path.join(repo, '.gitignore'), 'utf8'), 'node_modules/\n\n# Night Shift: its working files stay local; the history of nights is committed.\n.night-shift/*\n!.night-shift/history/\n');
+  assert.equal(ensureGitignore(repo), false);
+  fs.writeFileSync(path.join(repo, 'work.txt'), 'the developer\'s work');
+  git(repo, 'add', 'work.txt');
+  fs.mkdirSync(path.join(repo, '.night-shift', 'history'), { recursive: true });
+  fs.writeFileSync(path.join(repo, '.night-shift', 'history', 'x.json'), '{}');
+  fs.writeFileSync(path.join(repo, '.night-shift', 'scratch.json'), '{}');
+  assert.equal(commitPath(repo, '.night-shift/history', 'history').committed, true);
+  assert.equal(git(repo, 'show', '--name-only', '--format=', 'HEAD').trim(), '.night-shift/history/x.json');
+  assert.match(git(repo, 'status', '--porcelain'), /^A {2}work\.txt/m);
+});

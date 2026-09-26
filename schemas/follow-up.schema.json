@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jimzord12/night-shift/schemas/follow-up.schema.json",
+  "title": "Night Shift follow-up file: what the developer hands to the next agent",
+  "type": "object",
+  "required": ["schema", "id", "from_night", "created_at", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "night-shift/follow-up@1" },
+    "id": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z]+$" },
+    "from_night": { "type": "string" },
+    "created_at": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "kind", "task", "title", "done_when"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^A[0-9]+$" },
+          "status": { "enum": ["open", "done", "skipped", "carried"] },
+          "kind": { "enum": ["decision", "unfinished", "waiting"] },
+          "task": { "type": ["string", "null"] },
+          "title": { "type": "string", "minLength": 1 },
+          "question": { "type": "string" },
+          "decision": { "type": "string" },
+          "decision_label": { "type": "string" },
+          "owner_note": { "type": "string" },
+          "left": { "type": "array", "items": { "type": "string" } },
+          "done_when": { "type": "array", "items": { "type": "string" } },
+          "resolved": {
+            "type": "object",
+            "required": ["at", "by"],
+            "additionalProperties": false,
+            "properties": { "at": { "type": "string" }, "by": { "type": "string" }, "reason": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}

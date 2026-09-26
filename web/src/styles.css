@@ -11,6 +11,8 @@
   --color-eyes: #fbbf24;
   --color-blocked: #fb7185;
   --color-skipped: #94a3b8;
+  --color-failed: #f97316;
+  --color-idle: #64748b;
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
 

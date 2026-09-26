@@ -1,4 +1,4 @@
-import type { Overview, QuestionEntry } from '../../src/types.ts';
+import type { NightDetail, Overview } from '../../src/types.ts';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -20,16 +20,23 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
   return body;
 }
 
-export const getOverview = (refresh = false) => call<Overview>(`/api/overview${refresh ? '?refresh=1' : ''}`);
-export const getQuestions = () => call<QuestionEntry[]>('/api/questions');
+const post = <T,>(url: string, body?: object) => call<T>(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
+const nightUrl = (repo: string, night: string) => `/api/nights/${encodeURIComponent(repo)}/${encodeURIComponent(night)}`;
 
-export function postAnswer(id: string, body: { status: 'answered' | 'deferred'; value: string[]; note: string; baseHash: string }) {
-  return call<QuestionEntry>(`/api/questions/${encodeURIComponent(id)}/answer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+export const getOverview = () => call<Overview>('/api/overview');
+export const getNight = (repo: string, night: string) => call<NightDetail>(nightUrl(repo, night));
+export const markRead = (repo: string, night: string) => post<{ ok: true }>(`${nightUrl(repo, night)}/read`);
+export const createFollowUp = (repo: string, night: string) => post<NightDetail>(`${nightUrl(repo, night)}/follow-up`);
+export const ghStatus = () => call<{ ready: boolean }>('/api/gh');
+
+export function postAnswer(repo: string, night: string, body: { question: string; answer: string | null; note: string; baseHash: string }) {
+  return post<NightDetail>(`${nightUrl(repo, night)}/answer`, body);
 }
 
-// A path relative to .night-shift/ (question media), or a web address used as it is.
-export const fileUrl = (rel: string) => (/^https?:\/\//i.test(rel) ? rel : `/api/files/${rel.split('/').map(encodeURIComponent).join('/')}`);
+export function sendFeedback(repo: string, night: string, ids: string[], via: 'gh' | 'link') {
+  return post<{ detail: NightDetail; links: { id: string; url: string }[]; errors: string[] }>(`${nightUrl(repo, night)}/feedback/send`, { ids, via });
+}
+
+// A night's evidence (a path relative to the night's folder), or a web address used as it is.
+export const fileUrl = (repo: string, night: string, rel: string) =>
+  /^https?:\/\//i.test(rel) ? rel : `/api/files/${encodeURIComponent(repo)}/${encodeURIComponent(night)}/${rel.split('/').map(encodeURIComponent).join('/')}`;

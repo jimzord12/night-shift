@@ -1,40 +1,56 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Overview, QuestionEntry } from '../../src/types.ts';
-import { isOpen } from '../../src/types.ts';
-import { getOverview, getQuestions } from './api.ts';
+import type { NightDetail, Overview } from '../../src/types.ts';
+import { getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
 import { Starfield } from './Starfield.tsx';
-import { QuestionDeck } from './QuestionDeck.tsx';
-import { HistoryView, QueueView, QuestionsView } from './Views.tsx';
-import { Icon, shiftTitle } from './ui.tsx';
+import { QuestionDeck, deckKey } from './QuestionDeck.tsx';
+import type { DeckItem } from './QuestionDeck.tsx';
+import { HistoryView, QuestionsView, TrendsView } from './Views.tsx';
+import { Icon } from './ui.tsx';
 
-type View = 'morning' | 'questions' | 'queue' | 'history';
+type View = 'morning' | 'questions' | 'history' | 'trends';
 const VIEWS: { id: View; label: string }[] = [
   { id: 'morning', label: 'Morning' },
   { id: 'questions', label: 'Questions' },
-  { id: 'queue', label: 'Queue' },
   { id: 'history', label: 'History' },
+  { id: 'trends', label: 'Trends' },
 ];
+
+const keyOf = (repo: string, night: string) => `${repo}/${night}`;
 
 export function App() {
   const [overview, setOverview] = useState<Overview | null>(null);
-  const [questions, setQuestions] = useState<QuestionEntry[]>([]);
+  const [details, setDetails] = useState<Record<string, NightDetail>>({});
+  const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<View>('morning');
-  const [shiftId, setShiftId] = useState<string | undefined>();
-  const [deck, setDeck] = useState<{ startId?: string } | null>(null);
+  const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string } | null>(null);
 
-  const load = useCallback(async (refresh = false) => {
+  const putDetail = useCallback((d: NightDetail) => setDetails((all) => ({ ...all, [keyOf(d.repo.id, d.night.night)]: d })), []);
+
+  const loadNight = useCallback(async (repo: string, night: string) => {
+    try {
+      putDetail(await getNight(repo, night));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [putDetail]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [o, q] = await Promise.all([getOverview(refresh), getQuestions()]);
+      const o = await getOverview();
       setOverview(o);
-      setQuestions(q);
+      setDetails({});
       setError(null);
-      document.documentElement.style.setProperty('--accent', o.project.accent ?? '#7c5cff');
-      document.title = `Night Shift · ${o.project.name}`;
+      document.title = 'Night Shift';
+      setSelected((current) => {
+        if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current)) return current;
+        const first = o.nights.find((n) => !n.read) ?? o.nights[0];
+        return first ? keyOf(first.repo, first.id) : null;
+      });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -44,17 +60,37 @@ export function App() {
 
   useEffect(() => {
     void load();
-    // Questions change on disk while the app is open (an agent adds one): refresh on focus.
-    const onFocus = () => void getQuestions().then(setQuestions).catch(() => {});
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
   }, [load]);
 
-  const refreshQuestions = useCallback(async () => setQuestions(await getQuestions()), []);
-  const saved = useCallback((entry: QuestionEntry) => setQuestions((all) => all.map((e) => (e.file === entry.file ? entry : e))), []);
+  // The chosen night: load it once and mark it read (the "New" chips keep the state they loaded with).
+  useEffect(() => {
+    if (!selected || details[selected]) return;
+    const [repo, night] = selected.split('/');
+    void loadNight(repo, night);
+    if (overview?.nights.some((n) => keyOf(n.repo, n.id) === selected && !n.read)) void markRead(repo, night).catch(() => {});
+  }, [selected, details, loadNight, overview]);
 
-  const shift = overview?.shifts.find((s) => s.id === shiftId) ?? overview?.shifts[0];
-  const openCount = questions.filter((e) => e.question && isOpen(e.question)).length;
+  // The Questions view needs every night that still has open questions.
+  useEffect(() => {
+    if (view !== 'questions' || !overview) return;
+    for (const n of overview.nights) if (n.questions_open > 0 && !details[keyOf(n.repo, n.id)]) void loadNight(n.repo, n.id);
+  }, [view, overview, details, loadNight]);
+
+  const allItems = useMemo<DeckItem[]>(
+    () => Object.values(details).flatMap((d) => d.night.questions.map((q) => ({ key: deckKey(d, q), detail: d, question: q }))),
+    [details],
+  );
+  const openCount = overview?.nights.reduce((sum, n) => sum + n.questions_open, 0) ?? 0;
+  const detail = selected ? (details[selected] ?? null) : null;
+
+  const pick = (repo: string, night: string) => {
+    setSelected(keyOf(repo, night));
+    setView('morning');
+  };
+  const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey });
+  const nightItems = (d: NightDetail | null) => (d ? allItems.filter((i) => i.detail.repo.id === d.repo.id && i.detail.night.night === d.night.night) : []);
+  // The deck reads the latest details, so a saved answer updates the file hash for the next save.
+  const deckItems = deck ? deck.items.map((i) => allItems.find((x) => x.key === i.key) ?? i) : [];
 
   return (
     <div className="sky min-h-screen">
@@ -67,10 +103,10 @@ export function App() {
             </span>
             <div>
               <div className="font-display text-lg leading-tight font-semibold">Night Shift</div>
-              <div className="text-xs text-white/50">{overview ? overview.project.name : '…'}</div>
+              <div className="text-xs text-white/50">{overview ? `${overview.repos.filter((r) => !r.missing).length} repositor${overview.repos.length === 1 ? 'y' : 'ies'}` : '…'}</div>
             </div>
           </div>
-          <nav className="glass flex rounded-full p-1">
+          <nav className="glass flex flex-wrap rounded-full p-1">
             {VIEWS.map((v) => (
               <button key={v.id} onClick={() => setView(v.id)} className={`relative rounded-full px-4 py-1.5 text-sm transition ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
                 {v.label}
@@ -79,36 +115,38 @@ export function App() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
-            {shift && view === 'morning' && overview && overview.shifts.length > 1 && (
-              <select value={shift.id} onChange={(e) => setShiftId(e.target.value)} className="glass rounded-full px-3 py-1.5 text-sm text-white outline-none">
-                {overview.shifts.map((s) => <option key={s.id} value={s.id} className="bg-night-900">{shiftTitle(s.id)}</option>)}
-              </select>
-            )}
             <span className="hidden sm:inline">{overview?.version}</span>
-            <button onClick={() => void load(true)} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload from the board">
+            <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </header>
 
-        {error && <Banner tone="error">{error}</Banner>}
-        {overview?.boardError && <Banner tone="warn">The board could not be read: {overview.boardError}. Questions still work.</Banner>}
+        {error && <Banner>{error}</Banner>}
 
         {overview && (
           <main className="mt-4">
-            {view === 'morning' && <Morning overview={overview} shift={shift} questions={questions} onOpenDeck={(id) => setDeck({ startId: id })} onShowQueue={() => setView('queue')} />}
-            {view === 'questions' && <QuestionsView entries={questions} onOpen={(id) => setDeck({ startId: id })} />}
-            {view === 'queue' && <QueueView overview={overview} />}
-            {view === 'history' && <HistoryView shifts={overview.shifts} selected={shift?.id} onPick={(id) => { setShiftId(id); setView('morning'); }} />}
+            {view === 'morning' && <Morning overview={overview} detail={detail} onPick={pick} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
+            {view === 'questions' && <QuestionsView items={allItems.filter((i) => i.question.answer === null || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
+            {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
+            {view === 'trends' && <TrendsView />}
           </main>
         )}
-        {!overview && !error && <div className="py-32 text-center text-white/40">Loading the night…</div>}
+        {!overview && !error && <div className="py-32 text-center text-white/40">Loading the nights…</div>}
       </div>
-      {deck && <QuestionDeck entries={questions} startId={deck.startId} onClose={() => setDeck(null)} onSaved={saved} onConflict={refreshQuestions} />}
+      {deck && (
+        <QuestionDeck
+          items={deckItems}
+          startKey={deck.startKey}
+          onClose={() => setDeck(null)}
+          onSaved={putDetail}
+          onConflict={async (repo, night) => loadNight(repo, night)}
+        />
+      )}
     </div>
   );
 }
 
-function Banner({ tone, children }: { tone: 'error' | 'warn'; children: ReactNode }) {
-  return <div className={`mb-4 rounded-2xl px-4 py-3 text-sm ${tone === 'error' ? 'bg-blocked/15 text-blocked' : 'bg-eyes/15 text-eyes'}`}>{children}</div>;
+function Banner({ children }: { children: ReactNode }) {
+  return <div className="mb-4 rounded-2xl bg-blocked/15 px-4 py-3 text-sm text-blocked">{children}</div>;
 }

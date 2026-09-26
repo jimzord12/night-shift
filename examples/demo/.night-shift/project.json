@@ -1,8 +1,0 @@
-{
-  "schema": "project/1",
-  "name": "Lighthouse (demo)",
-  "accent": "#7C5CFF",
-  "repo": "https://github.com/example/lighthouse",
-  "buffer": { "max": 20, "low": 5 },
-  "board": { "type": "file", "path": "board.json", "readyLabel": "Night-ready", "doneLists": ["Done"] }
-}

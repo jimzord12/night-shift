@@ -1,159 +1,231 @@
-// The shapes the server sends to the web app. Types only: the web app imports this file too.
+// The file shapes of a night (docs/design.md) and what the Viewer's API sends. Types and small
+// pure helpers only: the web app imports this file too.
 
-export type Kind = 'confirm' | 'one' | 'many' | 'rank' | 'text';
+export const OUTCOMES = ['done', 'partial', 'blocked', 'failed', 'not_started', 'skipped'] as const;
+export type Outcome = (typeof OUTCOMES)[number];
+
+export const BLOCK_TYPES = ['image', 'compare', 'video', 'pdf', 'link', 'command', 'note'] as const;
+export type BlockType = (typeof BLOCK_TYPES)[number];
+
+// Proof and notes come only from these (the fixed vocabulary). Paths are relative to the night's
+// folder and must lie inside its evidence/ folder.
+export type Block =
+  | { type: 'image'; path: string; caption?: string }
+  | { type: 'compare'; before: string; after: string; caption?: string }
+  | { type: 'video'; path: string; caption?: string }
+  | { type: 'pdf'; path: string; caption?: string }
+  | { type: 'link'; url: string; label?: string }
+  | { type: 'command'; command: string; exit_code: number; excerpt: string }
+  | { type: 'note'; text: string };
+
+export interface PlanTask {
+  id: string;
+  title: string;
+  source: string;
+  done_when: string[];
+  // "<follow-up id>/<item id>" when the task carries a follow-up item forward.
+  follow_up?: string;
+}
+
+export interface SkippedFollowUp {
+  follow_up: string;
+  reason: string;
+}
+
+// What the agent hands to `night-shift start`.
+export interface PlanInput {
+  schema: 'night-shift/plan@1';
+  tasks: PlanTask[];
+  skipped_follow_ups?: SkippedFollowUp[];
+}
+
+// The stored plan: the input plus what the tool adds.
+export interface Plan extends PlanInput {
+  night: string;
+  started_at: string;
+}
+
+export interface Check {
+  done_when: string;
+  met: boolean;
+  note?: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  source?: string;
+  follow_up?: string;
+  unplanned?: true;
+  done_when: string[];
+  outcome: Outcome | null;
+  checks: Check[];
+  evidence: Block[];
+  blocked_by?: string;
+  why?: string;
+  reason?: string;
+  recorded_at?: string;
+}
 
 export interface Option {
   id: string;
   label: string;
   detail?: string;
   image?: string;
-  preview?: string;
-}
-
-export interface Answer {
-  at: string;
-  status: 'answered' | 'deferred';
-  value: string[];
-  note?: string;
-}
-
-export interface Resolved {
-  at: string;
-  into: string;
 }
 
 export interface Question {
-  schema: 'question/1';
   id: string;
-  shift: string;
-  card?: string;
-  blocking?: boolean;
-  topic?: string;
-  question: string;
+  task: string | null;
+  ask: string;
   why?: string;
-  kind: Kind;
-  options?: Option[];
-  min?: number;
-  max?: number;
-  recommended: string[];
-  because: string;
-  images?: string[];
-  answer: Answer | null;
-  resolved: Resolved | null;
+  options: Option[];
+  recommended: string;
+  // Written by the Viewer only.
+  answer: string | null;
+  note: string | null;
+  answered_at?: string;
 }
 
-// The queue as an engine's rev range. Too few cards and the nights idle; the sweet spot is 70-80%
-// of the scale; past 90% is the redline: more is queued than the nights clear before the plan
-// goes stale.
-export type Zone = 'idle' | 'warming' | 'sweet' | 'hot' | 'redline';
-
-export function bufferZone(count: number, buffer: { max: number; low: number }): Zone {
-  const f = count / buffer.max;
-  if (count < buffer.low) return 'idle';
-  if (f < 0.7) return 'warming';
-  if (f <= 0.8) return 'sweet';
-  if (f < 0.9) return 'hot';
-  return 'redline';
+export interface FeedbackSent {
+  at: string;
+  via: 'gh' | 'link';
+  url?: string;
 }
 
-// A question still waits for the owner when it has no answer or was put off ("not now").
-export function isOpen(q: Question): boolean {
-  return !q.resolved && (!q.answer || q.answer.status === 'deferred');
-}
-
-// One file in questions/: a valid question, or the problems that make it invalid.
-export interface QuestionEntry {
-  file: string;
-  hash: string;
-  question: Question | null;
-  problems: string[];
-}
-
-export interface TrelloBoard {
-  type: 'trello';
+export interface Feedback {
   id: string;
-  readyLabel: string;
-  doneLists?: string[];
+  kind: string;
+  title: string;
+  tags: string[];
+  body: string;
+  // Written by the Viewer only.
+  sent: FeedbackSent | null;
 }
 
-export interface BacklogBoard { type: 'backlog'; path?: string; readyLabel: string; doneLists?: string[]; }
-export interface FileBoard {
-  type: 'file';
+export interface ModelUsage {
+  tokens: { input: number | null; output: number | null; reasoning: number | null; cache_read: number | null; cache_write: number | null };
+  cost_usd: number | null;
+}
+
+// Measured from the harness, never claimed by the agent. Anything the harness did not provide is null
+// and shows as "unknown".
+export interface Metrics {
+  source: 'claude-code';
+  harness_version: string | null;
+  session_id: string | null;
+  measured_at: string;
+  duration_min: { total: number | null; model: number | null; tools: number | null };
+  models: Record<string, ModelUsage>;
+  cost_usd: number | null;
+  sub_agents: { type: string | null; model: string | null; purpose: string | null }[];
+  lines: { added: number | null; removed: number | null };
+}
+
+export interface Session {
+  harness: 'claude-code';
+  id: string;
+  pid: number | null;
+  transcript: string | null;
+}
+
+export type NightStatus = 'open' | 'complete' | 'interrupted';
+
+export interface Night {
+  schema: 'night-shift/night@1';
+  night: string;
+  status: NightStatus;
+  started_at: string;
+  ended_at: string | null;
+  summary: string | null;
+  session: Session | null;
+  tasks: Task[];
+  skipped_follow_ups: SkippedFollowUp[];
+  questions: Question[];
+  feedback: Feedback[];
+  metrics: Metrics | null;
+}
+
+// carried: a night took the item on as a task; that task's outcome is the item's fate now.
+export type ItemStatus = 'open' | 'done' | 'skipped' | 'carried';
+export type ItemKind = 'decision' | 'unfinished' | 'waiting';
+
+export interface FollowUpItem {
+  id: string;
+  status: ItemStatus;
+  kind: ItemKind;
+  task: string | null;
+  title: string;
+  question?: string;
+  decision?: string;
+  decision_label?: string;
+  owner_note?: string;
+  left?: string[];
+  done_when: string[];
+  resolved?: { at: string; by: string; reason?: string };
+}
+
+export interface FollowUp {
+  schema: 'night-shift/follow-up@1';
+  id: string;
+  from_night: string;
+  created_at: string;
+  items: FollowUpItem[];
+}
+
+// ------------------------------------------------------------------ the Viewer's API
+
+export interface RepoRef {
+  id: string;
+  name: string;
   path: string;
-  readyLabel: string;
-  doneLists?: string[];
+  missing: boolean;
 }
 
-export interface Project {
-  schema: 'project/1';
-  name: string;
-  accent?: string;
-  repo?: string;
-  buffer?: { max?: number; low?: number };
-  board: TrelloBoard | BacklogBoard | FileBoard;
-}
-
-export type CardKind = 'build' | 'explore';
-export type Size = 'S' | 'M' | 'L';
-
-export interface CardHeader {
-  kind?: CardKind;
-  size?: Size;
-  touches: string[];
-  problems: string[];
-}
-
-export interface QueueCard {
+export interface NightSummary {
+  repo: string;
   id: string;
-  name: string;
-  url: string;
-  list: string;
-  header: CardHeader | null;
-  // Other queued cards whose touches overlap this one's: never run in parallel with them.
-  collidesWith: string[];
-}
-
-export type OutcomeStatus = 'shipped' | 'needs-eyes' | 'blocked' | 'skipped';
-export const OUTCOME_STATUSES: OutcomeStatus[] = ['shipped', 'needs-eyes', 'blocked', 'skipped'];
-
-export interface Evidence {
-  kind: 'image' | 'compare' | 'pdf' | 'link';
-  // Resolved URLs the browser can load (attachments are proxied by the server).
-  src?: string;
-  before?: string;
-  caption?: string;
-  // The name the comment used, kept for messages when the attachment is missing.
-  name?: string;
-  missing?: boolean;
-}
-
-export interface Outcome {
-  card: { id: string; name: string; url: string };
-  date: string;
-  shift: string;
-  status: OutcomeStatus;
-  line: string;
-  review?: string;
-  commits: { sha: string; url?: string }[];
-  evidence: Evidence[];
-  questions: string[];
+  status: NightStatus;
+  started_at: string;
+  ended_at: string | null;
+  summary: string | null;
+  counts: Record<Outcome, number>;
+  tasks: number;
+  questions_open: number;
+  feedback_unsent: number;
+  duration_min: number | null;
+  cost_usd: number | null;
+  read: boolean;
+  follow_up: boolean;
+  running: boolean;
   problems: string[];
-}
-
-export interface Shift {
-  id: string;
-  kind: 'night' | 'day';
-  date: string;
-  counts: Record<OutcomeStatus, number>;
-  outcomes: Outcome[];
 }
 
 export interface Overview {
   version: string;
-  project: Project;
-  buffer: { max: number; low: number };
-  queue: QueueCard[];
-  shifts: Shift[];
-  boardError: string | null;
+  repos: RepoRef[];
+  nights: NightSummary[];
   loadedAt: string;
 }
+
+export interface NightDetail {
+  repo: RepoRef;
+  night: Night;
+  hash: string;
+  running: boolean;
+  follow_up: FollowUp | null;
+  problems: string[];
+}
+
+export function emptyCounts(): Record<Outcome, number> {
+  return { done: 0, partial: 0, blocked: 0, failed: 0, not_started: 0, skipped: 0 };
+}
+
+export function countOutcomes(tasks: Task[]): Record<Outcome, number> {
+  const counts = emptyCounts();
+  for (const t of tasks) if (t.outcome) counts[t.outcome]++;
+  return counts;
+}
+
+// A question still waits for the owner while it has no answer.
+export const isOpenQuestion = (q: Question) => q.answer === null;

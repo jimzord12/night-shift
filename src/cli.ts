@@ -1,35 +1,41 @@
 #!/usr/bin/env node
-// night-shift — the command line of the Night Shift Protocol.
-//
-//   night-shift serve [project] [--port 4747] [--open]   the morning review app for <project>
-//   night-shift check [project] [--board]                validate .night-shift/ (and the board's cards and outcomes)
-//   night-shift docs [protocol|contract|binding]         print the protocol documents of this version
-//   night-shift --version
-//
-// [project] is the project's root folder (the one holding .night-shift/); default: the current folder.
-// Exit codes: 0 done · 1 problems found or a step failed · 2 usage error or missing prerequisite.
+// night-shift — records unattended agent work as nights a developer reads in the morning.
+// Exit codes: 0 done · 1 refused or failed (the message says why and how to fix it) · 2 usage error.
 
 import fs from 'node:fs';
-import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { serve } from '@hono/node-server';
-import { BoardError } from './board/adapter.ts';
-import { adapterFor, buildQueue, buildShifts } from './overview.ts';
 import { createApp } from './server.ts';
-import { REPO_ROOT, StoreError, dataDir, listQuestions, loadProject } from './store.ts';
-import { isOpen } from './types.ts';
+import { StoreError, followUpSchemaProblems, listFollowUpIds, listNightIds, parseJson, readFollowUp, readNight } from './store.ts';
+import { ask, close, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
+import { openItems, resolveItem } from './followup.ts';
+import { install } from './install.ts';
+import { repoRoot } from './repo.ts';
 import { versionString } from './version.ts';
+import type { AskInput, RecordInput } from './night.ts';
 
-const USAGE = `night-shift — prepare by day, build by night, review in the morning
+const USAGE = `night-shift — unattended agent work, read in the morning
 
-  night-shift serve [project] [--port 4747] [--open]   open the morning review app
-  night-shift check [project] [--board]                validate the project's .night-shift folder
-                                                       (--board also checks card headers and outcomes)
-  night-shift docs [protocol|contract|binding]         print a protocol document
+For agents (JSON on stdin, or --file <path>, or --json '<json>'):
+  night-shift status                          where the open night stands, and the next step
+  night-shift start                           open a night from a plan (night-shift/plan@1)
+  night-shift record                          record one task's outcome, checks and evidence
+  night-shift ask                             add a question for the developer
+  night-shift feedback                        log friction with Night Shift itself
+  night-shift close --summary "<text>"        close the night
+  night-shift follow-up list | show <id>      open follow-up items
+  night-shift follow-up resolve <id>/<item> --status done|skipped [--reason "<text>"]
+
+For the developer:
+  night-shift install [repo]                  add the skills and the session-end hook to a repository
+  night-shift view [--port 4747] [--open]     the Viewer: every registered repository's nights
+  night-shift check [repo]                    validate a repository's night and follow-up files
   night-shift --version
 
-[project] is the project's root folder; default: the current folder.
-Exit codes: 0 done · 1 problems found · 2 usage error or missing prerequisite.`;
+For the harness:
+  night-shift meter                           the session-end hook (reads Claude Code's hook JSON on stdin)
+
+Commands act on the git repository of the current folder.`;
 
 class UsageError extends Error {}
 
@@ -39,15 +45,18 @@ interface Parsed {
   flags: Record<string, string | true>;
 }
 
+const VALUED = new Set(['port', 'file', 'json', 'summary', 'status', 'reason']);
+
 function parse(argv: string[]): Parsed {
   const args: string[] = [];
   const flags: Record<string, string | true> = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith('--')) {
-      const [k, v] = a.slice(2).split('=', 2);
-      if (v !== undefined) flags[k] = v;
-      else if (k === 'port') flags[k] = argv[++i] ?? '';
+      const eq = a.indexOf('=');
+      const k = eq > 0 ? a.slice(2, eq) : a.slice(2);
+      if (eq > 0) flags[k] = a.slice(eq + 1);
+      else if (VALUED.has(k)) flags[k] = argv[++i] ?? '';
       else flags[k] = true;
     } else if (a === '-h') flags.help = true;
     else args.push(a);
@@ -55,12 +64,28 @@ function parse(argv: string[]): Parsed {
   return { command: args.shift(), args, flags };
 }
 
-function projectData(arg: string | undefined): string {
-  const root = path.resolve(arg ?? '.');
-  if (!fs.existsSync(root)) throw new UsageError(`no such folder: ${root}`);
-  const dir = dataDir(root);
-  if (!fs.existsSync(path.join(dir, 'project.json'))) throw new UsageError(`${root} has no .night-shift/project.json; see \`night-shift docs binding\``);
-  return dir;
+// The JSON an agent hands over: --json, --file, or stdin.
+function input<T>(p: Parsed): T {
+  let text: string;
+  if (typeof p.flags.json === 'string') text = p.flags.json;
+  else if (typeof p.flags.file === 'string') {
+    if (!fs.existsSync(p.flags.file)) throw new UsageError(`no such file: ${p.flags.file}`);
+    text = fs.readFileSync(p.flags.file, 'utf8');
+  } else if (!process.stdin.isTTY) text = fs.readFileSync(0, 'utf8');
+  else throw new UsageError('send the JSON on stdin (a heredoc), with --file <path>, or with --json \'<json>\'');
+  if (!text.trim()) throw new UsageError('the JSON input is empty');
+  try {
+    return parseJson(text) as T;
+  } catch (error) {
+    throw new StoreError(`the input is not valid JSON: ${(error as Error).message}`);
+  }
+}
+
+function inputText(p: Parsed): string {
+  if (typeof p.flags.json === 'string') return p.flags.json;
+  if (typeof p.flags.file === 'string') return fs.readFileSync(p.flags.file, 'utf8');
+  if (!process.stdin.isTTY) return fs.readFileSync(0, 'utf8');
+  throw new UsageError('send the plan on stdin (a heredoc), with --file <path>, or with --json \'<json>\'');
 }
 
 function openBrowser(url: string): void {
@@ -68,62 +93,88 @@ function openBrowser(url: string): void {
   spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true }).unref();
 }
 
-function commandServe(p: Parsed): void {
-  const dir = projectData(p.args[0]);
-  const project = loadProject(dir);
+function commandView(p: Parsed): void {
   const port = p.flags.port === undefined ? 4747 : Number(p.flags.port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new UsageError(`--port must be a number from 1 to 65535, got ${String(p.flags.port)}`);
-  const app = createApp({ dataDir: dir, version: versionString(), port });
+  const app = createApp({ version: versionString(), port });
   const server = serve({ fetch: app.fetch, hostname: '127.0.0.1', port }, () => {
     const url = `http://127.0.0.1:${port}/`;
-    console.log(`night-shift ${versionString()} — ${project.name} at ${url} (Ctrl+C stops it)`);
+    console.log(`night-shift ${versionString()} — the Viewer at ${url} (Ctrl+C stops it)`);
     if (p.flags.open) openBrowser(url);
   });
   server.on('error', (error: NodeJS.ErrnoException) => {
-    console.error(`error: ${error.code === 'EADDRINUSE' ? `port ${port} is taken; is night-shift already running? try --port ${port + 1}` : error.message}`);
+    console.error(`error: ${error.code === 'EADDRINUSE' ? `port ${port} is taken; is the Viewer already running? try --port ${port + 1}` : error.message}`);
     process.exit(2);
   });
 }
 
-async function commandCheck(p: Parsed): Promise<number> {
-  const dir = projectData(p.args[0]);
+function commandCheck(p: Parsed): number {
+  const repo = repoRoot(p.args[0] ?? '.');
   let problems = 0;
-  const report = (where: string, list: string[]) => {
-    for (const msg of list) console.log(`  ✗ ${where}: ${msg}`);
-    problems += list.length;
-  };
-  const project = loadProject(dir);
-  console.log(`✓ project.json (${project.name}, board: ${project.board.type})`);
-  const entries = listQuestions(dir);
-  const valid = entries.filter((e) => e.question);
-  console.log(`${entries.length === valid.length ? '✓' : '✗'} questions: ${valid.length} of ${entries.length} valid, ${valid.filter((e) => isOpen(e.question!)).length} open`);
-  for (const e of entries) report(`questions/${e.file}`, e.problems);
-
-  if (p.flags.board) {
+  const ids = listNightIds(repo);
+  for (const id of ids) {
+    const r = readNight(repo, id);
+    if (r.problems.length) {
+      console.log(`✗ night ${id}`);
+      for (const msg of r.problems) console.log(`    ${msg}`);
+      problems += r.problems.length;
+    } else console.log(`✓ night ${id} (${r.night!.status})`);
+  }
+  for (const id of listFollowUpIds(repo)) {
     try {
-      const board = adapterFor(project, dir);
-      const queue = await buildQueue(project, board);
-      console.log(`${queue.every((c) => c.header && !c.header.problems.length) ? '✓' : '✗'} queue: ${queue.length} Night-ready card(s)`);
-      for (const c of queue) report(`card "${c.name}"`, c.header ? c.header.problems : ['no "night-shift:" header line']);
-      const shifts = await buildShifts(project, board, await board.comments());
-      const outcomes = shifts.flatMap((s) => s.outcomes);
-      console.log(`${outcomes.every((o) => !o.problems.length) ? '✓' : '✗'} outcomes: ${outcomes.length} across ${shifts.length} shift(s)`);
-      for (const o of outcomes) report(`outcome on "${o.card.name}" (${o.shift})`, o.problems);
+      readFollowUp(repo, id);
+      console.log(`✓ follow-up ${id}`);
     } catch (error) {
-      if (!(error instanceof BoardError)) throw error;
-      console.log(`✗ board: ${error.message}`);
-      return 2;
+      console.log(`✗ follow-up ${id}: ${(error as Error).message}`);
+      problems++;
     }
   }
+  if (!ids.length) console.log('no nights yet');
   console.log(problems ? `${problems} problem(s)` : 'all good');
   return problems ? 1 : 0;
 }
 
-function commandDocs(p: Parsed): void {
-  const name = p.args[0] ?? 'protocol';
-  const file = path.join(REPO_ROOT, 'docs', `${name}.md`);
-  if (!/^[a-z-]+$/.test(name) || !fs.existsSync(file)) throw new UsageError(`no document "${name}"; choose protocol, contract or binding`);
-  process.stdout.write(fs.readFileSync(file, 'utf8'));
+function commandFollowUp(p: Parsed, repo: string): number {
+  const sub = p.args[0] ?? 'list';
+  if (sub === 'list') {
+    const items = openItems(repo);
+    if (!items.length) console.log('No open follow-up items.');
+    for (const o of items) console.log(`${o.ref}  ${o.item.kind.padEnd(10)} ${o.item.title}${o.item.decision_label ? ` → ${o.item.decision_label}` : ''}`);
+    return 0;
+  }
+  if (sub === 'show') {
+    const id = p.args[1];
+    if (!id) throw new UsageError('night-shift follow-up show <follow-up id>');
+    console.log(JSON.stringify(readFollowUp(repo, id), null, 2));
+    return 0;
+  }
+  if (sub === 'resolve') {
+    const ref = p.args[1];
+    const st = p.flags.status;
+    if (!ref || (st !== 'done' && st !== 'skipped')) throw new UsageError('night-shift follow-up resolve <follow-up id>/<item> --status done|skipped [--reason "<text>"]');
+    const item = resolveItem(repo, ref, st, 'day', typeof p.flags.reason === 'string' ? p.flags.reason : undefined);
+    console.log(`${ref} is ${item.status}. ${openItems(repo).length} open item(s) left.`);
+    return 0;
+  }
+  throw new UsageError(`unknown follow-up command "${sub}"; use list, show or resolve`);
+}
+
+// The session-end hook must never disturb the harness: it reports problems to a log and exits 0.
+function commandMeter(): number {
+  let hook: { session_id?: string; transcript_path?: string; cwd?: string } = {};
+  try {
+    if (!process.stdin.isTTY) hook = parseJson(fs.readFileSync(0, 'utf8') || '{}') as typeof hook;
+  } catch {
+    hook = {};
+  }
+  try {
+    const repo = repoRoot(hook.cwd ?? '.');
+    const done = hook.session_id ? onSessionEnd(repo, hook.session_id, hook.transcript_path ?? null) : recover(repo);
+    if (done.length) console.log(`night-shift: ${done.join('; ')}`);
+  } catch (error) {
+    console.error(`night-shift meter: ${(error as Error).message}`);
+  }
+  return 0;
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -136,26 +187,60 @@ async function main(argv: string[]): Promise<number> {
     console.log(USAGE);
     return p.flags.help ? 0 : 2;
   }
+  const repo = () => repoRoot('.');
   switch (p.command) {
+    case 'view':
     case 'serve':
-      commandServe(p);
+      commandView(p);
       return -1; // keeps running
+    case 'status':
+      console.log(status(repo()));
+      return 0;
+    case 'start': {
+      const r = start(repo(), inputText(p));
+      console.log(r.messages.join('\n'));
+      return 0;
+    }
+    case 'record':
+      console.log(record(repo(), input<RecordInput>(p)).message);
+      return 0;
+    case 'ask':
+      console.log(ask(repo(), input<AskInput>(p)).message);
+      return 0;
+    case 'feedback':
+      console.log(feedback(repo(), input<{ kind?: string; title: string; tags?: string[]; body: string }>(p)).message);
+      return 0;
+    case 'close': {
+      const summary = typeof p.flags.summary === 'string' ? p.flags.summary : undefined;
+      if (summary === undefined) throw new UsageError('night-shift close --summary "<one or two sentences>"');
+      console.log(close(repo(), summary).message);
+      return 0;
+    }
+    case 'follow-up':
+      return commandFollowUp(p, repo());
+    case 'meter':
+      return commandMeter();
+    case 'install': {
+      const target = repoRoot(p.args[0] ?? '.');
+      console.log(install(target).join('\n'));
+      return 0;
+    }
     case 'check':
       return commandCheck(p);
-    case 'docs':
-      commandDocs(p);
-      return 0;
     default:
       throw new UsageError(`unknown command "${p.command}"; run night-shift --help`);
   }
 }
+
+// Kept for `night-shift check`: a follow-up file's own schema problems.
+export { followUpSchemaProblems };
 
 main(process.argv.slice(2)).then(
   (code) => {
     if (code >= 0) process.exitCode = code;
   },
   (error: unknown) => {
-    console.error(`error: ${(error as Error).message}`);
-    process.exitCode = error instanceof UsageError || (error instanceof StoreError && error.status === 404) ? 2 : 1;
+    console.error(`${error instanceof StoreError || error instanceof UsageError ? 'refused' : 'error'}: ${(error as Error).message}`);
+    process.exitCode = error instanceof UsageError ? 2 : 1;
   },
 );

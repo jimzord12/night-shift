@@ -1,50 +1,35 @@
-import type { Overview, QuestionEntry, QueueCard, Shift } from '../../src/types.ts';
-import { OUTCOME_STATUSES } from '../../src/types.ts';
-import { fileUrl } from './api.ts';
-import { BufferWords } from './Morning.tsx';
-import { Icon, Pill, STATUS, Tachometer, shiftTitle, taskId } from './ui.tsx';
+import type { Overview } from '../../src/types.ts';
+import { OUTCOMES } from '../../src/types.ts';
+import type { DeckItem } from './QuestionDeck.tsx';
+import { Icon, NIGHT_STATUS, STATUS, dollars, minutes, nightTitle } from './ui.tsx';
 
 // ---------------------------------------------------------------- questions
 
-function stateOf(e: QuestionEntry): { label: string; color: string } {
-  const q = e.question;
-  if (!q) return { label: 'invalid file', color: 'var(--color-blocked)' };
-  if (q.resolved) return { label: 'done', color: 'var(--color-shipped)' };
-  if (q.answer?.status === 'answered') return { label: 'answered', color: 'var(--accent)' };
-  if (q.answer?.status === 'deferred') return { label: 'not now', color: 'var(--color-skipped)' };
-  return { label: 'open', color: 'var(--color-eyes)' };
-}
-
-export function QuestionsView({ entries, onOpen }: { entries: QuestionEntry[]; onOpen: (id?: string) => void }) {
-  const groups = new Map<string, QuestionEntry[]>();
-  for (const e of entries) {
-    const key = e.question?.topic ?? (e.question ? 'Other' : 'Invalid files');
-    groups.set(key, [...(groups.get(key) ?? []), e]);
+export function QuestionsView({ items, loading, onOpen }: { items: DeckItem[]; loading: boolean; onOpen: (key: string) => void }) {
+  if (loading && !items.length) return <div className="py-24 text-center text-white/40">Loading the questions…</div>;
+  if (!items.length) return <Empty icon="question" text="No questions. When an agent needs a decision, it asks here instead of guessing." />;
+  const groups = new Map<string, DeckItem[]>();
+  for (const i of items) {
+    const k = `${i.detail.repo.name} · ${nightTitle(i.detail.night.night)}`;
+    groups.set(k, [...(groups.get(k) ?? []), i]);
   }
-  if (!entries.length) return <Empty icon="question" text="No questions. Agents write them into .night-shift/questions/." />;
   return (
     <div className="space-y-8">
-      {[...groups.entries()].map(([topic, list]) => (
-        <section key={topic}>
-          <h2 className="mb-3 text-sm tracking-widest text-white/50 uppercase">{topic}</h2>
+      {[...groups.entries()].map(([title, list]) => (
+        <section key={title}>
+          <h2 className="mb-3 text-sm tracking-widest text-white/50 uppercase">{title}</h2>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {list.map((e, i) => {
-              const st = stateOf(e);
-              const q = e.question;
-              const thumb = q?.options?.find((o) => o.image)?.image ?? q?.images?.[0];
+            {list.map((i, n) => {
+              const q = i.question;
+              const color = q.answer === null ? 'var(--color-eyes)' : 'var(--accent)';
               return (
-                <button key={e.file} disabled={!q} onClick={() => q && onOpen(q.id)} className="glass glow-soft pop-in flex gap-3 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 disabled:cursor-default" style={{ ['--glow' as string]: st.color, animationDelay: `${i * 40}ms` }}>
-                  {thumb && <img src={fileUrl(thumb)} alt="" className="size-16 shrink-0 rounded-xl bg-white object-cover" />}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="font-semibold" style={{ color: st.color }}>● {st.label}</span>
-                      {q?.blocking && <span className="text-blocked">blocks a card</span>}
-                      <span className="ml-auto font-mono text-white/35">{q?.kind}</span>
-                    </div>
-                    <div className="mt-1 leading-snug font-medium">{q?.question ?? e.file}</div>
-                    {q?.answer?.status === 'answered' && <div className="mt-1 truncate text-sm text-white/55">→ {q.answer.value.join(q.kind === 'rank' ? ' → ' : ', ')}</div>}
-                    {!q && <ul className="mt-1 list-inside list-disc text-xs text-blocked">{e.problems.map((p) => <li key={p}>{p}</li>)}</ul>}
+                <button key={i.key} onClick={() => onOpen(i.key)} className="glass glow-soft pop-in flex flex-col gap-1 rounded-2xl p-4 text-left transition hover:-translate-y-0.5" style={{ ['--glow' as string]: color, animationDelay: `${n * 40}ms` }}>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-semibold" style={{ color }}>● {q.answer === null ? 'open' : 'answered'}</span>
+                    {q.task && <span className="font-mono text-white/45">{q.task}</span>}
                   </div>
+                  <div className="leading-snug font-medium">{q.ask}</div>
+                  {q.answer !== null && <div className="truncate text-sm text-white/55">→ {q.options.find((o) => o.id === q.answer)?.label ?? q.answer}</div>}
                 </button>
               );
             })}
@@ -55,109 +40,39 @@ export function QuestionsView({ entries, onOpen }: { entries: QuestionEntry[]; o
   );
 }
 
-// ---------------------------------------------------------------- queue
-
-const COLLISION_COLORS = ['#f472b6', '#60a5fa', '#facc15', '#a78bfa', '#2dd4bf', '#fb923c'];
-
-// Cards that collide, directly or through a chain, share one colour.
-function collisionGroups(queue: QueueCard[]): Map<string, string> {
-  const group = new Map<string, number>();
-  let next = 0;
-  const visit = (id: string, g: number) => {
-    if (group.has(id)) return;
-    group.set(id, g);
-    for (const other of queue.find((c) => c.id === id)?.collidesWith ?? []) visit(other, g);
-  };
-  for (const c of queue) if (c.collidesWith.length && !group.has(c.id)) visit(c.id, next++);
-  return new Map([...group.entries()].map(([id, g]) => [id, COLLISION_COLORS[g % COLLISION_COLORS.length]]));
-}
-
-const SIZE_WIDTH = { S: '33%', M: '66%', L: '100%' };
-
-export function QueueView({ overview }: { overview: Overview }) {
-  const { queue, buffer } = overview;
-  const colours = collisionGroups(queue);
-  const name = (id: string) => taskId(queue.find((c) => c.id === id)?.name ?? id).id;
-  return (
-    <div className="space-y-6">
-      <div className="glass flex flex-wrap items-center gap-6 rounded-3xl p-6">
-        <Tachometer value={queue.length} max={buffer.max} low={buffer.low} className="w-72" />
-        <div className="flex-1">
-          <BufferWords overview={overview} />
-          <div className="mt-3 text-center text-xs text-white/45">
-            sweet spot {Math.ceil(buffer.max * 0.7)}–{Math.floor(buffer.max * 0.8)} cards · redline from {Math.ceil(buffer.max * 0.9)} · idle below {buffer.low}
-          </div>
-          <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs text-white/60">
-            <span className="inline-flex items-center gap-1"><Icon name="hammer" className="size-3.5" /> build: finished overnight</span>
-            <span className="inline-flex items-center gap-1"><Icon name="compass" className="size-3.5" /> explore: options for the morning</span>
-            <span className="inline-flex items-center gap-1"><Icon name="collide" className="size-3.5" /> same colour: never in parallel</span>
-          </div>
-        </div>
-      </div>
-      {!queue.length && <Empty icon="moon" text={`No card carries the ${overview.project.board.readyLabel} label yet.`} />}
-      <ol className="space-y-2">
-        {queue.map((c, i) => {
-          const { id, rest } = taskId(c.name);
-          const h = c.header;
-          const colour = colours.get(c.id);
-          return (
-            <li key={c.id} className="glass pop-in flex items-center gap-4 rounded-2xl p-4" style={{ animationDelay: `${i * 35}ms`, borderLeft: colour ? `4px solid ${colour}` : undefined }}>
-              <span className="w-6 text-center text-lg font-bold text-white/40 tabular-nums">{i + 1}</span>
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ background: h?.kind === 'explore' ? '#a78bfa22' : '#60a5fa22', color: h?.kind === 'explore' ? '#a78bfa' : '#60a5fa' }}>
-                <Icon name={h?.kind === 'explore' ? 'compass' : 'hammer'} className="size-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <a href={c.url} target="_blank" rel="noreferrer" className="font-mono font-semibold hover:underline">{id}</a>
-                {rest && <span className="ml-2 text-sm text-white/55">{rest}</span>}
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  {h?.touches.map((t) => <Pill key={t} className="font-mono">{t}</Pill>)}
-                  {colour && (
-                    <span className="inline-flex items-center gap-1 text-xs" style={{ color: colour }}>
-                      <Icon name="collide" className="size-3.5" /> with {c.collidesWith.map(name).join(', ')}
-                    </span>
-                  )}
-                  {(!h || h.problems.length > 0) && (
-                    <span className="inline-flex items-center gap-1 text-xs text-eyes">
-                      <Icon name="warn" className="size-3.5" /> {h ? h.problems.join('; ') : 'no night-shift header'}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="w-20 shrink-0">
-                <div className="text-right text-xs text-white/50">{h?.size ?? '?'}</div>
-                <div className="mt-1 h-1.5 rounded-full bg-white/10">
-                  <div className="h-full rounded-full bg-white/60" style={{ width: h?.size ? SIZE_WIDTH[h.size] : '0%' }} />
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------- history
 
-export function HistoryView({ shifts, selected, onPick }: { shifts: Shift[]; selected?: string; onPick: (id: string) => void }) {
-  if (!shifts.length) return <Empty icon="moon" text="No shift has posted an outcome yet." />;
+export function HistoryView({ overview, selected, onPick }: { overview: Overview; selected?: string; onPick: (repo: string, night: string) => void }) {
+  if (!overview.nights.length) return <Empty icon="moon" text="No night has run yet." />;
+  const name = (id: string) => overview.repos.find((r) => r.id === id)?.name ?? id;
   return (
     <ol className="relative space-y-3 border-l border-white/10 pl-6">
-      {shifts.map((s, i) => {
-        const total = s.outcomes.length;
+      {overview.nights.map((n, i) => {
+        const st = NIGHT_STATUS[n.running ? 'running' : n.status];
+        const total = n.tasks || 1;
         return (
-          <li key={s.id} className="pop-in" style={{ animationDelay: `${i * 40}ms` }}>
-            <span className="absolute -left-[7px] mt-5 size-3.5 rounded-full border-2 border-night-950" style={{ background: s.kind === 'night' ? 'var(--color-moon)' : '#fb923c' }} />
-            <button onClick={() => onPick(s.id)} className={`glass w-full rounded-2xl p-4 text-left transition hover:bg-white/10 ${s.id === selected ? 'ring-2 ring-[var(--accent)]' : ''}`}>
-              <div className="flex items-baseline justify-between">
-                <span className="font-display text-lg font-semibold">{shiftTitle(s.id)}</span>
-                <span className="text-sm text-white/50">{total} card{total === 1 ? '' : 's'}</span>
+          <li key={`${n.repo}/${n.id}`} className="pop-in" style={{ animationDelay: `${i * 30}ms` }}>
+            <span className="absolute -left-[7px] mt-5 size-3.5 rounded-full border-2 border-night-950" style={{ background: st.color }} />
+            <button onClick={() => onPick(n.repo, n.id)} className={`glass w-full rounded-2xl p-4 text-left transition hover:bg-white/10 ${`${n.repo}/${n.id}` === selected ? 'ring-2 ring-[var(--accent)]' : ''}`}>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <span>
+                  <span className="font-display text-lg font-semibold">{nightTitle(n.id)}</span>
+                  <span className="ml-2 text-sm text-white/55">{name(n.repo)}</span>
+                </span>
+                <span className="flex flex-wrap items-center gap-4 text-sm text-white/55">
+                  <span className="inline-flex items-center gap-1"><Icon name="clock" /> {minutes(n.duration_min)}</span>
+                  <span className="inline-flex items-center gap-1"><Icon name="coin" /> {dollars(n.cost_usd)}</span>
+                  <span className="font-semibold" style={{ color: st.color }}>{st.label}</span>
+                </span>
               </div>
+              {n.summary && <p className="mt-1 text-sm text-white/70">{n.summary}</p>}
               <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-white/5">
-                {OUTCOME_STATUSES.map((st) => s.counts[st] > 0 && <div key={st} style={{ width: `${(s.counts[st] / total) * 100}%`, background: STATUS[st].color }} title={`${s.counts[st]} ${STATUS[st].label}`} />)}
+                {OUTCOMES.map((o) => n.counts[o] > 0 && <div key={o} style={{ width: `${(n.counts[o] / total) * 100}%`, background: STATUS[o].color }} title={`${n.counts[o]} ${STATUS[o].label}`} />)}
               </div>
               <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/60">
-                {OUTCOME_STATUSES.map((st) => s.counts[st] > 0 && <span key={st} className={STATUS[st].text}>{s.counts[st]} {STATUS[st].label.toLowerCase()}</span>)}
+                {OUTCOMES.map((o) => n.counts[o] > 0 && <span key={o} style={{ color: STATUS[o].color }}>{n.counts[o]} {STATUS[o].label.toLowerCase()}</span>)}
+                {n.questions_open > 0 && <span className="text-eyes">{n.questions_open} open question{n.questions_open === 1 ? '' : 's'}</span>}
+                {n.problems.length > 0 && <span className="text-blocked">{n.problems.length} file problem{n.problems.length === 1 ? '' : 's'}</span>}
               </div>
             </button>
           </li>
@@ -167,11 +82,17 @@ export function HistoryView({ shifts, selected, onPick }: { shifts: Shift[]; sel
   );
 }
 
-function Empty({ icon, text }: { icon: 'question' | 'moon'; text: string }) {
+// ---------------------------------------------------------------- trends
+
+export function TrendsView() {
+  return <Empty icon="chart" text="Trends arrive once there are enough nights to compare. Which measures matter (promised versus delivered, cost per finished task, …) is still being decided." />;
+}
+
+function Empty({ icon, text }: { icon: 'question' | 'moon' | 'chart'; text: string }) {
   return (
-    <div className="grid place-items-center rounded-3xl border border-dashed border-white/10 py-16 text-center text-white/50">
+    <div className="grid place-items-center rounded-3xl border border-dashed border-white/10 px-6 py-16 text-center text-white/50">
       <Icon name={icon} className="mb-3 size-10" strokeWidth={1.5} />
-      {text}
+      <p className="max-w-lg">{text}</p>
     </div>
   );
 }

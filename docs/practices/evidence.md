@@ -30,8 +30,8 @@ work" is not a state.
 | A command and its result | `curl -s localhost:3000/api/orders.csv \| head -3` with the output |
 
 Give the owner evidence they can read: the last line of a test run, a
-screenshot, a diff image. Not a code listing. At night these become the
-`evidence:` lines of the Outcome ([protocol.md](../protocol.md#9-outcomes)).
+screenshot, a diff image. Not a code listing. In a night these become the
+task's evidence blocks in the night file ([design.md](../design.md#blocks-version-1)).
 
 ## New folder per run
 

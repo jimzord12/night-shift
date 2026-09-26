@@ -1,8 +1,0 @@
-{
-  "schema": "project/1",
-  "name": "Lighthouse (Backlog.md demo)",
-  "accent": "#2BB673",
-  "repo": "https://github.com/example/lighthouse",
-  "buffer": { "max": 20, "low": 5 },
-  "board": { "type": "backlog", "path": "../backlog", "readyLabel": "night-ready", "doneLists": ["Done"] }
-}

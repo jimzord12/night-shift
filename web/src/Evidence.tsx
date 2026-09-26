@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Evidence } from '../../src/types.ts';
+import type { Block } from '../../src/types.ts';
 import { Icon } from './ui.tsx';
 
 export type MediaKind = 'image' | 'video' | 'pdf' | 'page';
@@ -124,51 +124,71 @@ export function CompareSlider({ before, after }: { before: string; after: string
   );
 }
 
-export function EvidenceView({ ev, onZoom }: { ev: Evidence; onZoom: (src: string) => void }) {
-  const caption = ev.caption && <figcaption className="mt-1.5 text-sm text-white/60">{ev.caption}</figcaption>;
-  if (ev.missing) {
-    return (
-      <div className="rounded-xl border border-dashed border-blocked/50 p-4 text-sm text-blocked">
-        <Icon name="warn" className="mr-1 inline size-4" /> {ev.name} is named in the outcome but not attached to the card.
-      </div>
-    );
-  }
-  switch (ev.kind) {
+// One block of the fixed vocabulary, as the Viewer shows it. `url` turns a path relative to the
+// night's folder into an address the browser can load.
+export function BlockView({ block: b, url, onZoom }: { block: Block; url: (rel: string) => string; onZoom: (m: Media) => void }) {
+  const caption = (text?: string) => text && <figcaption className="mt-1.5 text-sm text-white/60">{text}</figcaption>;
+  switch (b.type) {
     case 'compare':
       return (
         <figure>
-          <CompareSlider before={ev.before!} after={ev.src!} />
-          {caption}
+          <CompareSlider before={url(b.before)} after={url(b.after)} />
+          {caption(b.caption)}
         </figure>
       );
     case 'image':
       return (
         <figure>
-          <button onClick={() => onZoom(ev.src!)} className="block w-full overflow-hidden rounded-xl bg-white transition hover:scale-[1.01]">
-            <img src={ev.src} alt={ev.caption ?? ''} className="block w-full" />
+          <button onClick={() => onZoom({ src: url(b.path), kind: 'image', title: b.caption })} className="block w-full overflow-hidden rounded-xl bg-white transition hover:scale-[1.01]">
+            <img src={url(b.path)} alt={b.caption ?? ''} className="block w-full" />
           </button>
-          {caption}
+          {caption(b.caption)}
+        </figure>
+      );
+    case 'video':
+      return (
+        <figure>
+          <video src={url(b.path)} controls className="block w-full rounded-xl bg-black" />
+          {caption(b.caption)}
         </figure>
       );
     case 'pdf':
       return (
         <figure>
-          <iframe src={ev.src} title={ev.caption ?? 'PDF'} className="h-96 w-full rounded-xl bg-white" />
-          <a href={ev.src} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-sm text-[var(--accent)] hover:underline">
-            <Icon name="file" /> open the PDF
-          </a>
-          {caption}
+          <iframe src={url(b.path)} title={b.caption ?? 'PDF'} className="h-96 w-full rounded-xl bg-white" />
+          <button onClick={() => onZoom({ src: url(b.path), kind: 'pdf', title: b.caption })} className="mt-1 inline-flex items-center gap-1 text-sm text-[var(--accent)] hover:underline">
+            <Icon name="expand" /> open the PDF full screen
+          </button>
+          {caption(b.caption)}
         </figure>
       );
     case 'link':
       return (
-        <a href={ev.src} target="_blank" rel="noreferrer" className="glass flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-white/10">
+        <a href={b.url} target="_blank" rel="noreferrer" className="glass flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-white/10">
           <Icon name="link" className="size-5 text-[var(--accent)]" />
           <span className="min-w-0">
-            <span className="block truncate font-medium">{ev.caption ?? ev.src}</span>
-            <span className="block truncate text-xs text-white/50">{ev.src}</span>
+            <span className="block truncate font-medium">{b.label ?? b.url}</span>
+            <span className="block truncate text-xs text-white/50">{b.url}</span>
           </span>
         </a>
+      );
+    case 'command':
+      return (
+        <figure className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
+          <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2 font-mono text-sm">
+            <Icon name="terminal" className="size-4 text-white/60" />
+            <span className="min-w-0 flex-1 truncate text-white/85">{b.command}</span>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${b.exit_code === 0 ? 'bg-shipped/15 text-shipped' : 'bg-blocked/15 text-blocked'}`}>exit {b.exit_code}</span>
+          </div>
+          <pre className="max-h-72 overflow-auto px-3 py-2 text-[13px] leading-relaxed whitespace-pre-wrap text-white/75">{b.excerpt}</pre>
+        </figure>
+      );
+    case 'note':
+      return (
+        <div className="flex gap-3 rounded-xl bg-white/5 px-4 py-3">
+          <Icon name="note" className="mt-0.5 size-5 shrink-0 text-white/50" />
+          <p className="whitespace-pre-wrap text-white/85">{b.text}</p>
+        </div>
       );
   }
 }

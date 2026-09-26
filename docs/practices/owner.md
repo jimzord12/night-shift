@@ -1,31 +1,31 @@
 # Working with the owner
 
-Read this before replying to the owner. Each project fills its own copy
-([templates/owner.md](../../templates/owner.md)) as `docs/owner.md`; this
-page explains the structure and the defaults. The owner's personal
-profile (background, tone, language) lives beside it in the git-ignored
-`.local/preferences/` ([local-folder.md](local-folder.md)); what the owner
-says in the session beats both.
+Read this before replying to the owner. This repository's rules for
+working with the owner are in the owner file, [docs/owner.md](../owner.md);
+this page explains their structure and gives examples, and the owner file
+wins where the two differ. The owner's personal profile (background, tone,
+language) lives beside it in the git-ignored `.local/preferences/`
+([local-folder.md](local-folder.md)); what the owner says in the session
+beats both.
 
 ## Who decides what
 
-The project's owner file holds three lists. Agents act as senior developers:
-they make technical choices and act, and the owner's attention goes only to
+The owner file holds three lists. Agents act as senior developers: they
+make technical choices and act, and the owner's attention goes only to
 what cannot be delegated.
 
-| Tier | Holds | Example (Lighthouse) |
+| Tier | Holds | Example |
 |---|---|---|
-| **Owner decides** | What the product is, what gets built next, an approved look, changes to the project's non-negotiable rules, review rounds beyond the cap | Whether checkout offers guest accounts |
-| **Agents decide and report afterwards** | Architecture inside an approved item, naming, structure, wording, order of work, all routine Git and board work | Splitting `cart.ts` into two modules; merging a verified fix to `main` |
+| **Owner decides** | What the product is, what gets built next, an approved look, changes to the repository's non-negotiable rules, review rounds beyond the cap | What the Viewer's Trends screen measures |
+| **Agents decide and report afterwards** | Architecture inside an approved item, naming, structure, wording, order of work, all routine Git and task work | Splitting `store.ts` into two modules; merging a verified fix to `main` |
 | **Needs an explicit go, exact command shown first** | Irreversible actions: rewriting published `main`, deleting data nothing else restores, changing repository visibility or settings, replacing a public release | `git push --force origin main` |
 
 - Never bring tier-two work to the owner for approval; report it.
 - **Do the work; don't hand it back.** Anything an agent can do itself
   (start a server, run the checks, walk the app, edit a config) it does.
   Never ask the owner to run a command the agent can run.
-- For tier three, show the exact command and what it destroys, then wait.
-- The binding's **Owner-reserved actions** slot links to tier three
-  ([binding.md](../binding.md)); a builder never does them at night.
+- For tier three, show the exact command and what it destroys, then wait;
+  an agent in a night never does them.
 - Ask the owner for **observations**, never for decisions that are the
   agent's: a screenshot, a log, a yes or no on a look.
 
@@ -52,14 +52,14 @@ action for the owner:
 
 ```text
 Recap
-- search-filters shipped to main; suite passes (builds/tests-20260925-0312/).
-- csv-export blocked on the date-format Question.
-Your next move: answer the date-format Question in the Morning Review.
+- The night file's close check shipped to main; npm run check passes.
+- Sending feedback to GitHub waits on your pick of one click or one per entry.
+Your next move: pick how feedback is sent; I recommend one click.
 ```
 
 When nothing is needed, the last line says so in the same shape.
 
-## Reports for the Morning Review
+## Reports
 
 Defaults, like the section above.
 

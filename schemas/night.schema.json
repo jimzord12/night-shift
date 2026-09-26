@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jimzord12/night-shift/schemas/night.schema.json",
+  "title": "Night Shift night file: the single record of one night",
+  "type": "object",
+  "required": ["schema", "night", "status", "started_at", "ended_at", "summary", "session", "tasks", "skipped_follow_ups", "questions", "feedback", "metrics"],
+  "additionalProperties": false,
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "path": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "block": {
+      "oneOf": [
+        { "type": "object", "required": ["type", "path"], "additionalProperties": false, "properties": { "type": { "const": "image" }, "path": { "$ref": "#/$defs/path" }, "caption": { "type": "string", "maxLength": 300 } } },
+        { "type": "object", "required": ["type", "before", "after"], "additionalProperties": false, "properties": { "type": { "const": "compare" }, "before": { "$ref": "#/$defs/path" }, "after": { "$ref": "#/$defs/path" }, "caption": { "type": "string", "maxLength": 300 } } },
+        { "type": "object", "required": ["type", "path"], "additionalProperties": false, "properties": { "type": { "const": "video" }, "path": { "$ref": "#/$defs/path" }, "caption": { "type": "string", "maxLength": 300 } } },
+        { "type": "object", "required": ["type", "path"], "additionalProperties": false, "properties": { "type": { "const": "pdf" }, "path": { "$ref": "#/$defs/path" }, "caption": { "type": "string", "maxLength": 300 } } },
+        { "type": "object", "required": ["type", "url"], "additionalProperties": false, "properties": { "type": { "const": "link" }, "url": { "type": "string", "pattern": "^https?://" }, "label": { "type": "string", "maxLength": 200 } } },
+        { "type": "object", "required": ["type", "command", "exit_code", "excerpt"], "additionalProperties": false, "properties": { "type": { "const": "command" }, "command": { "$ref": "#/$defs/text" }, "exit_code": { "type": "integer" }, "excerpt": { "type": "string", "maxLength": 4000 } } },
+        { "type": "object", "required": ["type", "text"], "additionalProperties": false, "properties": { "type": { "const": "note" }, "text": { "type": "string", "minLength": 1, "maxLength": 2000 } } }
+      ]
+    },
+    "check": {
+      "type": "object",
+      "required": ["done_when", "met"],
+      "additionalProperties": false,
+      "properties": { "done_when": { "$ref": "#/$defs/text" }, "met": { "type": "boolean" }, "note": { "type": "string", "maxLength": 1000 } }
+    },
+    "usage": {
+      "type": "object",
+      "required": ["tokens", "cost_usd"],
+      "properties": {
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "input": { "type": ["integer", "null"] },
+            "output": { "type": ["integer", "null"] },
+            "reasoning": { "type": ["integer", "null"] },
+            "cache_read": { "type": ["integer", "null"] },
+            "cache_write": { "type": ["integer", "null"] }
+          }
+        },
+        "cost_usd": { "type": ["number", "null"] }
+      }
+    }
+  },
+  "properties": {
+    "schema": { "const": "night-shift/night@1" },
+    "night": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z]+$" },
+    "status": { "enum": ["open", "complete", "interrupted"] },
+    "started_at": { "type": "string" },
+    "ended_at": { "type": ["string", "null"] },
+    "summary": { "type": ["string", "null"], "maxLength": 1000 },
+    "session": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["harness", "id", "pid", "transcript"],
+          "additionalProperties": false,
+          "properties": { "harness": { "const": "claude-code" }, "id": { "type": "string" }, "pid": { "type": ["integer", "null"] }, "transcript": { "type": ["string", "null"] } }
+        }
+      ]
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "done_when", "outcome", "checks", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[TU][0-9]+$" },
+          "title": { "$ref": "#/$defs/text" },
+          "source": { "type": "string" },
+          "follow_up": { "type": "string" },
+          "unplanned": { "const": true },
+          "done_when": { "type": "array", "items": { "type": "string" } },
+          "outcome": { "enum": ["done", "partial", "blocked", "failed", "not_started", "skipped", null] },
+          "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } },
+          "evidence": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/block" } },
+          "blocked_by": { "type": "string", "pattern": "^Q[0-9]+$" },
+          "why": { "type": "string", "maxLength": 1000 },
+          "reason": { "type": "string", "maxLength": 1000 },
+          "recorded_at": { "type": "string" }
+        }
+      }
+    },
+    "skipped_follow_ups": {
+      "type": "array",
+      "items": { "type": "object", "required": ["follow_up", "reason"], "additionalProperties": false, "properties": { "follow_up": { "type": "string" }, "reason": { "type": "string" } } }
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "task", "ask", "options", "recommended", "answer", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^Q[0-9]+$" },
+          "task": { "type": ["string", "null"] },
+          "ask": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "why": { "type": "string", "maxLength": 1000 },
+          "options": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "required": ["id", "label"],
+              "additionalProperties": false,
+              "properties": { "id": { "type": "string", "pattern": "^[a-z]$" }, "label": { "type": "string", "minLength": 1, "maxLength": 200 }, "detail": { "type": "string", "maxLength": 500 }, "image": { "$ref": "#/$defs/path" } }
+            }
+          },
+          "recommended": { "type": "string" },
+          "answer": { "type": ["string", "null"] },
+          "note": { "type": ["string", "null"], "maxLength": 2000 },
+          "answered_at": { "type": "string" }
+        }
+      }
+    },
+    "feedback": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "title", "tags", "body", "sent"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^F[0-9]+$" },
+          "kind": { "enum": ["missing-block", "confusing-rule", "bad-fit", "tool-bug", "other"] },
+          "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "body": { "type": "string", "minLength": 1, "maxLength": 4000 },
+          "sent": {
+            "oneOf": [
+              { "type": "null" },
+              { "type": "object", "required": ["at", "via"], "additionalProperties": false, "properties": { "at": { "type": "string" }, "via": { "enum": ["gh", "link"] }, "url": { "type": "string" } } }
+            ]
+          }
+        }
+      }
+    },
+    "metrics": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["source", "measured_at", "duration_min", "models", "cost_usd", "sub_agents", "lines"],
+          "properties": {
+            "source": { "const": "claude-code" },
+            "harness_version": { "type": ["string", "null"] },
+            "session_id": { "type": ["string", "null"] },
+            "measured_at": { "type": "string" },
+            "duration_min": { "type": "object" },
+            "models": { "type": "object", "additionalProperties": { "$ref": "#/$defs/usage" } },
+            "cost_usd": { "type": ["number", "null"] },
+            "sub_agents": { "type": "array" },
+            "lines": { "type": "object" }
+          }
+        }
+      ]
+    }
+  }
+}

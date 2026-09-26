@@ -1,16 +1,16 @@
 # AGENTS.md — night-shift
 
-The `Night Shift Repo`: the Night Shift Protocol (`docs/protocol.md`), its contract
-(`docs/contract.md`, `schemas/`), the default working practices
-(`docs/practices/`), templates, and the local morning-review app. Public,
-project-neutral: nothing here names a particular project, board or client.
-A project that runs Night Shift is an `Adopter` (docs/glossary.md).
+The `Night Shift Repo`: the `night-shift` tool, its two skills, the local
+`Viewer`, and this repository's own working practices (`docs/practices/`).
+Public, project-neutral: nothing here names a particular project, board or
+client. A repository where Night Shift is installed is an `Adopter`
+(docs/glossary.md).
 
-**Direction changed on 2026-09-26 (D20):** Night Shift is becoming files of
-a fixed shape, a tool, two skills and a local app, with no protocol imposed.
-The agreed design is `docs/design.md`; the protocol, contract, binding,
-practices and templates below describe v6 as shipped, not the direction.
-This repository still works by docs/practices/ until they are settled.
+**Direction changed on 2026-09-26 (D20):** Night Shift is files of a fixed
+shape (`Plan`, `Night file`, `Follow-up file`), a tool that checks them, two
+skills and the `Viewer`, with no process imposed on an `Adopter`. The design
+in `docs/design.md` is what this repository builds; the v6 protocol model
+is retired.
 
 Agents here work as independent, dependable senior developers: they take
 the technical and routine decisions themselves, carry work through to
@@ -43,9 +43,7 @@ in it. Orient in this order, read-only, then give the four-line briefing
 | Creating, taking or closing work | `backlog/README.md`, docs/practices/task-flow.md |
 | Committing, branching, integrating, releasing | docs/practices/git.md |
 | Before calling anything done | docs/practices/evidence.md, docs/practices/review.md |
-| Changing what agents write or the app reads | `docs/contract.md`, `schemas/`, the contract versioning rule below |
-| Adding or changing a board adapter | `src/board/adapter.ts`, docs/practices/board.md |
-| Changing a practice or a template | docs/practices/README.md (which template goes with which practice) |
+| Changing what agents write or the `Viewer` reads | `docs/design.md`, `schemas/` (being rebuilt), the file-shape versioning rule below |
 | Changing how agents behave here, beyond the small-change path (this file, `CLAUDE.md`, the owner file, practices, `backlog/README.md`, agent files) | `.claude/agents/context-maintainer.md`, `.claude/agents/context-reviewer.md` |
 | Saving a draft or scratch proof | docs/practices/local-folder.md |
 | Making a design decision | `docs/decisions.md` (append D<n+1>) |
@@ -100,7 +98,7 @@ never a fork of the author:
 
 - `code-reviewer`: the review gate for every non-trivial change; follows
   docs/practices/review.md.
-- `design-reviewer`: every visible change to the app; looks at the
+- `design-reviewer`: every visible change to the `Viewer`; looks at the
   screenshots against D12 and a fixed rubric.
 - `research-reviewer`: web research a decision rests on; follows
   docs/practices/idea-loop.md.
@@ -112,38 +110,38 @@ never a fork of the author:
 agents behave here and it changes the guidance that owns that behaviour,
 without committing.
 
-The first three have generic versions for `Adopter`s in
-`templates/agents/`; improve both together. The context pair is specific
-to this repository.
-
 ## Working agreement
 
-- Follow docs/practices/ for this repository too: task flow, evidence before
-  done, the review gate (fresh every round, cap 5 attended, 10 unattended),
-  Git. Small verified changes go straight to `main`; routine Git and
-  releases need no permission from the owner; report them afterwards.
+- Follow docs/practices/: task flow, evidence before done, the review gate
+  (fresh every round, cap 5 attended, 10 unattended), Git. Small verified
+  changes go straight to `main`; routine Git and releases need no
+  permission from the owner; report them afterwards.
 - **Judge a command by what it could lose, not by its name.** Before a
   branch loses commits, tag its old tip `backup/<branch>-<yyyymmdd-hhmm>`
   (docs/practices/git.md). Never `git clean -x` or `-X`: they wipe `.local/`.
 - **Understand the seam before editing:** imports, call sites, wiring, the
-  test or demo that covers it. Say what you found in a line, then act.
+  test that covers it. Say what you found in a line, then act.
 - **Do the work; don't hand it back.** Start the app, run the checks, take
   the screenshot yourself. Ask the owner only for decisions that are theirs
   and observations only they can make.
 - A visual change is not done until it has been seen: a screenshot of the
-  running app (a copy of a demo with suitable data) or the owner's own look.
+  running `Viewer` (on a copy of sample night files) or the owner's own
+  look.
 - Tests exercise the real code: a test that passes with the feature deleted
   is not written; mocks only at true external boundaries.
-- Keep the protocol project-neutral. A project-specific need becomes a
-  binding slot or an adapter, never a special case in the core. Before every
-  push, search the diff for names of real projects, boards, people and
-  clients; the repository is public. Personal detail belongs in `.local/`.
-- One writer per field: the app writes only `answer` in a question file.
-- The contract is versioned by its `schema` values (`question/1`,
-  `outcome/1`, …). A breaking change adds `/2` and keeps reading `/1`, or,
-  while the only `Adopter`s are the owner's own projects, updates them in the
-  same change and says so in CHANGELOG.md.
-- Credentials stay on the server; the browser never sees them.
+- The repository is public: before every push, search the diff for names
+  of real projects, boards, people and clients. Personal detail belongs in
+  `.local/`.
+- One writer per field: in a `Night file` the `Viewer` writes only
+  `questions[].answer`, `questions[].note` and `feedback[].sent`, and the
+  tool alone writes `status` and `metrics`.
+- File shapes are versioned by their `schema` values
+  (`night-shift/plan@1`, `night-shift/night@1`, `night-shift/follow-up@1`).
+  A breaking change adds `@2` and keeps reading `@1`, or, while the only
+  `Adopter`s are the owner's own repositories, updates them in the same
+  change and says so in CHANGELOG.md.
+- Credentials (a `gh` login, tokens) stay with the tool; the browser never
+  sees them.
 - Releases: tags `v1`, `v2`, … never moved; a bad release takes the next
   number. Every release gets a CHANGELOG.md entry.
 - A new design decision gets a docs/decisions.md entry; a new term goes into
