@@ -21,8 +21,33 @@ export function issueTitle(f: Feedback): string {
   return `[${f.kind}] ${f.title}`;
 }
 
+// What each kind means, so a maintainer reading the issue does not need the skill open.
+const KIND_MEANING: Record<string, string> = {
+  'missing-block': 'a proof or note the agent needed has no evidence block',
+  'confusing-rule': 'a rule or a message of the tool was unclear',
+  'bad-fit': "Night Shift got in the way of the repository's own way of working",
+  'tool-bug': 'the night-shift tool misbehaved',
+  other: 'something else',
+};
+
+// The issue as a maintainer reads it: the agent's words first, then the facts as a list. The
+// repository's name stays out: it may be private.
 export function issueBody(f: Feedback, context: { repo: string; night: string; version: string }): string {
-  return [f.body, '', '---', `Kind: ${f.kind}${f.tags.length ? ` · Tags: ${f.tags.join(', ')}` : ''}`, `From a night (${context.night}) in a repository using Night Shift ${context.version}. Reviewed by its developer before sending.`].join('\n');
+  const line = (s: string) => s.replace(/\r?\n/g, ' ');
+  return [
+    '## What the agent ran into',
+    '',
+    f.body,
+    '',
+    '## Details',
+    '',
+    `- **Kind:** \`${f.kind}\`, ${line(KIND_MEANING[f.kind] ?? KIND_MEANING.other)}`,
+    ...(f.tags.length ? [`- **Tags:** ${f.tags.map((t) => `\`${line(t)}\``).join(' ')}`] : []),
+    `- **Night:** \`${context.night}\``,
+    `- **Night Shift:** \`${line(context.version)}\``,
+    '',
+    '<sub>Logged by an agent during an unattended night. Its developer read it in the Night Shift Viewer and chose to send it.</sub>',
+  ].join('\n');
 }
 
 export function newIssueUrl(f: Feedback, context: { repo: string; night: string; version: string }): string {

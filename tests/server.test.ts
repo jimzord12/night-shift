@@ -114,6 +114,12 @@ test('feedback without gh: a pre-filled issue link, and the entry is marked sent
   assert.equal(url.pathname, '/jimzord12/night-shift/issues/new');
   assert.equal(url.searchParams.get('title'), '[missing-block] Compare PDFs');
   assert.equal(url.searchParams.get('labels'), 'proposal');
+  // The body: the agent's words under a heading, then the facts as a list; never the repository's name.
+  const issue = url.searchParams.get('body') ?? '';
+  assert.match(issue, /^## What the agent ran into\n\nNeeded it\.\n\n## Details\n/);
+  assert.match(issue, /^- \*\*Kind:\*\* `missing-block`, a proof or note the agent needed has no evidence block$/m);
+  assert.match(issue, /^- \*\*Night:\*\* `2026-09-26-a`$/m);
+  assert.doesNotMatch(issue, new RegExp(ref.name));
   assert.equal(loadNight(repo, id).night.feedback[0].sent?.via, 'link');
   assert.equal((await app.request(`/api/nights/${ref.id}/${id}/feedback/send`, { method: 'POST', headers: json, body: JSON.stringify({ ids: ['F1'], via: 'link' }) })).status, 400);
 });
