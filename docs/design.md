@@ -332,7 +332,9 @@ it up, in a night or by day, does the digging for context.
 
 - Item kinds: `decision`, `unfinished`, and `waiting` (a question the
   developer did not answer; the next agent plans it, asks again instead of
-  guessing, and records it `blocked` if it still needs the answer).
+  guessing, and records it `blocked` if it still needs the answer). Once
+  it is asked again or worked on, the old copy of the question is locked in
+  the Viewer: the answer belongs where the question is open now.
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
   night reached the item as a task that did not end done or skipped, so that
   task (and that night's own follow-up, which keeps a decision's answer)
