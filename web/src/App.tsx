@@ -119,9 +119,9 @@ export function App() {
           </div>
           <nav className="glass order-last flex w-full justify-between rounded-full p-1 sm:order-none sm:w-auto sm:justify-start">
             {VIEWS.map((v) => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`relative min-w-0 flex-1 rounded-full px-2 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
+              <button key={v.id} onClick={() => setView(v.id)} className={`relative flex-auto rounded-full px-2 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
                 {v.label}
-                {v.id === 'questions' && openCount > 0 && <span className="ml-1 rounded-full sm:ml-1.5 bg-eyes px-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
+                {v.id === 'questions' && openCount > 0 && <span className="ml-1 rounded-full bg-eyes px-1.5 sm:ml-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
               </button>
             ))}
           </nav>

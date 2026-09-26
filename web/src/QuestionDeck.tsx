@@ -208,8 +208,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
               {lock && <span className="rounded-full bg-white/10 px-2.5 py-1 text-white/70">{q.answer === null ? 'not answerable here' : 'answered'} · locked: the {lock}</span>}
             </div>
-            <h2 className="font-display mt-4 text-3xl leading-tight font-semibold sm:text-4xl">{q.ask}</h2>
-            {q.why && <p className="mt-2 text-lg text-white/60">{q.why}</p>}
+            <h2 className="font-display mt-4 text-2xl leading-tight font-semibold sm:text-4xl">{q.ask}</h2>
+            {q.why && <p className="mt-2 text-white/60 sm:text-lg">{q.why}</p>}
 
             <div className="mt-6 grid gap-3">
               {q.options.map((o, i) => {
@@ -240,7 +240,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                       </span>
                     )}
                     <span className="flex-1">
-                      <span className="block text-lg font-medium">{o.label}</span>
+                      <span className="block font-medium sm:text-lg">{o.label}</span>
                       {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                     </span>
                     {o.id === q.recommended && <Icon name="sparkle" className="size-4 text-moon" />}
@@ -273,7 +273,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
 
             {message && <div className="mt-4 rounded-xl bg-blocked/15 px-4 py-2 text-sm text-blocked">{message}</div>}
 
-            <footer className="mt-auto flex items-center gap-2 pt-8">
+            <footer className="sticky bottom-0 z-10 -mx-4 mt-auto flex items-center gap-2 border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
               <div className="hidden gap-2 sm:flex">
                 <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
                 <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
