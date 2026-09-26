@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import { serve } from '@hono/node-server';
 import { createApp } from './server.ts';
-import { StoreError, followUpSchemaProblems, listFollowUpIds, listNightIds, parseJson, readFollowUp, readNight } from './store.ts';
+import { StoreError, followUpSchemaProblems, forgetRepo, listFollowUpIds, listNightIds, parseJson, readFollowUp, readNight } from './store.ts';
 import { ask, close, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
 import { openItems, resolveItem } from './followup.ts';
 import { install } from './install.ts';
@@ -29,6 +29,7 @@ For agents (JSON with --file .night-shift/input.json, on stdin, or with --json '
 For the developer:
   night-shift install [repo]                  add the skills and the session-end hook to a repository
   night-shift view [--port 4747] [--open]     the Viewer: every registered repository's nights
+  night-shift forget <repo id or path>        take a repository off the Viewer (its files stay)
   night-shift check [repo]                    validate a repository's night and follow-up files
   night-shift --version
 
@@ -230,6 +231,12 @@ async function main(argv: string[]): Promise<number> {
     }
     case 'check':
       return commandCheck(p);
+    case 'forget': {
+      if (!p.args[0]) throw new UsageError('night-shift forget <repo id or path>; the ids are in the Viewer and in ~/.night-shift/repos.json');
+      const r = forgetRepo(p.args[0]);
+      console.log(`Forgot ${r.id} (${r.path}): the Viewer no longer shows it. Its .night-shift/ folder is untouched; night-shift install there adds it back.`);
+      return 0;
+    }
     default:
       throw new UsageError(`unknown command "${p.command}"; run night-shift --help`);
   }

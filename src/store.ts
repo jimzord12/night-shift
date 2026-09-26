@@ -271,7 +271,6 @@ function readRegistry(): RegistryEntry[] {
 
 const samePath = (a: string, b: string) => (process.platform === 'win32' ? path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase() : path.resolve(a) === path.resolve(b));
 
-// Registers a repository with the local install (idempotent) and returns its entry.
 // The canonical spelling of a folder (long names on Windows), so one folder registers once.
 function realPath(p: string): string {
   try {
@@ -281,6 +280,7 @@ function realPath(p: string): string {
   }
 }
 
+// Registers a repository with the local install (idempotent) and returns its entry.
 export function registerRepo(repo: string, now = new Date()): RepoRef {
   const full = realPath(path.resolve(repo));
   const repos = readRegistry();
@@ -292,6 +292,19 @@ export function registerRepo(repo: string, now = new Date()): RepoRef {
   const entry = { id, name: path.basename(full), path: full, added: localIso(now) };
   writeJson(registryFile(), { repos: [...repos, entry] });
   return { ...entry, missing: false };
+}
+
+// Removes a repository from the install by its id or its path, with its read marks. Its own
+// .night-shift/ folder is untouched: `night-shift install` there registers it again.
+export function forgetRepo(ref: string): RepoRef {
+  const repos = readRegistry();
+  const found = repos.find((r) => r.id === ref) ?? repos.find((r) => samePath(realPath(r.path), realPath(path.resolve(ref))));
+  if (!found) throw new StoreError(`no registered repository ${JSON.stringify(ref)}; registered: ${repos.map((r) => r.id).join(', ') || 'none'}`, 404);
+  writeJson(registryFile(), { repos: repos.filter((r) => r !== found) });
+  const state = readViewerState();
+  const read = Object.fromEntries(Object.entries(state.read).filter(([k]) => !k.startsWith(`${found.id}/`)));
+  if (Object.keys(read).length !== Object.keys(state.read).length) writeJson(viewerFile(), { ...state, read });
+  return { id: found.id, name: found.name, path: found.path, missing: !fs.existsSync(found.path) };
 }
 
 export function listRepos(): RepoRef[] {

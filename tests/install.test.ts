@@ -59,4 +59,10 @@ test('the command line: start, record, close through stdin; refusals exit 1 with
   const hook = cli(repo, ['meter'], '{ not json');
   assert.equal(hook.status, 0);
   assert.equal(cli(repo, ['check']).status, 0);
+  // Taking the repository off the Viewer: by path, then refused once it is gone.
+  const forgot = cli(repo, ['forget', repo]);
+  assert.equal(forgot.status, 0, forgot.stderr);
+  assert.match(forgot.stdout, /the Viewer no longer shows it/);
+  assert.equal(cli(repo, ['forget', repo]).status, 1);
+  assert.equal(cli(repo, ['forget']).status, 2);
 });

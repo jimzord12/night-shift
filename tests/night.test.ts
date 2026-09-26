@@ -6,7 +6,7 @@ import path from 'node:path';
 import { DEAD_PID, TASKS, evidenceFile, git, gitRepo, plan, session } from './helpers.ts';
 import { ask, close, copyHistory, feedback, onSessionEnd, record, recover, start, status } from '../src/night.ts';
 import { createFollowUp, openItems, resolveItem } from '../src/followup.ts';
-import { StoreError, listRepos, loadNight, nightFile, readNight, registerRepo, saveNight } from '../src/store.ts';
+import { StoreError, forgetRepo, listRepos, loadNight, markRead, nightFile, readNight, readViewerState, registerRepo, saveNight } from '../src/store.ts';
 import { commitPath, ensureGitignore } from '../src/repo.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -210,6 +210,23 @@ test('one folder registers once, whichever spelling of its path is given', () =>
   assert.equal(listRepos().filter((r) => r.id === a.id).length, 1);
 });
 
+test('forget: a repository leaves the registry with its read marks; its files stay', () => {
+  const keep = gitRepo('keep');
+  const gone = gitRepo('gone');
+  const other = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-forget-'));
+  const k = registerRepo(keep);
+  const g = registerRepo(gone);
+  const o = registerRepo(other);
+  markRead(g.id, '2026-09-26-a');
+  markRead(k.id, '2026-09-26-a');
+  assert.equal(forgetRepo(g.id).id, g.id);
+  assert.equal(forgetRepo(other).id, o.id); // by path, in the spelling it was given
+  const ids = listRepos().map((r) => r.id);
+  assert.ok(ids.includes(k.id) && !ids.includes(g.id) && !ids.includes(o.id));
+  assert.deepEqual(Object.keys(readViewerState().read).filter((key) => key.startsWith(`${g.id}/`) || key.startsWith(`${k.id}/`)), [`${k.id}/2026-09-26-a`]);
+  assert.ok(fs.existsSync(path.join(gone, 'README.md')));
+  refused(() => forgetRepo(g.id), /no registered repository "gone"; registered: /);
+});
 test('status reads the open night and says the next step', () => {
   const repo = gitRepo();
   assert.match(status(repo), /No night is open/);

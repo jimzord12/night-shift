@@ -3,6 +3,11 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v9 (unreleased), 2026-09-26
+
+- `night-shift forget <repo id or path>` takes a repository off the Viewer
+  and drops its read marks; its own `.night-shift/` folder stays.
+
 ## v8 (e0fbd44), 2026-09-26
 
 - Feedback issues read better on GitHub: the agent's words under a
