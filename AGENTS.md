@@ -46,6 +46,7 @@ in it. Orient in this order, read-only, then give the four-line briefing
 | Changing what agents write or the app reads | `docs/contract.md`, `schemas/`, the contract versioning rule below |
 | Adding or changing a board adapter | `src/board/adapter.ts`, docs/practices/board.md |
 | Changing a practice or a template | docs/practices/README.md (which template goes with which practice) |
+| Changing how agents behave here, beyond the small-change path (this file, `CLAUDE.md`, the owner file, practices, `backlog/README.md`, agent files) | `.claude/agents/context-maintainer.md`, `.claude/agents/context-reviewer.md` |
 | Saving a draft or scratch proof | docs/practices/local-folder.md |
 | Making a design decision | `docs/decisions.md` (append D<n+1>) |
 | Ending a session | docs/practices/orientation-and-handoff.md: rewrite doc-1 in place |
@@ -65,7 +66,7 @@ in it. Orient in this order, read-only, then give the four-line briefing
 | `backlog/` | Backlog.md: every open task, idea and known gap; `doc-1` is the session handoff |
 | `CHANGELOG.md` | One entry per release tag |
 | `templates/` | Copy-ready files for `Adopter`s: cards, glossary, bypass log, owner file, owner profile, Backlog.md starter, reviewer agents |
-| `.claude/agents/` | This repository's reviewers: `code-reviewer`, `design-reviewer`, `research-reviewer` |
+| `.claude/agents/` | This repository's subagents: `code-reviewer`, `design-reviewer`, `research-reviewer`, `context-reviewer`, `context-maintainer` |
 | `.local/` | Git-ignored: owner profile, planning drafts, scratch evidence |
 | `src/cli.ts` | `night-shift serve / check / docs / --version` |
 | `src/server.ts` | Hono app: JSON API plus the built web app; Host check, media rules |
@@ -103,9 +104,17 @@ never a fork of the author:
   screenshots against D12 and a fixed rubric.
 - `research-reviewer`: web research a decision rests on; follows
   docs/practices/idea-loop.md.
+- `context-reviewer`: every non-trivial change to the documentation agents
+  read, whether made by `context-maintainer` or not; for a
+  documentation-only change it replaces `code-reviewer`.
 
-Their generic versions for `Adopter`s are in `templates/agents/`;
-improve both together.
+`context-maintainer` is the writer beside them: hand it feedback on how
+agents behave here and it changes the guidance that owns that behaviour,
+without committing.
+
+The first three have generic versions for `Adopter`s in
+`templates/agents/`; improve both together. The context pair is specific
+to this repository.
 
 ## Working agreement
 
