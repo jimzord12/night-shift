@@ -9,7 +9,7 @@ import { createApp } from './server.ts';
 import { StoreError, followUpSchemaProblems, forgetRepo, listFollowUpIds, listNightIds, parseJson, readFollowUp, readNight } from './store.ts';
 import { ask, close, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
 import { openItems, resolveItem } from './followup.ts';
-import { install } from './install.ts';
+import { allow, install } from './install.ts';
 import { repoRoot } from './repo.ts';
 import { versionString } from './version.ts';
 import type { AskInput, RecordInput } from './night.ts';
@@ -28,6 +28,7 @@ For agents (JSON with --file .night-shift/input.json, on stdin, or with --json '
 
 For the developer:
   night-shift install [repo]                  add the skills and the session-end hook to a repository
+  night-shift allow [repo]                    let agents run the tool unattended (your .claude/settings.local.json)
   night-shift view [--port 4747] [--open]     the Viewer: every registered repository's nights
   night-shift forget <repo id or path>        take a repository off the Viewer (its files stay)
   night-shift check [repo]                    validate a repository's night and follow-up files
@@ -229,6 +230,9 @@ async function main(argv: string[]): Promise<number> {
       console.log(install(target).join('\n'));
       return 0;
     }
+    case 'allow':
+      console.log(allow(repoRoot(p.args[0] ?? '.')).join('\n'));
+      return 0;
     case 'check':
       return commandCheck(p);
     case 'forget': {

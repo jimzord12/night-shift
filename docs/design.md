@@ -363,6 +363,13 @@ keeping every other setting. Agents write the JSON to
 `.night-shift/input.json` and pass `--file` (D21); the tool also reads stdin
 and `--json`. Every reply ends with the next step.
 
+`night-shift allow` (D23) lets an unattended agent work without permission
+prompts: it adds the rules to run the tool (Bash and PowerShell) and to edit
+files under `.night-shift/` to the developer's own
+`.claude/settings.local.json`, keeping every other setting, and makes sure
+git ignores that file. It never touches the shared `settings.json` and grants
+nothing beyond the tool; what else a night needs stays the developer's call.
+
 ## Viewer
 
 One local web app for every registered repository, opened with one command

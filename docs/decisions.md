@@ -246,3 +246,20 @@ missed. **Rejected:** a dismiss button
 (an unfinished night is settled by handing it over; the next agent then
 skips what no longer matters, with a reason); keeping every unread night
 only (a read night with open questions would disappear).
+
+## D23  `night-shift allow` grants the tool, in the developer's own settings (2026-09-26)
+
+A night nobody watches stalls on the first permission prompt; the v7 trial
+lost a night to that (TASK-22). `night-shift allow` adds three rules to
+`.claude/settings.local.json`: run the tool through Bash and PowerShell, and
+edit files under `.night-shift/` (where agents write their JSON). It keeps
+every other setting, adds a rule only once, refuses a file that is not JSON,
+and adds that file to `.gitignore` unless git already ignores it.
+**Why:** the owner asked for a Night Shift utility instead of editing
+settings by hand in each repository. **Chosen:** a separate command that
+`install` points to, because granting permissions is the developer's act and
+should not happen as a side effect of installing. **Rejected:** writing the
+rules into the shared `settings.json` (it would grant them to everyone who
+clones the repository); allowing more than the tool (tests, git, databases
+differ per repository and stay with the developer). TASK-22's wider
+preflight stays open.

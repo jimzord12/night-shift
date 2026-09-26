@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { REPO_ROOT, parseJson, registerRepo, writeJson } from './store.ts';
 import { readReleaseManifest } from './version.ts';
-import { ensureGitignore } from './repo.ts';
+import { ensureGitignore, ensureIgnored } from './repo.ts';
 
 export const SKILLS = ['start-night-shift', 'do-night-shift-follow-up'];
 
@@ -59,5 +59,39 @@ export function install(repo: string, cli = cliCommand()): string[] {
   const ref = registerRepo(repo);
   out.push(`Registered ${ref.name} with the Viewer.`);
   out.push(`Ready. Tell an agent "start night shift" in ${repo}; open the Viewer with: ${cli} view`);
+  out.push(`For nights nobody watches, let agents run the tool without asking: ${cli} allow`);
+  return out;
+}
+
+// What an unattended agent needs: to run the tool, and to write its JSON under .night-shift/.
+export function allowRules(cli: string): string[] {
+  return [`Bash(${cli}:*)`, `PowerShell(${cli}:*)`, 'Edit(/.night-shift/**)'];
+}
+
+// `night-shift allow`: adds allowRules to the developer's own .claude/settings.local.json, keeping
+// every other setting, and makes sure git ignores that file. Permissions are personal, so they
+// never go into the shared settings.json.
+export function allow(repo: string, cli = cliCommand()): string[] {
+  const rel = '.claude/settings.local.json';
+  const file = path.join(repo, ...rel.split('/'));
+  let settings: Record<string, unknown> = {};
+  if (fs.existsSync(file)) {
+    try {
+      settings = parseJson(fs.readFileSync(file, 'utf8')) as Record<string, unknown>;
+    } catch (error) {
+      throw new Error(`${file} is not valid JSON (${(error as Error).message}); fix it, then run allow again`);
+    }
+  }
+  const permissions = (settings.permissions ?? {}) as { allow?: string[] };
+  const have = permissions.allow ?? [];
+  const added = allowRules(cli).filter((r) => !have.includes(r));
+  const out: string[] = [];
+  if (added.length) {
+    settings.permissions = { ...permissions, allow: [...have, ...added] };
+    writeJson(file, settings);
+    out.push(`Allowed in ${rel}: ${added.join(', ')}.`);
+  } else out.push(`${rel} already allows the tool; nothing changed.`);
+  if (ensureIgnored(repo, rel)) out.push(`Added ${rel} to .gitignore: permissions are yours, not the repository's.`);
+  out.push('Agents here can now run the tool and write .night-shift/ without asking. Anything else a night needs (tests, git, a database) follows your own permissions; allow it before you leave a night running.');
   return out;
 }

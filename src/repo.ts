@@ -34,6 +34,17 @@ export function ensureGitignore(repo: string): boolean {
   return true;
 }
 
+// Keeps a personal file (relative path) out of commits: adds it to .gitignore unless git already
+// ignores it, a global ignore included. Outside git there is nothing to protect.
+export function ensureIgnored(repo: string, rel: string): boolean {
+  if (!isGitRepo(repo) || git(repo, ['check-ignore', '-q', '--', rel]).status === 0) return false;
+  const file = path.join(repo, '.gitignore');
+  const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  fs.writeFileSync(file, `${text}${text && !text.endsWith('\n') ? eol : ''}${rel}${eol}`);
+  return true;
+}
+
 export interface CommitResult {
   committed: boolean;
   message: string;

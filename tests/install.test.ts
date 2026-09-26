@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { gitRepo } from './helpers.ts';
-import { install } from '../src/install.ts';
+import { allowRules, cliCommand, install } from '../src/install.ts';
 import { listRepos } from '../src/store.ts';
 
 const CLI = path.resolve(import.meta.dirname, '..', 'src', 'cli.ts');
@@ -25,7 +26,7 @@ test('install adds the skills and the hook, keeps existing settings, and is idem
   assert.deepEqual(settings.hooks.SessionEnd, [{ hooks: [{ type: 'command', command: 'echo bye' }] }, { hooks: [{ type: 'command', command: 'ns meter' }] }]);
   assert.ok(listRepos().some((r) => path.resolve(r.path) === path.resolve(repo)));
   // Again: nothing changes but the registration line.
-  assert.deepEqual(install(repo, 'ns').filter((l) => !/Registered|Ready/.test(l)), []);
+  assert.deepEqual(install(repo, 'ns').filter((l) => !/Registered|Ready|For nights nobody watches/.test(l)), []);
   // Moving from a checkout to an installed release replaces the old hook instead of adding one.
   const other = gitRepo();
   install(other, 'node "C:/dev/night-shift/src/cli.ts"');
@@ -65,4 +66,37 @@ test('the command line: start, record, close through stdin; refusals exit 1 with
   assert.match(forgot.stdout, /the Viewer no longer shows it/);
   assert.equal(cli(repo, ['forget', repo]).status, 1);
   assert.equal(cli(repo, ['forget']).status, 2);
+});
+
+test('allow: the tool and .night-shift/ edits go into the developer\'s own settings, once, and that file is kept out of git', () => {
+  const repo = gitRepo();
+  // No global git ignore, so the result does not depend on this machine's own settings.
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-home-'));
+  fs.writeFileSync(path.join(home, 'gitconfig'), '');
+  const env = { GIT_CONFIG_GLOBAL: path.join(home, 'gitconfig'), XDG_CONFIG_HOME: home, HOME: home, USERPROFILE: home };
+  const local = path.join(repo, '.claude', 'settings.local.json');
+  fs.mkdirSync(path.dirname(local));
+  fs.writeFileSync(local, JSON.stringify({ permissions: { allow: ['Bash(npm test)'], deny: ['Bash(git clean*)'] }, env: { A: '1' } }));
+
+  const first = cli(repo, ['allow'], '', env);
+  assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /Added \.claude\/settings\.local\.json to \.gitignore/);
+  const rules = allowRules(cliCommand());
+  const settings = JSON.parse(fs.readFileSync(local, 'utf8'));
+  assert.deepEqual(settings, { permissions: { allow: ['Bash(npm test)', ...rules], deny: ['Bash(git clean*)'] }, env: { A: '1' } });
+  assert.ok(rules.includes('Edit(/.night-shift/**)'));
+  assert.equal(spawnSync('git', ['check-ignore', '-q', '.claude/settings.local.json'], { cwd: repo, env: { ...process.env, ...env } }).status, 0);
+
+  // Again: nothing changes, and .gitignore is not touched twice.
+  const gitignore = fs.readFileSync(path.join(repo, '.gitignore'), 'utf8');
+  const second = cli(repo, ['allow'], '', env);
+  assert.match(second.stdout, /already allows the tool; nothing changed/);
+  assert.deepEqual(JSON.parse(fs.readFileSync(local, 'utf8')), settings);
+  assert.equal(fs.readFileSync(path.join(repo, '.gitignore'), 'utf8'), gitignore);
+
+  // A settings file that is not JSON is refused, not overwritten.
+  fs.writeFileSync(local, '{ broken');
+  const bad = cli(repo, ['allow'], '', env);
+  assert.equal(bad.status, 1);
+  assert.equal(fs.readFileSync(local, 'utf8'), '{ broken');
 });

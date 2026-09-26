@@ -4,7 +4,7 @@ title: 'Idea: a preflight at start that the night can commit and reach its servi
 status: Queued
 assignee: []
 created_date: '2026-09-26 12:36'
-updated_date: '2026-09-26 12:42'
+updated_date: '2026-09-26 18:09'
 labels:
   - skills
 dependencies: []
@@ -36,4 +36,6 @@ Night 1 of the v7 trial found halfway through that git commit and docker needed 
 
 <!-- SECTION:NOTES:BEGIN -->
 Idea: discuss with the owner before implementing.
+
+2026-09-26: v11 adds night-shift allow (D23) for the tool's own permissions. The wider preflight (can the night commit, run tests, reach its services) is still open.
 <!-- SECTION:NOTES:END -->

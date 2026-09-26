@@ -3,6 +3,14 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v11, 2026-09-26
+
+- `night-shift allow [repo]` (D23): lets agents run the tool and write
+  under `.night-shift/` without permission prompts, for nights nobody
+  watches. The rules go into your own `.claude/settings.local.json`,
+  which is kept out of git; every other setting stays. `install` now
+  points to it.
+
 ## v10 (55fd855), 2026-09-26
 
 - Morning is an inbox (D22): only the nights still unread or needing you

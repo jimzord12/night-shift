@@ -50,7 +50,12 @@ Then, in each repository you want to run nights in:
 
 ```sh
 node <path to the clone>/src/cli.ts install   # the two skills, the session-end hook, the .gitignore lines
+node <path to the clone>/src/cli.ts allow     # let agents run the tool without asking, for nights nobody watches
 ```
+
+`allow` writes to your own `.claude/settings.local.json` (never committed):
+the tool itself and edits inside `.night-shift/`. Anything else a night
+needs, such as tests, git or a database, follows your own permissions.
 
 The installed skills and hook run the tool from your clone. Below,
 `night-shift` stands for `node <path to the clone>/src/cli.ts`. Installing a
