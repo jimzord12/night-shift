@@ -306,7 +306,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
                 <button key={q.id} onClick={() => onQuestion(`${detail.repo.id}/${detail.night.night}/${q.id}`)} className="glass flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left hover:bg-white/10">
                   <Icon name="question" className="size-5 text-[var(--accent)]" />
                   <span className="flex-1">{q.ask}</span>
-                  <span className="text-xs text-white/50">{q.answer === null ? 'open' : `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}`}</span>
+                  <span className="text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up) ? 'open' : 'locked'}</span>
                 </button>
               ))}
             </div>

@@ -1,5 +1,5 @@
 import type { Overview } from '../../src/types.ts';
-import { OUTCOMES } from '../../src/types.ts';
+import { OUTCOMES, isOpenQuestionIn } from '../../src/types.ts';
 import type { DeckItem } from './QuestionDeck.tsx';
 import { Icon, NIGHT_STATUS, STATUS, dollars, minutes, nightTitle } from './ui.tsx';
 
@@ -21,11 +21,12 @@ export function QuestionsView({ items, loading, onOpen }: { items: DeckItem[]; l
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {list.map((i, n) => {
               const q = i.question;
-              const color = q.answer === null ? 'var(--color-eyes)' : 'var(--accent)';
+              const open = isOpenQuestionIn(q, i.detail.follow_up);
+              const color = open ? 'var(--color-eyes)' : q.answer === null ? 'var(--color-idle)' : 'var(--accent)';
               return (
                 <button key={i.key} onClick={() => onOpen(i.key)} className="glass glow-soft pop-in flex flex-col gap-1 rounded-2xl p-4 text-left transition hover:-translate-y-0.5" style={{ ['--glow' as string]: color, animationDelay: `${n * 40}ms` }}>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="font-semibold" style={{ color }}>● {q.answer === null ? 'open' : 'answered'}</span>
+                    <span className="font-semibold" style={{ color }}>● {open ? 'open' : q.answer === null ? 'locked' : 'answered'}</span>
                     {q.task && <span className="font-mono text-white/45">{q.task}</span>}
                   </div>
                   <div className="leading-snug font-medium">{q.ask}</div>

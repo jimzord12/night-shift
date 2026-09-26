@@ -176,6 +176,7 @@ export function start(repo: string, planText: string, session: Session | null = 
     if (!t.follow_up) continue;
     const item = checkRef(repo, t.follow_up).item;
     if (item.kind === 'decision') messages.push(`${t.id} follows ${t.follow_up}: the developer chose "${item.decision_label}"${item.owner_note ? ` (note: ${item.owner_note})` : ''}.`);
+    else if (item.kind === 'waiting') messages.push(`${t.id} follows ${t.follow_up}: no answer yet; ask again before working on it.`);
   }
   messages.push(`Night ${id} is open with ${night.tasks.length} task(s)${session ? '' : ' (no Claude Code session found: metrics will be unknown)'}.`);
   messages.push(`Evidence goes in ${path.relative(repo, evidenceDir(repo, id)).split(path.sep).join('/')}/ and is referenced as evidence/<file>.`);

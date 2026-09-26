@@ -58,7 +58,11 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const item = key ? byKey.get(key) : undefined;
   const q = item?.question ?? null;
   const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? q.recommended, note: q.note ?? '' }) : null;
-  const handled = (k: string, saved: Set<string>) => saved.has(k) || (byKey.get(k)?.question.answer ?? null) !== null;
+  const locked = (i: DeckItem | undefined) => {
+    const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
+    return !!h && h.status !== 'open';
+  };
+  const handled = (k: string, saved: Set<string>) => saved.has(k) || (byKey.get(k)?.question.answer ?? null) !== null || locked(byKey.get(k));
   const setDraft = (d: Draft) => key && setDrafts((all) => ({ ...all, [key]: d }));
   const url = (rel: string) => (item ? fileUrl(item.detail.repo.id, item.detail.night.night, rel) : rel);
   // The follow-up item this question was handed over as; once an agent worked on its decision, the
@@ -188,7 +192,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <Icon name="moon" className="size-14" strokeWidth={1.6} />
             </div>
             <h2 className="font-display mt-6 text-4xl font-semibold">All clear</h2>
-            <p className="mt-2 text-white/60">{order.every((k) => { const i = byKey.get(k); return i && handedItem(i.detail.follow_up, i.question)?.status === 'open'; }) ? 'Every question has an answer. The follow-up already handed over now carries them.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
+            <p className="mt-2 text-white/60">{order.some((k) => byKey.get(k)?.detail.follow_up) ? 'Every question is settled. The follow-up already handed over carries your answers.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
             <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the morning</button>
           </div>
         ) : !q || !draft || !item ? (

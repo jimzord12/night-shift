@@ -92,6 +92,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
   };
   const n = r.night;
   if (!n) return base;
+  const followUp = followUpOf(repo.path, id);
   return {
     ...base,
     status: n.status,
@@ -100,7 +101,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     summary: n.summary,
     counts: countOutcomes(n.tasks),
     tasks: n.tasks.length,
-    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUpOf(repo.path, id))).length,
+    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp)).length,
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
     duration_min: n.metrics?.duration_min.total ?? null,
     cost_usd: n.metrics?.cost_usd ?? null,
