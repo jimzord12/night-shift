@@ -3,7 +3,7 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
-## v11, 2026-09-26
+## v11 (7889ba0), 2026-09-27
 
 - `night-shift allow [repo]` (D23): lets agents run the tool and write
   under `.night-shift/` without permission prompts, for nights nobody
