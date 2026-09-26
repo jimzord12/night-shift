@@ -4,6 +4,7 @@ title: Run a first real night and record the friction
 status: Queued
 assignee: []
 created_date: '2026-09-25 17:59'
+updated_date: '2026-09-26 04:44'
 labels:
   - protocol
 dependencies: []
@@ -15,7 +16,7 @@ ordinal: 4000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-The trial's real test. Run one unattended Night Shift on an adopting project and file every friction point (what builders could not find, what the Morning Review lacked) as tasks here.
+The trial's real test. Run one unattended Night Shift on an `Adopter` and file every friction point (what builders could not find, what the Morning Review lacked) as tasks here.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria

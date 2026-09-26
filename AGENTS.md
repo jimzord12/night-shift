@@ -1,9 +1,10 @@
 # AGENTS.md — night-shift
 
-The Night Shift Protocol (`docs/protocol.md`), its contract
+The `Night Shift Repo`: the Night Shift Protocol (`docs/protocol.md`), its contract
 (`docs/contract.md`, `schemas/`), the default working practices
 (`docs/practices/`), templates, and the local morning-review app. Public,
 project-neutral: nothing here names a particular project, board or client.
+A project that runs Night Shift is an `Adopter` (docs/glossary.md).
 
 Agents here work as independent, dependable senior developers: they take
 the technical and routine decisions themselves, carry work through to
@@ -56,7 +57,7 @@ in it. Orient in this order, read-only, then give the four-line briefing
 | `docs/glossary.md` | Official terms |
 | `backlog/` | Backlog.md: every open task, idea and known gap; `doc-1` is the session handoff |
 | `CHANGELOG.md` | One entry per release tag |
-| `templates/` | Copy-ready files for adopting projects: cards, glossary, bypass log, owner file, owner profile, Backlog.md starter, reviewer agents |
+| `templates/` | Copy-ready files for `Adopter`s: cards, glossary, bypass log, owner file, owner profile, Backlog.md starter, reviewer agents |
 | `.claude/agents/` | This repository's reviewers: `code-reviewer`, `design-reviewer`, `research-reviewer` |
 | `.local/` | Git-ignored: owner profile, planning drafts, scratch evidence |
 | `src/cli.ts` | `night-shift serve / check / docs / --version` |
@@ -96,7 +97,7 @@ never a fork of the author:
 - `research-reviewer`: web research a decision rests on; follows
   docs/practices/idea-loop.md.
 
-Their generic versions for adopting projects are in `templates/agents/`;
+Their generic versions for `Adopter`s are in `templates/agents/`;
 improve both together.
 
 ## Working agreement
@@ -124,7 +125,7 @@ improve both together.
 - One writer per field: the app writes only `answer` in a question file.
 - The contract is versioned by its `schema` values (`question/1`,
   `outcome/1`, …). A breaking change adds `/2` and keeps reading `/1`, or,
-  while the only adopters are the owner's own projects, updates them in the
+  while the only `Adopter`s are the owner's own projects, updates them in the
   same change and says so in CHANGELOG.md.
 - Credentials stay on the server; the browser never sees them.
 - Releases: tags `v1`, `v2`, … never moved; a bad release takes the next

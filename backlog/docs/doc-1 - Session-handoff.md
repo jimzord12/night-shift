@@ -27,7 +27,7 @@ with this document. Rewritten in place at the end of every session.
 
 ## Parked owner decisions
 - The four `Idea:` tasks (TASK-12..15) wait for the owner.
-- Whether adopting projects should get the upgraded templates re-copied
+- Whether `Adopter`s should get the upgraded templates re-copied
   (they do not update themselves).
 
 ## Machine facts

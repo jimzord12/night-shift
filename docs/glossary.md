@@ -9,6 +9,8 @@ next report (docs/practices/glossary.md).
 
 | Term | Meaning | In code or files | Added |
 |---|---|---|---|
+| `Night Shift Repo` | This repository and everything it ships: the protocol, the contract, the app, the practices and the templates | github.com/jimzord12/night-shift | 2026-09-26, owner |
+| `Adopter` | Another project that runs the `Night Shift Protocol`; what it holds is its `Binding` and its `.night-shift/` folder | an adopting project's `docs/night-shift.md` and `.night-shift/` | 2026-09-26, owner |
 | `Night Shift Protocol` | The way of working: decide by day, agents build unattended at night, the owner reviews in the morning | docs/protocol.md | 2026-09-25 |
 | `Owner` | The human who decides, designs and approves | protocol section 2 | 2026-09-25 |
 | `Lead` | The agent in the day session that runs the `Day Shift` with the `Owner` | protocol section 2 | 2026-09-25 |
@@ -37,6 +39,8 @@ next report (docs/practices/glossary.md).
 |---|---|
 | "decision" for an open choice | `Question` (a decision is settled) |
 | "owner" for the agent holding a card | "held by" (the `Owner` is the human) |
+| "project" for this repository | `Night Shift Repo` ("project" is the `Adopter`, as in `project.json`) |
+| "adopting project", "instance" | `Adopter` |
 | "buffer" in code about bytes | only in code; in prose `Buffer` is the queue |
 
 ## Dropped
@@ -47,3 +51,5 @@ next report (docs/practices/glossary.md).
 | `Night Run` | 2026-09-25, before first use | `Night Shift` |
 | `Decision` (for a question file) | 2026-09-25, owner | `Question` |
 | fuel gauge | 2026-09-25, owner | the `Buffer`'s rev counter |
+| `Night Shift project` | 2026-09-26, owner: "project" already means the `Adopter` (`project.json`) | `Night Shift Repo` |
+| `Night Shift instance` | 2026-09-26, owner: nothing runs as a copy; the project uses the protocol | `Adopter` |
