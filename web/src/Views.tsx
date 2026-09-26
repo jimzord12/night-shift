@@ -63,11 +63,13 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
                 <span className="flex flex-wrap items-center gap-4 text-sm text-white/55">
                   <span className="inline-flex items-center gap-1"><Icon name="clock" /> {minutes(n.duration_min)}</span>
                   <span className="inline-flex items-center gap-1"><Icon name="coin" /> {dollars(n.cost_usd)}</span>
-                  <span className="font-semibold" style={{ color: st.color }}>{st.label}</span>
-                  {!n.running && <OwnerPill side={ownerSide(n)} />}
+                  <span className="inline-flex items-center gap-2">
+                    <span className="font-semibold" style={{ color: st.color }}>{st.label}</span>
+                    {!n.running && !n.problems.length && <OwnerPill side={ownerSide(n)} />}
+                  </span>
                 </span>
               </div>
-              {n.summary && <p className="mt-1 text-sm text-white/70">{n.summary}</p>}
+              {n.summary && <p className="mt-2 text-sm text-white/70">{n.summary}</p>}
               <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-white/5">
                 {OUTCOMES.map((o) => n.counts[o] > 0 && <div key={o} style={{ width: `${(n.counts[o] / total) * 100}%`, background: STATUS[o].color }} title={`${n.counts[o]} ${STATUS[o].label}`} />)}
               </div>

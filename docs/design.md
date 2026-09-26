@@ -378,7 +378,7 @@ from any folder. Screens:
    checks, questions and proof), the questions as a deck (one per screen,
    the recommendation preselected, a free note), **Create follow-up**, and
    feedback with tick boxes and **Send to GitHub**. Opening a night marks
-   it read. The list is fixed when the Viewer loads; a settled chip shows a
+   it read; a night opened while it ran is unread again once it ends. The list is fixed when the Viewer loads; a settled chip shows a
    tick until the next reload.
 2. **Questions:** every open question across nights.
 3. **History:** one row per night: date, repository, outcome counts,

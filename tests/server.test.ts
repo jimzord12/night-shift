@@ -4,11 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DEAD_PID, TASKS, evidenceFile, gitRepo, plan, session } from './helpers.ts';
 import { createApp } from '../src/server.ts';
-import { ask, close, feedback, record, start } from '../src/night.ts';
-import { loadNight, readFollowUp, registerRepo } from '../src/store.ts';
-import { resolveItem } from '../src/followup.ts';
+import { ask, close, feedback, onSessionEnd, record, start } from '../src/night.ts';
+import { loadNight, markRead, readFollowUp, registerRepo } from '../src/store.ts';
+import { buildFollowUp, resolveItem } from '../src/followup.ts';
 import { issueBody, newIssueUrl } from '../src/github.ts';
-import { inMorning, ownerSide } from '../src/types.ts';
+import { inMorning, needsHandOver, ownerSide } from '../src/types.ts';
 import type { NightDetail, Overview } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -81,6 +81,34 @@ test('morning inbox: a night stays while unread or needing the developer, and le
   assert.deepEqual([n.hand_over, ownerSide(n), inMorning(n)], [false, 'nothing', true]);
   await app.request(`/api/nights/${otherRef.id}/${clean}/read`, { method: 'POST' });
   assert.equal(inMorning(await cleanSummary()), false);
+});
+
+test('morning inbox: a night stopped early with work left needs a hand-over; a read mark from while it ran does not count', async () => {
+  const repo = gitRepo('stopped');
+  const id = start(repo, plan(TASKS.slice(0, 2)), session('mine', DEAD_PID), NOW).night.night;
+  record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  const ref = registerRepo(repo);
+  markRead(ref.id, id, new Date('2026-09-26T23:30:00'));
+  onSessionEnd(repo, 'mine', null, new Date('2026-09-27T02:00:00'));
+  const night = loadNight(repo, id).night;
+  assert.equal(night.status, 'interrupted');
+  // The Viewer's rule and the follow-up builder agree on whether there is anything to hand over.
+  assert.equal(needsHandOver(night, null), buildFollowUp(night).items.length > 0);
+
+  const app = createApp({ version: 'test' });
+  const summary = async () => {
+    const o = (await (await app.request('/api/overview')).json()) as Overview;
+    const n = o.nights.find((x) => x.repo === ref.id && x.id === id);
+    assert.ok(n);
+    return n;
+  };
+  let n = await summary();
+  assert.deepEqual([n.read, n.questions_open, n.hand_over, ownerSide(n), inMorning(n)], [false, 0, true, 'needs_you', true]);
+  markRead(ref.id, id, new Date('2026-09-27T08:00:00'));
+  assert.equal(inMorning(await summary()), true, 'read, but T2 is not handed over');
+  assert.equal((await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' })).status, 200);
+  n = await summary();
+  assert.deepEqual([n.hand_over, ownerSide(n), inMorning(n)], [false, 'handed_over', false]);
 });
 
 test('answers: round trip, a stale write is refused, an unknown option is refused', async () => {

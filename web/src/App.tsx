@@ -90,16 +90,18 @@ export function App() {
     void load();
   }, [load]);
 
-  // The chosen night: load it once and mark it read.
+  // The chosen night: load it once, and mark it read.
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || details[selected]) return;
     const [repo, night] = selected.split('/');
-    if (!details[selected]) void loadNight(repo, night);
-    if (overview?.nights.some((n) => keyOf(n.repo, n.id) === selected && !n.read)) {
-      setSeen((s) => new Set(s).add(selected));
-      void markRead(repo, night).catch(() => {});
-    }
-  }, [selected, details, loadNight, overview]);
+    void loadNight(repo, night);
+  }, [selected, details, loadNight]);
+  useEffect(() => {
+    if (!selected || !overview?.nights.some((n) => keyOf(n.repo, n.id) === selected && !n.read)) return;
+    const [repo, night] = selected.split('/');
+    setSeen((s) => new Set(s).add(selected));
+    void markRead(repo, night).catch(() => {});
+  }, [selected, overview]);
 
   // The Questions view needs every night that still has open questions.
   useEffect(() => {

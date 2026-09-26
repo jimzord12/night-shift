@@ -94,8 +94,11 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
   const n = r.night;
   if (!n) return base;
   const followUp = followUpOf(repo.path, id);
+  // Opened while it ran is not read: the developer has not seen how it ended.
+  const mark = readMarks[`${repo.id}/${id}`];
   return {
     ...base,
+    read: !!mark && (!n.ended_at || Date.parse(mark) >= Date.parse(n.ended_at)),
     status: n.status,
     started_at: n.started_at,
     ended_at: n.ended_at,
@@ -104,7 +107,8 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     tasks: n.tasks.length,
     questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp)).length,
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
-    hand_over: needsHandOver(n, followUp),
+    // A follow-up file that exists but cannot be read still blocks a second one.
+    hand_over: !base.follow_up && needsHandOver(n, followUp),
     duration_min: n.metrics?.duration_min.total ?? null,
     cost_usd: n.metrics?.cost_usd ?? null,
     running: n.status === 'open' && sessionRunning(repo.path, n, now),

@@ -36,7 +36,15 @@ export function Morning({ overview, inbox, detail, onPick, onHistory, onOpenDeck
           ))}
         </div>
       )}
-      {!inbox.length && <CaughtUp onLast={() => onPick(last.repo, last.id)} onHistory={onHistory} showLast={!detail} />}
+      {!inbox.length && (detail ? (
+        <div className="flex items-center gap-2 text-sm">
+          <Icon name="check" className="size-4 text-shipped" strokeWidth={2.6} />
+          <span className="tracking-widest text-white/50 uppercase">All caught up</span>
+          <button onClick={onHistory} className="ml-1 text-[var(--accent)] hover:underline">History</button>
+        </div>
+      ) : (
+        <CaughtUp onLast={() => onPick(last.repo, last.id)} onHistory={onHistory} />
+      ))}
       {detail ? <NightView detail={detail} onOpenDeck={onOpenDeck} onDetail={onDetail} /> : inbox.length > 0 && <div className="py-24 text-center text-white/40">Loading the night…</div>}
     </div>
   );
@@ -45,21 +53,21 @@ export function Morning({ overview, inbox, detail, onPick, onHistory, onOpenDeck
 // What the developer still owes a night, newest reason first; a chip with nothing left is dimmed.
 function NightChip({ n, name, active, onClick }: { n: NightSummary; name: string; active: boolean; onClick: () => void }) {
   const st = NIGHT_STATUS[n.running ? 'running' : n.status];
-  const settled = !inMorning(n);
+  const settled = !n.running && !inMorning(n);
   return (
-    <button onClick={onClick} className={`glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition hover:bg-white/10 ${active ? 'ring-2 ring-[var(--accent)]' : ''} ${settled && !active ? 'opacity-60' : ''}`}>
-      <span className="size-2 rounded-full" style={{ background: st.color, boxShadow: `0 0 8px ${st.color}` }} />
-      <span className="font-semibold whitespace-nowrap">{name}</span>
-      <span className="text-white/60">{nightTitle(n.id)}</span>
-      {!n.read && <span className="rounded-full bg-[var(--accent)] px-1.5 text-[11px] font-bold tracking-wide text-white uppercase">new</span>}
-      {n.questions_open > 0 && <span className="rounded-full bg-eyes px-1.5 text-[13px] font-bold text-night-950" title={`${n.questions_open} open question${n.questions_open === 1 ? '' : 's'}`}>{n.questions_open}</span>}
-      {n.hand_over && <span className="text-xs text-eyes" title="Unfinished work or answers not handed over yet">hand over</span>}
-      {settled && <Icon name="check" className="size-4 text-shipped" strokeWidth={2.6} />}
+    <button onClick={onClick} aria-current={active || undefined} className={`glass inline-flex max-w-full min-w-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition hover:bg-white/10 ${active ? 'outline-2 outline-[var(--accent)]' : ''} ${settled && !active ? 'opacity-60' : ''}`}>
+      <span className="size-2 shrink-0 rounded-full" style={{ background: st.color, boxShadow: `0 0 8px ${st.color}` }} />
+      <span className="shrink-0 font-semibold whitespace-nowrap">{name}</span>
+      <span className="min-w-0 truncate text-white/60">{nightTitle(n.id)}</span>
+      {!n.read && <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 text-[11px] font-bold tracking-wide text-white uppercase">new</span>}
+      {n.questions_open > 0 && <span className="shrink-0 rounded-full bg-eyes px-1.5 text-[13px] font-bold text-night-950" title={`${n.questions_open} open question${n.questions_open === 1 ? '' : 's'}`}>{n.questions_open}</span>}
+      {n.hand_over && <span className="shrink-0 rounded-full border border-eyes/50 px-1.5 text-xs whitespace-nowrap text-eyes" title="Unfinished work or answers not handed over yet: Create follow-up">to hand over</span>}
+      {settled && <Icon name="check" className="size-4 shrink-0 text-shipped" strokeWidth={2.6} />}
     </button>
   );
 }
 
-function CaughtUp({ onLast, onHistory, showLast }: { onLast: () => void; onHistory: () => void; showLast: boolean }) {
+function CaughtUp({ onLast, onHistory }: { onLast: () => void; onHistory: () => void }) {
   return (
     <div className="glass pop-in flex flex-col items-center gap-3 rounded-3xl px-6 py-10 text-center">
       <span className="grid size-12 place-items-center rounded-full bg-shipped/15 text-shipped">
@@ -68,7 +76,7 @@ function CaughtUp({ onLast, onHistory, showLast }: { onLast: () => void; onHisto
       <div className="font-display text-2xl font-semibold">All caught up</div>
       <p className="max-w-md text-white/60">Every night is read, every question answered, and the unfinished work handed to the next agent.</p>
       <div className="mt-1 flex flex-wrap justify-center gap-2">
-        {showLast && <button onClick={onLast} className="rounded-full bg-[var(--accent)] px-5 py-2 font-semibold text-white transition hover:brightness-110">Open the last night</button>}
+        <button onClick={onLast} className="rounded-full bg-[var(--accent)] px-5 py-2 font-semibold text-white transition hover:brightness-110">Open the last night</button>
         <button onClick={onHistory} className="glass rounded-full px-5 py-2 text-white/80 transition hover:bg-white/10">History</button>
       </div>
     </div>
@@ -188,6 +196,7 @@ function FollowUpCard({ detail, onDetail }: { detail: NightDetail; onDetail: (d:
   const f = detail.follow_up;
   const n = detail.night;
   const pending = unfinishedTasks(n);
+  const openQ = n.questions.filter((q) => isOpenQuestionIn(q, f)).length;
   const create = async () => {
     setBusy(true);
     setError(null);
@@ -217,10 +226,11 @@ function FollowUpCard({ detail, onDetail }: { detail: NightDetail; onDetail: (d:
               </li>
             ))}
           </ul>
+          {openQ > 0 && <p className="text-sm text-eyes">{openQ} question{openQ === 1 ? '' : 's'} still open: your answer reaches the next agent through this follow-up.</p>}
         </>
       ) : n.status === 'open' ? (
         <p className="text-white/60">Once the night closes, turn your answers and its unfinished work into instructions for the next agent.</p>
-      ) : pending || n.questions.length ? (
+      ) : needsHandOver(n, f) ? (
         <>
           <p className="text-white/70">{pending} unfinished task{pending === 1 ? '' : 's'} and {n.questions.length} question{n.questions.length === 1 ? '' : 's'}. Answer what you can, then hand it over; the next night, or an agent by day, picks it up.</p>
           <button onClick={() => void create()} disabled={busy} className="inline-flex items-center justify-center gap-2 self-start rounded-full bg-[var(--accent)] px-5 py-2 font-semibold text-white shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
