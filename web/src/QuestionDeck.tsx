@@ -163,7 +163,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   return (
     <div ref={scroller} className="sky fixed inset-0 z-40 overflow-y-auto">
       <Starfield />
-      <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 py-6">
+      <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">
           <div className="flex flex-1 flex-wrap gap-1.5">
             {order.map((k, i) => {
@@ -265,15 +265,17 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               {lock ? (
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
-                <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="A note for the agent (optional)" rows={2} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} />
+                <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="A note for the agent (optional)" rows={2} className="w-full scroll-mb-32 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
               ) : (
                 <button onClick={() => { setShowNote(true); setFocusNote(true); }} className="text-sm text-white/50 hover:text-white">+ add a note</button>
               )}
             </div>
 
-            {message && <div className="mt-4 rounded-xl bg-blocked/15 px-4 py-2 text-sm text-blocked">{message}</div>}
-
-            <footer className="sticky bottom-0 z-10 -mx-4 mt-auto flex items-center gap-2 border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
+            <footer className="sticky bottom-0 z-10 -mx-4 mt-auto border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
+              {message && <div className="mb-2 rounded-xl bg-blocked/15 px-4 py-2 text-sm text-blocked">{message}</div>}
+              {/* On a phone the options may be above the fold: name the answer Save would keep. */}
+              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{q.options.find((o) => o.id === draft.answer)?.label}</span></div>}
+              <div className="flex items-center gap-2">
               <div className="hidden gap-2 sm:flex">
                 <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
                 <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
@@ -285,6 +287,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                   {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">Enter</kbd>
                 </button>
               )}
+              </div>
             </footer>
           </div>
         )}

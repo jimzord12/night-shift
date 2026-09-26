@@ -40,7 +40,7 @@ function NightChip({ n, name, active, onClick }: { n: NightSummary; name: string
   return (
     <button onClick={onClick} className={`glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition hover:bg-white/10 ${active ? 'ring-2 ring-[var(--accent)]' : ''}`}>
       <span className="size-2 rounded-full" style={{ background: st.color, boxShadow: `0 0 8px ${st.color}` }} />
-      <span className="font-semibold">{name}</span>
+      <span className="font-semibold whitespace-nowrap">{name}</span>
       <span className="text-white/60">{nightTitle(n.id)}</span>
       {n.questions_open > 0 && <span className="rounded-full bg-eyes px-1.5 text-[13px] font-bold text-night-950">{n.questions_open}</span>}
     </button>
