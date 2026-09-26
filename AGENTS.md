@@ -85,7 +85,7 @@ in it. Orient in this order, read-only, then give the four-line briefing
 npm ci                                  # once
 npm run check                           # typecheck + tests + web build: the gate for every commit and release
 node src/cli.ts --help                  # every night-shift command
-NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts install <copy of examples/sample-repo>
+NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts install <copy>  # a git-initialised copy of examples/sample-repo
 NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts view --port 4799   # the Viewer on sample data, never your real install
 npm run dev                             # the Viewer with hot reload beside a running view
 npm run release v<N>                    # from a clean, pushed main; then `npm run release switch v<N>`
