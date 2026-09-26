@@ -92,7 +92,7 @@ export function allow(repo: string, cli = cliCommand()): string[] {
     out.push(`Allowed in ${rel}: ${added.join(', ')}.`);
   } else out.push(`${rel} already allows the tool; nothing changed.`);
   const ignored = ensureIgnored(repo, rel);
-  if (isTracked(repo, rel)) out.push(`Warning: git already tracks ${rel}, so these rules would be committed for everyone. Untrack it with: git rm --cached ${rel}`);
+  if (isTracked(repo, rel)) out.push(`Warning: git already tracks ${rel}, so these rules would be committed for everyone. Untrack it with: git rm --cached ${rel}${ignored ? '; .gitignore now lists it' : ''}`);
   else if (ignored) out.push(`Added ${rel} to .gitignore: permissions are yours, not the repository's.`);
   out.push('Agents here can now run the tool and write .night-shift/ without asking. Anything else a night needs (tests, git, a database) follows your own permissions; allow it before you leave a night running.');
   return out;

@@ -115,4 +115,8 @@ test('allow: exact rule shapes for a launcher and a checkout; a tracked settings
   assert.match(out, /git already tracks \.claude\/settings\.local\.json.*git rm --cached/);
   assert.doesNotMatch(out, /permissions are yours/);
   assert.deepEqual(JSON.parse(fs.readFileSync(local, 'utf8')).permissions.allow, allowRules('ns'));
+  // Tracked and already listed in .gitignore: the line is not added a second time.
+  fs.writeFileSync(path.join(repo, '.gitignore'), '.claude/settings.local.json\n');
+  allow(repo, 'ns');
+  assert.equal(fs.readFileSync(path.join(repo, '.gitignore'), 'utf8'), '.claude/settings.local.json\n');
 });
