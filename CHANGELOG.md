@@ -3,6 +3,30 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v7 (unreleased), 2026-09-26
+
+A new model (D20, D21): Night Shift no longer imposes a process. It adds
+files of a fixed shape, a tool that checks them, two skills and the
+`Viewer`.
+
+- **Files:** a `Plan` (the agent's promise), a `Night file` per night (six
+  outcomes, seven evidence blocks, questions, feedback, metrics) and a
+  `Follow-up file` that carries the developer's answers to the next night.
+  Schemas `night-shift/plan@1`, `night@1`, `follow-up@1`.
+- **Skills:** `start-night-shift` and `do-night-shift-follow-up`, copied by
+  `night-shift install` with the command filled in.
+- **Tool:** `start`, `record`, `ask`, `feedback`, `close`, `follow-up`,
+  `status`, `check`, `install`, `view`; a session-end hook (`meter`) adds
+  duration, sub-agents, tokens and cost read from Claude Code's session
+  log, and closes a night its session left open. Closed nights are copied
+  to `.night-shift/history/` and committed on their own.
+- **Viewer:** Morning (unread nights, counts, metrics, tasks with their
+  evidence, questions, follow-up, feedback to GitHub issues), Questions,
+  History; Trends is a placeholder.
+- **Retired:** the v6 protocol, contract and binding, board adapters, the
+  Queue and buffer screens, templates and the old schemas. The only earlier
+  Adopter trial was archived and unwired.
+
 ## v6 (83f4694), 2026-09-25
 
 - A Backlog.md board: `board.type: "backlog"` reads a project's `backlog/`

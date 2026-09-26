@@ -179,3 +179,42 @@ history or measurement); reading the board (not every developer has one).
 Replaces D1 and D6; D7's board adapters and D13's practices become optional
 at most, to be settled when the v6 model is retired; D5's question files and
 D9's question kinds stay open until field testing.
+
+## D21  v6 retired; v7 built as the D20 design, with the choices made unattended (2026-09-26)
+
+The v6 protocol model is gone from the repository: the protocol, contract
+and binding documents, the board adapters, the overview, the templates, the
+old schemas and examples, and the Queue and buffer screens. The `Viewer`'s
+look and its media viewer, compare slider and question deck stay. v7 is the
+design in `docs/design.md`. The owner decided most of it card by card; the
+choices below were made unattended and are open to review:
+
+- **A `carried` item status.** A follow-up item a later night planned but
+  did not finish is `carried`, with the reason, and the new night's own
+  follow-up picks it up. **Why:** without it an unfinished item would stay
+  `open` in two follow-up files at once.
+- **Liveness is the recorded process id plus recent change.** A night counts
+  as running while the harness process that started it is alive and its
+  files or transcript changed within 24 hours; otherwise recovery closes it
+  `interrupted`. **Why:** Claude Code gives tools `CLAUDE_PID`; a timestamp
+  alone would close a long night or keep a dead one open.
+- **Agents hand JSON through `.night-shift/input.json`.** The skills tell the
+  agent to write the JSON with its file tool and pass `--file`. **Why:** the
+  first live night showed Claude Code blocks JSON inline in a shell command
+  and input redirection from files outside the repository.
+- **Metrics are all optional.** Claude Code's session log is internal and
+  changes; a value the tool cannot read is `null` and shown as unknown.
+- **The install folder is `~/.night-shift/`** (registry, `Viewer` state,
+  releases), overridable with `NIGHT_SHIFT_ROOT` for tests and scratch runs.
+- **The history commit touches only `.night-shift/history`** (`git commit
+  --only`), so an agent's staged work is never swept in, and the repository's
+  own hooks still run.
+- **The trial repository is a throwaway copy of a small web app**, driven by
+  headless Claude Code sessions as the agent and by the maintainer as the
+  developer; it is registered in the maintainer's own install. The earlier
+  Adopter trial's night files were archived outside that repository and its
+  Night Shift wiring removed.
+
+**Rejected:** keeping the v6 screens behind a flag (two models to maintain
+for no user); inline JSON with a documented permission rule (every Adopter
+would need to change their permissions).
