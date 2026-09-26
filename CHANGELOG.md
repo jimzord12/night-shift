@@ -3,6 +3,18 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v10, 2026-09-26
+
+- Morning is an inbox (D22): only the nights still unread or needing you
+  (an open question, or unfinished work or answers not yet handed over); otherwise
+  "All caught up", with the last night and History one click away. A
+  night opened while it ran comes back as new once it ends.
+- How a night ended reads **Closed** / **Stopped early** (was Complete /
+  Interrupted); beside it, your side: **Needs you**, **Handed over** or
+  **Nothing left**, in Morning and on every History row.
+- Inbox chips show the repository and a short date ("26 Sept (2nd)"),
+  stacked on a phone so long repository names never hide the date.
+
 ## v9 (c0ceb52), 2026-09-26
 
 - `night-shift forget <repo id or path>` takes a repository off the Viewer

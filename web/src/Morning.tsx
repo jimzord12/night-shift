@@ -40,7 +40,7 @@ export function Morning({ overview, inbox, detail, onPick, onHistory, onOpenDeck
         <div className="flex items-center gap-2 text-sm">
           <Icon name="check" className="size-4 text-shipped" strokeWidth={2.6} />
           <span className="tracking-widest text-white/50 uppercase">All caught up</span>
-          <button onClick={onHistory} className="ml-1 text-[var(--accent)] hover:underline">History</button>
+          <button onClick={onHistory} className="ml-1 text-[color-mix(in_srgb,var(--accent)_70%,white)] hover:underline">History</button>
         </div>
       ) : (
         <CaughtUp onLast={() => onPick(last.repo, last.id)} onHistory={onHistory} />

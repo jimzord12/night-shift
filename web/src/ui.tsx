@@ -112,8 +112,8 @@ export function Ring({ done, total, size = 120, color = 'var(--accent)', childre
 const DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const DATE = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 
-// "Night of Sat 26 Sep", and "(2nd)" for the second night that started the same day.
-// "Night of Sat 26 Sept (2nd)"; short: "26 Sept (2nd)", for chips where space is tight.
+// "Night of Sat 26 Sept", and "(2nd)" for the second night that started the same day; short:
+// "26 Sept (2nd)", for chips where space is tight.
 export function nightTitle(id: string, short = false): string {
   const m = /^(\d{4}-\d{2}-\d{2})-([a-z]+)$/.exec(id);
   if (!m) return id;
