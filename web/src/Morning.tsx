@@ -4,7 +4,7 @@ import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted,
 import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import type { Media } from './Evidence.tsx';
-import { Icon, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
+import { Icon, NightBadge, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
 
 interface Props {
   overview: Overview;
@@ -34,7 +34,7 @@ export function Morning({ overview, inbox, detail, picking, onPick, onHistory, o
     <div className="space-y-6">
       {inbox.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-sm tracking-widest text-white/50 uppercase">{left ? 'Waiting for you' : 'All caught up'}</span>
+          <span className="mr-1 text-sm tracking-widest text-white/50 uppercase">{left ? `${left} waiting for you` : detail ? 'All caught up' : 'In progress'}</span>
           {inbox.map((n) => (
             <NightChip key={`${n.repo}/${n.id}`} n={n} now={now} name={repoName(overview, n.repo)} active={detail?.repo.id === n.repo && detail.night.night === n.id} onClick={() => onPick(n.repo, n.id)} />
           ))}
@@ -71,7 +71,7 @@ function NightChip({ n, now, name, active, onClick }: { n: NightSummary; now: nu
         <span className="min-w-0 truncate font-semibold" title={name}>{name}</span>
         <span className="whitespace-nowrap text-white/60">{nightTitle(n.id, true)}</span>
       </span>
-      <StateBadge state={state} waited={waitedDays(n.follow_up_at, now)} small />
+      <NightBadge n={n} now={now} small />
       {/* Phone: the report says it; the chip keeps room for the name. */}
       {neverStarted(n) > 0 && <span className="hidden min-w-0 sm:inline-flex"><StoppedEarly count={neverStarted(n)} short /></span>}
     </button>
@@ -124,7 +124,7 @@ export function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: N
           </div>
           <h1 className="font-display mt-1 text-2xl font-semibold sm:text-3xl">{nightTitle(n.night)}</h1>
           {n.summary ? <p className="mt-3 leading-snug text-white/85 sm:text-lg">{n.summary}</p> : <p className="mt-3 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
-          {neverStarted(summary) > 0 && <div className="mt-2"><StoppedEarly count={neverStarted(summary)} /></div>}
+          {neverStarted(summary) > 0 && <div className="mt-2 flex min-w-0"><StoppedEarly count={neverStarted(summary)} /></div>}
           <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
             {OUTCOMES.map((o) => (
               <div key={o} className="flex min-w-0 items-center gap-2 rounded-2xl bg-white/5 px-2 py-2 sm:gap-2.5 sm:px-3" style={{ opacity: counts[o] ? 1 : 0.35 }}>

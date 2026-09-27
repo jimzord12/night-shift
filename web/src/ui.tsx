@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { OWNER_STATE } from '../../src/types.ts';
-import type { Outcome, OwnerState } from '../../src/types.ts';
+import { OWNER_STATE, ownerState, waitedDays } from '../../src/types.ts';
+import type { NightSummary, Outcome, OwnerState } from '../../src/types.ts';
 
 const PATHS = {
   check: 'M5 12.5l4.5 4.5L19 7.5',
@@ -71,13 +71,20 @@ export function StateBadge({ state, waited = null, small = false }: { state: Own
   );
 }
 
+// A night's badge wherever it is listed: its state, or red when its night file cannot be read
+// (no start to judge by).
+export function NightBadge({ n, now, small = false }: { n: NightSummary; now: number; small?: boolean }) {
+  if (!n.started_at) return <span title="The night file cannot be read" className={`inline-flex shrink-0 items-center rounded-full bg-broken/15 font-semibold whitespace-nowrap text-broken ${small ? 'px-2 py-px text-xs' : 'px-2.5 py-0.5 text-xs'}`}>Cannot be read</span>;
+  return <StateBadge state={ownerState(n)} waited={waitedDays(n.follow_up_at, now)} small={small} />;
+}
+
 // How a night ended, only when it cost work: grey, a warning rather than a state.
 export function StoppedEarly({ count, short = false }: { count: number; short?: boolean }) {
   if (!count) return null;
   const text = `${count} task${count === 1 ? '' : 's'} never started`;
   return (
-    <span title={`Stopped early: ${text}`} className="inline-flex min-w-0 items-center gap-1 text-sm text-white/50">
-      <Icon name="warn" className="size-3.5 shrink-0" /> <span className="truncate">{short ? `${count} never started` : `Stopped early: ${text}`}</span>
+    <span title={`Stopped early: ${text}`} className="flex max-w-full min-w-0 items-start gap-1 text-sm text-white/50">
+      <Icon name="warn" className="mt-[0.2em] size-3.5 shrink-0" /> <span className={short ? 'truncate' : 'min-w-0'}>{short ? `${count} never started` : `Stopped early: ${text}`}</span>
     </span>
   );
 }

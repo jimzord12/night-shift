@@ -1,7 +1,7 @@
 import type { Overview } from '../../src/types.ts';
-import { OUTCOMES, OWNER_STATE, isOpenQuestionIn, neverStarted, ownerState, waitedDays } from '../../src/types.ts';
+import { OUTCOMES, OWNER_STATE, isOpenQuestionIn, neverStarted, ownerState } from '../../src/types.ts';
 import type { DeckItem } from './QuestionDeck.tsx';
-import { Icon, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle } from './ui.tsx';
+import { Icon, NightBadge, STATUS, StoppedEarly, dollars, minutes, nightTitle } from './ui.tsx';
 
 // ---------------------------------------------------------------- questions
 
@@ -70,11 +70,11 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
                 <span className="flex flex-wrap items-center gap-4 text-sm text-white/55">
                   <span className="inline-flex items-center gap-1"><Icon name="clock" /> {minutes(n.duration_min)}</span>
                   <span className="inline-flex items-center gap-1"><Icon name="coin" /> {dollars(n.cost_usd)}</span>
-                  {readable ? <StateBadge state={state} waited={waitedDays(n.follow_up_at, now)} /> : <span className="font-semibold text-broken">Cannot be read</span>}
+                  <NightBadge n={n} now={now} />
                 </span>
               </div>
               {n.summary && <p className="mt-2 text-sm text-white/70">{n.summary}</p>}
-              {neverStarted(n) > 0 && <div className="mt-1.5"><StoppedEarly count={neverStarted(n)} /></div>}
+              {neverStarted(n) > 0 && <div className="mt-1.5 flex min-w-0"><StoppedEarly count={neverStarted(n)} /></div>}
               <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-white/5">
                 {OUTCOMES.map((o) => n.counts[o] > 0 && <div key={o} style={{ width: `${(n.counts[o] / total) * 100}%`, background: STATUS[o].color }} title={`${n.counts[o]} ${STATUS[o].label}`} />)}
               </div>

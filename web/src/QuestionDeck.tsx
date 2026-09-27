@@ -209,7 +209,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="rounded-full bg-white/10 px-2.5 py-1 font-semibold tracking-wide uppercase">{item.detail.repo.name}</span>
               <span className="rounded-full bg-white/5 px-2.5 py-1 text-white/60">{nightTitle(item.detail.night.night)}</span>
-              {q.task && <span className="rounded-full bg-broken/20 px-2.5 py-1 font-mono font-semibold text-broken">{q.task}</span>}
+              {q.task && <span className="rounded-full bg-eyes/20 px-2.5 py-1 font-mono font-semibold text-eyes">{q.task}</span>}
               {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
               {lock && <span className="rounded-full bg-white/10 px-2.5 py-1 text-white/70">{q.answer === null ? 'not answerable here' : 'answered'} · locked: the {lock}</span>}
             </div>

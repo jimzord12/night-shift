@@ -80,7 +80,9 @@ export function App() {
         if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current)) return current;
         // Morning opens on the newest night that is the developer's turn, else the newest running one;
         // none means all caught up.
-        const first = o.nights.find((n) => ownersTurn(ownerState(n))) ?? o.nights.find((n) => ownerState(n) === 'running');
+        // A night file that cannot be read has nothing to open.
+        const openable = o.nights.filter((n) => n.started_at);
+        const first = openable.find((n) => ownersTurn(ownerState(n))) ?? openable.find((n) => ownerState(n) === 'running');
         return first ? keyOf(first.repo, first.id) : null;
       });
     } catch (e) {
@@ -120,9 +122,11 @@ export function App() {
   const openCount = overview?.nights.reduce((sum, n) => sum + n.questions_open, 0) ?? 0;
   const detail = selected ? (details[selected] ?? null) : null;
 
+  // A night opens at the top of its report, wherever the list was scrolled.
   const pick = (repo: string, night: string) => {
     setSelected(keyOf(repo, night));
     setView('morning');
+    window.scrollTo(0, 0);
   };
   const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey });
   const nightItems = (d: NightDetail | null) => (d ? allItems.filter((i) => i.detail.repo.id === d.repo.id && i.detail.night.night === d.night.night) : []);

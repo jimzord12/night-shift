@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 22:51'
+updated_date: '2026-09-27 22:59'
 labels:
   - viewer
 dependencies: []
@@ -45,4 +45,15 @@ D24. Today a night shows two axes at once (how it ended as a coloured dot, what 
 
 <!-- SECTION:NOTES:BEGIN -->
 State definitions (review R4): New = closed and unread; it wins over the states after it until opened. Needs answers = an open question (isOpenQuestionIn), or a follow-up whose open items are all discuss. Ready to save = today's needsHandOver with no open question. Running, New, Needs answers and Ready to save are cards; Waiting for an agent and Done sit in the strip. Stopped, not closed yet (open, session gone) shows as Running until recovery closes it. Red is not an owner state: it marks failed tasks and an unreadable night file inside the report and on the card's one-line result.
+
+Review round 1 (reports in docs/work/TASK-24/reviews/01-*.md). Dispositions:
+- design D1 / visual V1 Blocking (stopped-early line overflows on a phone): fixed, the line wraps inside its card; History at 390 is 390 wide (r2/02-history-390.png).
+- code M1 Material (all-waiting Morning never seen): fixed and shot (r2-waiting/); the chip row now reads 'N waiting for you', 'All caught up' with a night open, else 'In progress', so the heading never doubles the caught-up card (also design D3, visual V3).
+- code m1 Minor (unreadable night file differs between chip and History): fixed, one NightBadge for chips and History shows red 'Cannot be read'; the first night opened skips unreadable ones.
+- code m2 Minor (unreadable follow-up shows as Waiting): kept deliberately; a follow-up that exists but cannot be read still blocks a second one, so an agent's turn is the honest state. The known v10 gap (Create follow-up returns 409 there) stays as the handoff records it.
+- code m3 Minor (neverStarted condition untested): fixed, the table test asserts interrupted 2, complete 0, open 0.
+- code m4 Minor: design.md note updated; the deck's task tag is amber (also visual V4).
+- design D2 / visual V2 Note: a picked night scrolls to the top of its report.
+- visual V5 Note: sample close times moved into the past.
+- design D4, D5, visual nit, code N1: no change (D5 and the metrics row are older, report layout is TASK-26).
 <!-- SECTION:NOTES:END -->

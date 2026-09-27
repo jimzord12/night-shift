@@ -395,9 +395,9 @@ from any folder. Screens:
    that night.
 4. **Trends:** empty until measurement is designed.
 
-Agreed on 2026-09-28 and not built yet (D24): Morning becomes the
-`Inbox` of `Night Report` cards with one `Owner state` per night coloured
-by whose turn it is, a step track, an explicit **Save for the next agent**
+Agreed on 2026-09-28 (D24); the one `Owner state` per night, coloured by
+whose turn it is, is built (TASK-24), the rest is not yet: Morning becomes
+the `Inbox` of `Night Report` cards, a step track, an explicit **Save for the next agent**
 gate, a "let's discuss" answer, and a navigation of Inbox and History. The
 screens above stay the truth until the D24 tasks land.
 
