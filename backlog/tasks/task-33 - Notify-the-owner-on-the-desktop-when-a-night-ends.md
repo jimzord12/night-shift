@@ -1,27 +1,29 @@
 ---
-id: TASK-15
-title: 'Idea: history charts of shipped and blocked per night'
+id: TASK-33
+title: Notify the owner on the desktop when a night ends
 status: Queued
 assignee: []
-created_date: '2026-09-25 17:59'
-updated_date: '2026-09-27 21:46'
+created_date: '2026-09-27 21:42'
+updated_date: '2026-09-27 21:43'
 labels:
+  - cli
   - viewer
 dependencies: []
-priority: low
+priority: high
 type: feature
-ordinal: 15000
+ordinal: 33000
 ---
 
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Owner idea, not decided: shipped and blocked per night over time. Discuss with the owner before implementing.
+D24. The Viewer only waits; a forgetful owner never opens it and the flow stalls. When the tool closes a night (session-end hook or recovery), it can raise a desktop notification (<repository>: night finished, 2 questions for you) whose click opens that Night Report. Optional per install, since Night Shift imposes nothing; needs a link per report.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The owner has decided whether and how to build it
+- [ ] #1 Closing a night on Windows raises a notification naming the repository and its open questions; clicking it opens the report (screenshot)
+- [ ] #2 With notifications off, closing a night raises nothing (test)
 <!-- AC:END -->
 
 ## Definition of Done
@@ -31,9 +33,3 @@ Owner idea, not decided: shipped and blocked per night over time. Discuss with t
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
-
-## Implementation Notes
-
-<!-- SECTION:NOTES:BEGIN -->
-2026-09-28 (D24): the Trends tab leaves the navigation until there is data. Suggestion, not decided: a first version could be two or three numbers on top of History rather than a page.
-<!-- SECTION:NOTES:END -->

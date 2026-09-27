@@ -394,6 +394,12 @@ from any folder. Screens:
    night.
 4. **Trends:** empty until measurement is designed.
 
+Agreed on 2026-09-28 and not built yet (D24): Morning becomes the
+`Inbox` of `Night Report` cards with one `Owner state` per night coloured
+by whose turn it is, a step track, an explicit **Save for the next agent**
+gate, a "let's discuss" answer, and a navigation of Inbox and History. The
+screens above stay the truth until the D24 tasks land.
+
 The registry of repositories and the read marks live in the local install
 folder (`~/.night-shift/repos.json`, `viewer.json`), never in a repository.
 `night-shift forget <id or path>` takes a repository off the list and drops its

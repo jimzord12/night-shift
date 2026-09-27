@@ -263,3 +263,78 @@ rules into the shared `settings.json` (it would grant them to everyone who
 clones the repository); allowing more than the tool (tests, git, databases
 differ per repository and stay with the developer). TASK-22's wider
 preflight stays open.
+
+## D24  The Viewer is a guided journey: one state per night, colour by whose turn it is (2026-09-28)
+
+The owner reviewed the whole journey as a new user who is lazy, forgetful
+and reads nothing, and agreed a redesign with the agent. Not built yet; the
+work is split into Backlog tasks. **Why:** Morning had no hierarchy, the
+summary read as a wall of text, nothing followed the last answer, the chip
+showed a tick beside an orange "Stopped early" dot, the owner could not
+recall what a follow-up or hand-over is, and Trends was an empty tab.
+**Chosen:**
+
+- **One `Owner state` per night**, in order, with these labels
+  everywhere (cards, report, step track, History): Running, New, Needs
+  answers, Ready to save, Waiting for an agent (a `Follow-up file` exists
+  and items are open; nudges after two days), Done (every item done,
+  skipped or carried, or nothing was owed). A follow-up whose open items
+  are all `discuss` is the owner's turn, not the agent's: it shows Needs
+  answers (amber, a card), next step "work on the follow-up" in a
+  terminal session. How a night ended shows only as a grey warning when
+  it cost work ("Stopped early: 2 tasks never started").
+- **What it replaces in D22:** the two axes on cards, and the
+  `inMorning`/`ownerSide` rule for which nights are listed (a night
+  Waiting for an agent now stays visible). **Kept from D22:** the list is
+  fixed when the `Viewer` loads, a night opened while running is unread
+  again once it ends, and a question saved unanswered keeps its night
+  listed until it is answered or a later night settles it.
+- **Colour means whose turn it is:** purple new, amber the owner's turn
+  (the `blocked` outcome included), blue the agent's turn, green with a
+  tick only when nothing is left, red only when something broke. One badge
+  per card, never two dots.
+- **`Inbox` of `Night Report` cards.** The Morning tab becomes `Inbox`:
+  one card per night needing the owner, each with its state, a one-line
+  result and one next-step button; settled nights drop to a slim strip and
+  stay visible while Waiting for an agent. A time estimate on top ("about
+  4 minutes: 3 questions, 2 saves") and **Start my morning**, one run
+  through every open question across repositories. The navigation is Inbox
+  and History; the Questions tab and the empty Trends tab go (TASK-15 keeps
+  Trends' future).
+- **The `Night Report` page** leads with what needs the owner, then what
+  happened as one row per task; the summary becomes a one-sentence
+  headline; outcome counts show only non-zero values on one line; the
+  answers card shrinks to a row.
+- **A step track** on every report and a small one on every card; the
+  current step glows and animates on to the next. **One shared "How Night
+  Shift works" explainer**, animated, for the first run and behind the "?"
+  beside the few terms that need it. Not a per-night graph on its own tab:
+  the next step belongs where the owner already looks.
+- **Explicit gate:** the question deck ends on **Save for the next agent**
+  (the word "hand over" misled: nothing runs until the owner starts an
+  agent), then a confirmation that says so and gives the phrase to copy
+  ("start night shift", or "work on the follow-up" by day). Until an agent
+  picks the work up, a changed answer rewrites the follow-up; after that it
+  is locked.
+- **Questions:** a peer answer **"I'm not sure, let's discuss"** with a
+  required note; it is saved as a `discuss` item that no unattended night
+  acts on, and a day session raises it with the owner in the terminal
+  first. The question's `why` shows up front. A question that points at
+  files must carry them: shown in the Viewer, plus **Show in folder**
+  (the local server opens the file manager; Windows first).
+- **Nudges:** every state has one "Next:" line; the tool can raise a
+  desktop notification when a night ends, linking to its report; the whole
+  morning works from the keyboard; the header shows open GitHub proposals
+  from `Feedback`.
+- **File shapes:** three changes (a `discuss` follow-up item kind, file
+  references on questions, a one-sentence limit on `summary`) land together
+  as one versioned change under the AGENTS.md rule, not three. The summary
+  limit applies to new nights only, so older night files stay valid.
+- Laptop first; phone keeps working one card per row.
+
+**Rejected:** a per-night animated graph on its own tab (the owner's first
+idea; a forgetful user never visits it, and six steps in a row are a line,
+not a graph); a docs page (this user will not open it); creating the
+follow-up automatically on the last answer (the owner wants an explicit
+gate); "?" popovers on every term (a word that needs one every visit is the
+wrong word).
