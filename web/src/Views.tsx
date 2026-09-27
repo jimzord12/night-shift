@@ -52,13 +52,16 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
         const st = NIGHT_STATUS[n.running ? 'running' : n.status];
         const total = n.tasks || 1;
         return (
-          <li key={`${n.repo}/${n.id}`} className="pop-in" style={{ animationDelay: `${i * 30}ms` }}>
-            <span className="absolute -left-[7px] mt-5 size-3.5 rounded-full border-2 border-night-950" style={{ background: st.color }} />
+          <li key={`${n.repo}/${n.id}`} className="pop-in relative" style={{ animationDelay: `${i * 30}ms` }}>
+            {/* Centred on the list's left border: pl-6 (1.5rem) + half the border + half the dot (size-3.5 / 2). */}
+            <span className="absolute left-[calc(-1.9375rem-0.5px)] z-10 mt-5 size-3.5 rounded-full border-2 border-night-950" style={{ background: st.color }} />
             <button onClick={() => onPick(n.repo, n.id)} className={`glass w-full rounded-2xl p-4 text-left transition hover:bg-white/10 ${`${n.repo}/${n.id}` === selected ? 'ring-2 ring-[var(--accent)]' : ''}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <span>
+                <span className="flex max-w-full min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
                   <span className="font-display text-lg font-semibold">{nightTitle(n.id)}</span>
-                  <span className="ml-2 text-sm text-white/55">{name(n.repo)}</span>
+                  <span title={`Repository: ${name(n.repo)}`} className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm font-medium" style={{ color: 'color-mix(in srgb, var(--accent) 45%, white)', background: 'color-mix(in srgb, var(--accent) 20%, transparent)', borderColor: 'color-mix(in srgb, var(--accent) 45%, transparent)' }}>
+                    <Icon name="folder" className="size-3.5 shrink-0" /> <span className="truncate">{name(n.repo)}</span>
+                  </span>
                 </span>
                 <span className="flex flex-wrap items-center gap-4 text-sm text-white/55">
                   <span className="inline-flex items-center gap-1"><Icon name="clock" /> {minutes(n.duration_min)}</span>
