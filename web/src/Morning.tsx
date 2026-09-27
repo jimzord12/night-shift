@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { NightDetail, NightSummary, Overview, Task } from '../../src/types.ts';
-import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, ownersTurn, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, ownersTurn, readable, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import type { Media } from './Evidence.tsx';
@@ -11,8 +11,9 @@ interface Props {
   // The nights that were not done when the Viewer loaded, with their live state.
   inbox: NightSummary[];
   detail: NightDetail | null;
-  // A night is chosen and its detail is on the way.
+  // A night is chosen and its detail is on the way, or could not be loaded (the banner says why).
   picking: boolean;
+  failed: boolean;
   onPick: (repo: string, night: string) => void;
   onHistory: () => void;
   onOpenDeck: (startKey?: string) => void;
@@ -24,9 +25,9 @@ const repoName = (o: Overview, id: string) => o.repos.find((r) => r.id === id)?.
 // The morning is an inbox: every night not done yet (running, the developer's turn, or waiting for
 // an agent) as chips, newest first, and the chosen night in full. Nothing on the developer's side
 // means "All caught up"; every night stays one click away in History.
-export function Morning({ overview, inbox, detail, picking, onPick, onHistory, onOpenDeck, onDetail }: Props) {
+export function Morning({ overview, inbox, detail, picking, failed, onPick, onHistory, onOpenDeck, onDetail }: Props) {
   if (!overview.nights.length) return <Empty />;
-  const left = inbox.filter((n) => ownersTurn(ownerState(n))).length;
+  const left = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
   const now = Date.now();
   const live = detail && overview.nights.find((n) => n.repo === detail.repo.id && n.id === detail.night.night);
   const last = overview.nights[0];
@@ -51,6 +52,8 @@ export function Morning({ overview, inbox, detail, picking, onPick, onHistory, o
       ))}
       {detail && live ? (
         <NightView detail={detail} summary={live} onOpenDeck={onOpenDeck} onDetail={onDetail} />
+      ) : failed ? (
+        <div className="py-24 text-center text-white/50">This night could not be opened; the message above says why.</div>
       ) : picking ? (
         <div className="py-24 text-center text-white/40">Loading the night…</div>
       ) : (

@@ -292,9 +292,13 @@ export const OWNER_STATE: Record<OwnerState, { label: string; color: string; hin
 // The developer's turn: new, or something only they can do.
 export const ownersTurn = (st: OwnerState) => st === 'new' || st === 'needs_answers' || st === 'ready_to_save';
 
+// A night file that cannot be read has no start, so no state to judge; the Viewer shows it red.
+export const readable = (s: Pick<NightSummary, 'started_at'>) => !!s.started_at;
+
 // Morning lists every night that is not done: the running ones, the developer's turn, and those
-// waiting for an agent (D24).
-export const inMorning = (s: StateInput) => ownerState(s) !== 'done';
+// waiting for an agent (D24). A night file that cannot be read stays only until it is opened once;
+// History keeps it.
+export const inMorning = (s: StateInput) => (readable(s) ? ownerState(s) !== 'done' : !s.read);
 
 // How a night ended matters only when it cost work: the tasks a night stopped early never started.
 export const neverStarted = (s: Pick<NightSummary, 'status' | 'counts'>) => (s.status === 'interrupted' ? s.counts.not_started : 0);

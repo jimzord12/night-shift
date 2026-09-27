@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 22:59'
+updated_date: '2026-09-27 23:11'
 labels:
   - viewer
 dependencies: []
@@ -56,4 +56,12 @@ Review round 1 (reports in docs/work/TASK-24/reviews/01-*.md). Dispositions:
 - design D2 / visual V2 Note: a picked night scrolls to the top of its report.
 - visual V5 Note: sample close times moved into the past.
 - design D4, D5, visual nit, code N1: no change (D5 and the metrics row are older, report layout is TASK-26).
+
+Review round 2: code PASS, design PASS, visual PASS (docs/work/TASK-24/reviews/02-*.md). Dispositions:
+- code m1 / visual V8 (the heading counts an unreadable night; a read unreadable night with a follow-up stayed in Morning): fixed; readable() in src/types.ts, the count skips unreadable nights, and an unreadable night leaves Morning once opened (History keeps it); tested.
+- code m2 (red chip not in the author's evidence): fixed; setup.ts adds a corrupt night (legacy), shots r3 include its chip and opening it.
+- visual V6 / code N2 (opening an unreadable night says Loading forever): fixed; it says the night could not be opened and points at the banner.
+- design D1 / visual V7 (phone: a night picked from History lands under the chips): not changed; TASK-25 replaces the chip row with cards and a strip, so the scroll target is theirs.
+- design D3 (shots miss phone report headers): shots.mjs scrolls to the report heading.
+- design D2, D4, code N1, N3, visual nit: no change (TASK-25 and TASK-26 own the heading and the report layout).
 <!-- SECTION:NOTES:END -->

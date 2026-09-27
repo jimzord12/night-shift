@@ -152,6 +152,8 @@ test('owner state: the first state that holds wins, and each state has one label
     [{}, 'done'],
   ];
   for (const [over, want] of cases) assert.equal(ownerState({ ...base, ...over }), want, JSON.stringify(over));
+  // A night file that cannot be read asks for a look once, then leaves Morning.
+  assert.deepEqual([inMorning({ ...base, started_at: '', read: false }), inMorning({ ...base, started_at: '', read: true, follow_up: true, follow_up_open: null })], [true, false]);
   // Tasks never started cost work only when the night stopped early; a closed night chose them.
   const counts = { done: 1, partial: 0, blocked: 0, failed: 0, not_started: 2, skipped: 0 };
   assert.deepEqual([neverStarted({ status: 'interrupted', counts }), neverStarted({ status: 'complete', counts }), neverStarted({ status: 'open', counts })], [2, 0, 0]);

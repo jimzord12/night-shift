@@ -167,7 +167,7 @@ export function App() {
 
         {overview && (
           <main className="mt-4">
-            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} picking={!!selected && !detail} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
+            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} picking={!!selected && !detail} failed={!!selected && !detail && !!error} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
             {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
             {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
             {view === 'trends' && <TrendsView />}
