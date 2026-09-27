@@ -25,7 +25,29 @@ Read this before committing, pushing, branching, integrating or tagging.
 - New features, migrations, significant changes and work of uncertain
   readiness go on a short-lived `<type>/<topic>` branch:
   `feat/search-filters`, `fix/cart-rounding`, `docs/checkout-guide`.
-- **One topic per branch.** A branch that grows a second topic is split.
+- **One topic per branch** (a night's branch excepted). A branch that
+  grows a second topic is split.
+- **A `Night` in this repository** puts all its tasks on one branch,
+  `night/<yyyy-mm-dd>` (`night/2026-09-29`; a second night that day adds
+  `-b`), and pushes that branch, never `main`. It creates the branch
+  **before** `night-shift start`, because start commits the refreshed
+  history to the branch checked out. The base is an up-to-date `main`, or
+  the latest night's branch while that one is unmerged: the new night
+  plans the old one's follow-up items, whose code is only there, and
+  merging the later branch brings both.
+- **The session after a night**, day or night, finds the night branch
+  checked out with `.night-shift/history/` modified or new: the `Meter`
+  (or recovery, after a crash) wrote it without committing. On the night
+  branch it runs `git add -- .night-shift/history`, then
+  `git commit --only -m "night-shift: history of <night id>" -- .night-shift/history`,
+  commits or stashes any other work an interrupted night left, pushes the
+  branch, and only then switches.
+- A day session merges a night branch once the owner has opened the
+  report of every night the branch brings in the `Viewer`, or said so,
+  with the usual checks. A conflict inside `.night-shift/history/` takes
+  either side, and an untracked file there that blocks the merge (left by
+  a recovery after a crash) is deleted: the next start rewrites those
+  files from the local night files (docs/design.md, D25).
 - Parallel work: separate worktrees, one writer per checkout, each held by
   a named session or agent (the task's assignee).
 - A child task reaching its feature branch is not the feature reaching

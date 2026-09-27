@@ -76,6 +76,8 @@ in it. Orient in this order, read-only, then give the four-line briefing
 | `src/types.ts` | Shapes shared by the tool and the web app |
 | `web/` | React + Tailwind + Vite `Viewer`; `web/dist` is built, ignored |
 | `examples/sample-repo/` | Sample night files from a real trial, for the `Viewer` and reviewers; serve a copy |
+| `.night-shift/` | This repository's own nights (it is its own `Adopter`, D25); only `history/` is committed |
+| `.claude/skills/`, `.claude/settings.json` | Installed by `night-shift install .` from a release: the skills' copies and the `Meter` hook. Edit `skills/`, never these copies |
 | `tests/` | `node --test` suites against real files, git and the server |
 | `scripts/release.ts` | Tag releases and the `night-shift` launcher |
 
@@ -120,8 +122,8 @@ without committing.
 
 - Follow docs/practices/: task flow, evidence before done, the review gate
   (fresh every round, cap 5 attended, 10 unattended), Git. Small verified
-  changes go straight to `main`; routine Git and releases need no
-  permission from the owner; report them afterwards.
+  changes go straight to `main` (not during a `Night`, D25); routine Git
+  and releases need no permission from the owner; report them afterwards.
 - **Judge a command by what it could lose, not by its name.** Before a
   branch loses commits, tag its old tip `backup/<branch>-<yyyymmdd-hhmm>`
   (docs/practices/git.md). Never `git clean -x` or `-X`: they wipe `.local/`.
@@ -149,7 +151,16 @@ without committing.
 - Credentials (a `gh` login, tokens) stay with the tool; the browser never
   sees them.
 - Releases: tags `v1`, `v2`, … never moved; a bad release takes the next
-  number. Every release gets a CHANGELOG.md entry.
+  number. Every release gets a CHANGELOG.md entry. After switching to a
+  new release, re-run `night-shift install .` so this repository's
+  installed skills match it (D25).
+- **Nights here (D25).** This repository is its own `Adopter`: a `Night`
+  runs on the installed release (the `night-shift` launcher), never on the
+  checkout it changes. A night creates its own branch before
+  `night-shift start` and the next session commits the history the `Meter`
+  left (docs/practices/git.md); a night never cuts or switches a release.
+  Night history is committed to this public repository, the owner's
+  answers and notes included.
 - A new design decision gets a docs/decisions.md entry; a new term goes into
   docs/glossary.md, named in the next report to the owner.
 - **This process is young.** When something is missing, unclear or keeps

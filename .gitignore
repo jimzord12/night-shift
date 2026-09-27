@@ -1,11 +1,13 @@
 node_modules/
 web/dist/
 /version.json
-.night-shift/
-!examples/**/.night-shift/
 *.log
 
 # Private agent context: owner profile, planning drafts, scratch evidence (docs/practices/local-folder.md).
 /.local/
 # Machine-local Claude Code permissions.
 .claude/settings.local.json
+
+# Night Shift: its working files stay local; the history of nights is committed.
+.night-shift/*
+!.night-shift/history/

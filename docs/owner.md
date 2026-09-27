@@ -46,12 +46,13 @@ command by **what it could lose, not by its name** ([practices/git.md](practices
 - **Agents decide and do, then report:** architecture inside an approved
   task, naming and glossary terms, structure, wording, small design
   choices, the order of work, creating and editing Backlog.md tasks,
-  decisions entries, and all routine Git: commit, push, merge into `main`,
-  stash, reset, amend, rebase, cherry-pick, `--force-with-lease` on a
+  decisions entries, and all routine Git: commit, push, merge into `main`
+  (a `Night`'s branch once the owner has seen the report of every night it
+  brings, D25), stash, reset, amend, rebase, cherry-pick, `--force-with-lease` on a
   feature branch, creating and deleting branches (merged ones, and unmerged
   ones once a `backup/` tag holds their tip), ordinary and `backup/` tags,
   `git worktree` add, remove and prune, clearing `builds/` by path, and
-  releases (`npm run release v<N>` and `switch`).
+  releases (`npm run release v<N>` and `switch`; never during a `Night`).
 - **Needs an explicit go, with the exact command shown first:** rewriting
   or force-pushing published `main`; deleting or moving `archive/*` tags;
   deleting work that exists nowhere else (no merge, no backup tag, no

@@ -338,3 +338,25 @@ not a graph); a docs page (this user will not open it); creating the
 follow-up automatically on the last answer (the owner wants an explicit
 gate); "?" popovers on every term (a word that needs one every visit is the
 wrong word).
+
+## D25  Night Shift develops itself: this repository is its own `Adopter` (2026-09-28)
+
+The owner asked whether Night Shift could build Night Shift, and agreed.
+`night-shift install .` and `night-shift allow .` ran here; the `Meter` hook
+lives in the committed `.claude/settings.json` and the skills' installed
+copies in `.claude/skills/`. **Why:** the owner reviews Night Shift's own
+nights every morning, the most direct test of whether the `Viewer` and the
+D24 journey work. **Chosen:** a night runs on the installed release, never
+on the checkout, so a change that breaks the source mid-night cannot break
+the recording of that night. A night works on `night/<yyyy-mm-dd>`, created
+before `night-shift start` so the history commit that start makes lands
+there; the next session commits the history the `Meter` rewrote at session
+end, then leaves the branch (docs/practices/git.md); a day session merges
+the branch after the owner has seen the report of every night it brings,
+although small changes here otherwise go straight to `main`. A night never
+cuts or switches a release, because switching changes the tool under the
+running night. Night history is committed to this public repository with the
+owner's answers and notes; the owner accepted that. **Rejected:** leaving
+history out of this repository only (a special case in the tool for one
+`Adopter`); nights committing straight to `main` (the owner wants to see the
+work first).
