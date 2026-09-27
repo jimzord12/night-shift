@@ -1,11 +1,11 @@
 ---
 id: TASK-24
 title: Derive one owner state per night and colour it by whose turn it is
-status: Active
+status: Ready
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 23:17'
+updated_date: '2026-09-27 23:23'
 labels:
   - viewer
 dependencies: []
@@ -22,9 +22,9 @@ D24. Today a night shows two axes at once (how it ended as a coloured dot, what 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A night that stopped early with tasks never started, now settled, shows one green Done badge and a grey Stopped early: N tasks never started line, never an orange dot beside a tick; a night that stopped early at no cost shows no such line (screenshot)
-- [ ] #2 A night whose follow-up has open items, not all discuss, shows Waiting for an agent in blue, and after two days says how long it has waited (test on real files, screenshot)
-- [ ] #3 Every state maps to exactly one colour and label, used alike on cards, the report and History (tests on the shared rule)
+- [x] #1 A night that stopped early with tasks never started, now settled, shows one green Done badge and a grey Stopped early: N tasks never started line, never an orange dot beside a tick; a night that stopped early at no cost shows no such line (screenshot)
+- [x] #2 A night whose follow-up has open items, not all discuss, shows Waiting for an agent in blue, and after two days says how long it has waited (test on real files, screenshot)
+- [x] #3 Every state maps to exactly one colour and label, used alike on cards, the report and History (tests on the shared rule)
 <!-- AC:END -->
 
 ## Definition of Done
@@ -71,4 +71,12 @@ Review round 3: design PASS; code FINDINGS (M1), visual FINDINGS (V9 Blocking), 
 - code m2: design.md states the unreadable-night rule.
 - code N1 / visual nit (no ring on the chosen unreadable chip): fixed; the ring follows the selection, not the loaded detail.
 - design D1 (banner names the file, not the repository): fixed with M1. D2 (phone: line below the chips): TASK-25, as V7. D3: shots.mjs scrolls the heading to the top. D4: TASK-26.
+
+Review round 4: code PASS, design PASS, visual PASS (docs/work/TASK-24/reviews/04-*.md); loop stopped. Notes left as they are: code N1 (a failed load still in flight can re-raise its banner after a quick second pick; local 422s arrive in milliseconds), N2 (failedKey holds one night; needs a transient server failure), N3 (Views.tsx recomputes readable locally), N4 (banner prefix is the repository id); design D1 and visual nit (phone: the could-not-be-opened line under the chips) belong to TASK-25; design D3 is TASK-26's; visual V11 is accepted behaviour.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Each night now shows one Owner state (Running, New, Needs answers, Ready to save, Waiting for an agent with days from two on, Done), from one ordered rule in src/types.ts shared by the server and the web app, on Morning chips, the report header and History. How a night ended shows only as a grey 'Stopped early: N tasks never started' when it cost work. Colours follow whose turn it is (purple new, amber the owner's, blue an agent's, green tick only when nothing is left, red only when something broke); blocked tasks turned amber, partial blue, failed red. Morning lists every night not Done and opens on the newest owner's-turn night; a night file that cannot be read is red, not counted, and leaves Morning once opened. Checks: npm run check exit 0 (32 tests, incl. owner-state tests through the real /api/overview route and a precedence/colour table test); screenshots of a synthetic sample at 1440 and 390 (.local/evidence/2026-09-28-owner-states/r3, r4, r4-walk) and a v12 before shot. Review: 4 rounds x 3 reviewers; round 4 all PASS (reports in docs/work/TASK-24/reviews). Not verified: the owner's own look on a real Adopter's nights; the discuss clause waits for TASK-29. On branch night/2026-09-28, not merged: merges after the owner has seen this night's report.
+<!-- SECTION:FINAL_SUMMARY:END -->
