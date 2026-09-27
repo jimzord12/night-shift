@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, ownerState, ownersTurn } from '../../src/types.ts';
+import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, ownerState, ownersTurn, readable } from '../../src/types.ts';
 import type { NightDetail, Overview } from '../../src/types.ts';
 import { getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
@@ -59,11 +59,14 @@ export function App() {
 
   const putDetail = useCallback((d: NightDetail) => setDetails((all) => ({ ...all, [keyOf(d.repo.id, d.night.night)]: d })), []);
 
+  // The night whose detail could not be loaded; its error shows until another night is picked.
+  const [failedKey, setFailedKey] = useState<string | null>(null);
   const loadNight = useCallback(async (repo: string, night: string) => {
     try {
       putDetail(await getNight(repo, night));
     } catch (e) {
-      setError((e as Error).message);
+      setFailedKey(keyOf(repo, night));
+      setError(`${repo}: ${(e as Error).message}`);
     }
   }, [putDetail]);
 
@@ -75,13 +78,14 @@ export function App() {
       setDetails({});
       setSeen(new Set());
       setError(null);
+      setFailedKey(null);
       document.title = 'Night Shift';
       setSelected((current) => {
-        if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current)) return current;
+        if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current && readable(n))) return current;
         // Morning opens on the newest night that is the developer's turn, else the newest running one;
         // none means all caught up.
         // A night file that cannot be read has nothing to open.
-        const openable = o.nights.filter((n) => n.started_at);
+        const openable = o.nights.filter(readable);
         const first = openable.find((n) => ownersTurn(ownerState(n))) ?? openable.find((n) => ownerState(n) === 'running');
         return first ? keyOf(first.repo, first.id) : null;
       });
@@ -124,6 +128,10 @@ export function App() {
 
   // A night opens at the top of its report, wherever the list was scrolled.
   const pick = (repo: string, night: string) => {
+    if (keyOf(repo, night) !== failedKey) {
+      setError(null);
+      setFailedKey(null);
+    }
     setSelected(keyOf(repo, night));
     setView('morning');
     window.scrollTo(0, 0);
@@ -167,7 +175,7 @@ export function App() {
 
         {overview && (
           <main className="mt-4">
-            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} picking={!!selected && !detail} failed={!!selected && !detail && !!error} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
+            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} selected={selected} picking={!!selected && !detail} failed={!!selected && selected === failedKey} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
             {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
             {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
             {view === 'trends' && <TrendsView />}

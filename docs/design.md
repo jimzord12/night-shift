@@ -388,7 +388,9 @@ from any folder. Screens:
    boxes and **Send to GitHub**. Opening a night marks it read; a night
    opened while it ran is unread again once it ends. The list is fixed
    when the Viewer loads; a chip that settles shows its new state until
-   the next reload.
+   the next reload. A night file that cannot be read shows a red "Cannot
+   be read" badge, is not counted as the developer's turn, and stays in
+   Morning until it has been opened once; History keeps it.
 2. **Questions:** every open question across nights.
 3. **History:** one row per night: date, repository, its state, outcome
    counts, duration, cost and the grey stopped-early line; a row opens

@@ -11,6 +11,7 @@ interface Props {
   // The nights that were not done when the Viewer loaded, with their live state.
   inbox: NightSummary[];
   detail: NightDetail | null;
+  selected: string | null;
   // A night is chosen and its detail is on the way, or could not be loaded (the banner says why).
   picking: boolean;
   failed: boolean;
@@ -25,7 +26,7 @@ const repoName = (o: Overview, id: string) => o.repos.find((r) => r.id === id)?.
 // The morning is an inbox: every night not done yet (running, the developer's turn, or waiting for
 // an agent) as chips, newest first, and the chosen night in full. Nothing on the developer's side
 // means "All caught up"; every night stays one click away in History.
-export function Morning({ overview, inbox, detail, picking, failed, onPick, onHistory, onOpenDeck, onDetail }: Props) {
+export function Morning({ overview, inbox, detail, selected, picking, failed, onPick, onHistory, onOpenDeck, onDetail }: Props) {
   if (!overview.nights.length) return <Empty />;
   const left = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
   const now = Date.now();
@@ -37,7 +38,7 @@ export function Morning({ overview, inbox, detail, picking, failed, onPick, onHi
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-sm tracking-widest text-white/50 uppercase">{left ? `${left} waiting for you` : detail ? 'All caught up' : 'In progress'}</span>
           {inbox.map((n) => (
-            <NightChip key={`${n.repo}/${n.id}`} n={n} now={now} name={repoName(overview, n.repo)} active={detail?.repo.id === n.repo && detail.night.night === n.id} onClick={() => onPick(n.repo, n.id)} />
+            <NightChip key={`${n.repo}/${n.id}`} n={n} now={now} name={repoName(overview, n.repo)} active={selected === `${n.repo}/${n.id}`} onClick={() => onPick(n.repo, n.id)} />
           ))}
         </div>
       )}

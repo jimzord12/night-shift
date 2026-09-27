@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 23:11'
+updated_date: '2026-09-27 23:17'
 labels:
   - viewer
 dependencies: []
@@ -64,4 +64,11 @@ Review round 2: code PASS, design PASS, visual PASS (docs/work/TASK-24/reviews/0
 - design D1 / visual V7 (phone: a night picked from History lands under the chips): not changed; TASK-25 replaces the chip row with cards and a strip, so the scroll target is theirs.
 - design D3 (shots miss phone report headers): shots.mjs scrolls to the report heading.
 - design D2, D4, code N1, N3, visual nit: no change (TASK-25 and TASK-26 own the heading and the report layout).
+
+Review round 3: design PASS; code FINDINGS (M1), visual FINDINGS (V9 Blocking), same defect (docs/work/TASK-24/reviews/03-*.md). Dispositions:
+- code M1 / visual V9 / V10 (the unreadable night's error banner follows the owner to the next night, and a loading night says 'could not be opened'): fixed; the error is tied to the night that failed (failedKey), cleared when another night is picked, and names the repository.
+- code m1 (reload reopens the unreadable night it just removed): fixed; the kept selection must be readable.
+- code m2: design.md states the unreadable-night rule.
+- code N1 / visual nit (no ring on the chosen unreadable chip): fixed; the ring follows the selection, not the loaded detail.
+- design D1 (banner names the file, not the repository): fixed with M1. D2 (phone: line below the chips): TASK-25, as V7. D3: shots.mjs scrolls the heading to the top. D4: TASK-26.
 <!-- SECTION:NOTES:END -->
