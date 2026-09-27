@@ -3,6 +3,14 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v12 (86182b2), 2026-09-27
+
+- History: the timeline dots sit on the line and in front of the cards
+  again (they were half hidden behind them).
+- History: the repository after a night's title is a badge with a folder
+  icon, so it stands out; long names are cut with an ellipsis and shown
+  in full on hover.
+
 ## v11 (7889ba0), 2026-09-27
 
 - `night-shift allow [repo]` (D23): lets agents run the tool and write

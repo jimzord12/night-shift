@@ -11,10 +11,10 @@ Read this first on every fresh session, then derive the state from the tasks
 (`backlog task list --plain`), Git and evidence; they win when they disagree
 with this document. Rewritten in place at the end of every session.
 
-**Written:** 2026-09-27, v11 released; first real unattended CVgen night launched (claude, owner asleep)
+**Written:** 2026-09-27, v12 released (History dots + repository badge, design review R3 PASS); v11 before it; first real unattended CVgen night launched (claude, owner asleep)
 
 ## Where things stand
-- v11 released and current (7889ba0): `night-shift allow` (D23). Review
+- v12 current (86182b2): History fixes only. v11 (7889ba0): `night-shift allow` (D23). Review
   code R1 FINDINGS (F1 Material: rules unproven live) -> fixed; R2 PASS,
   its two Minors fixed. Proof: headless Claude Code with only the generated
   rules (user settings off, dontAsk) runs the tool via Bash and PowerShell
