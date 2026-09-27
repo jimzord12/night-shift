@@ -8,8 +8,8 @@ import { ask, close, feedback, onSessionEnd, record, start } from '../src/night.
 import { loadNight, markRead, readFollowUp, registerRepo } from '../src/store.ts';
 import { buildFollowUp, resolveItem } from '../src/followup.ts';
 import { issueBody, newIssueUrl } from '../src/github.ts';
-import { inMorning, needsHandOver, ownerSide } from '../src/types.ts';
-import type { NightDetail, Overview } from '../src/types.ts';
+import { OWNER_STATE, OWNER_STATES, inMorning, needsHandOver, neverStarted, ownerState, ownersTurn, waitedDays } from '../src/types.ts';
+import type { NightDetail, Overview, OwnerState } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
 const json = { 'Content-Type': 'application/json' };
@@ -43,80 +43,121 @@ test('overview: every registered repository\'s nights, newest first, with counts
   assert.equal(again.nights.find((n) => n.repo === a.ref.id && n.id === a.id)?.read, true);
 });
 
-test('morning inbox: a night stays while unread or needing the developer, and leaves once read and handed over', async () => {
+// The Owner state as the Viewer reads it: a night's summary from the real overview route.
+async function stateOf(app: ReturnType<typeof createApp>, repo: string, id: string) {
+  const o = (await (await app.request('/api/overview')).json()) as Overview;
+  const n = o.nights.find((x) => x.repo === repo && x.id === id);
+  assert.ok(n);
+  return { n, state: ownerState(n), listed: inMorning(n) };
+}
+
+test('owner state: new, needs answers, waiting for an agent, then done, and Morning keeps it until done', async () => {
   const { ref, id, repo } = closedNight();
   const app = createApp({ version: 'test' });
-  const summary = async () => {
-    const o = (await (await app.request('/api/overview')).json()) as Overview;
-    const n = o.nights.find((x) => x.repo === ref.id && x.id === id);
-    assert.ok(n);
-    return n;
-  };
-  let n = await summary();
-  assert.deepEqual([n.hand_over, n.questions_open, ownerSide(n), inMorning(n)], [true, 1, 'needs_you', true]);
+  let s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.state, s.listed], ['new', true]);
   await app.request(`/api/nights/${ref.id}/${id}/read`, { method: 'POST' });
-  assert.equal(inMorning(await summary()), true, 'read, but the blocked task is not handed over');
+  s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.state, s.listed], ['needs_answers', true]);
 
-  // Handed over with the question unanswered: still waiting for the developer's answer.
+  // Saved with the question unanswered: the answer still reaches the next agent, so it is still asked.
   await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
-  n = await summary();
-  assert.deepEqual([n.hand_over, n.follow_up, n.questions_open, inMorning(n)], [false, true, 1, true]);
+  s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.n.follow_up, s.n.questions_open, s.state], [true, 1, 'needs_answers']);
   await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: loadNight(repo, id).hash }) });
-  n = await summary();
-  assert.deepEqual([ownerSide(n), inMorning(n)], ['handed_over', false]);
+  s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.n.follow_up_open, s.state, s.listed], [1, 'waiting', true]);
 
-  // A night with every task done and no question has nothing to hand over: reading it is enough.
+  // The agent settles the follow-up's last item: nothing is left for anyone.
+  resolveItem(repo, `${id}/A1`, 'done', 'day', undefined);
+  s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.n.follow_up_open, s.state, s.listed], [0, 'done', false]);
+
+  // A night with every task done and no question owes nothing: reading it is enough.
   const other = gitRepo('clean');
   const clean = start(other, plan(TASKS.slice(0, 1)), session('s2', DEAD_PID), NOW).night.night;
   record(other, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
   close(other, 'All done.');
   const otherRef = registerRepo(other);
-  const cleanSummary = async () => {
-    const o = (await (await app.request('/api/overview')).json()) as Overview;
-    const found = o.nights.find((x) => x.repo === otherRef.id && x.id === clean);
-    assert.ok(found);
-    return found;
-  };
-  n = await cleanSummary();
-  assert.deepEqual([n.hand_over, ownerSide(n), inMorning(n)], [false, 'nothing', true]);
+  s = await stateOf(app, otherRef.id, clean);
+  assert.deepEqual([s.n.hand_over, s.state, neverStarted(s.n)], [false, 'new', 0]);
   await app.request(`/api/nights/${otherRef.id}/${clean}/read`, { method: 'POST' });
-  assert.equal(inMorning(await cleanSummary()), false);
+  assert.equal((await stateOf(app, otherRef.id, clean)).state, 'done');
 });
 
-test('morning inbox: a night stopped early with work left needs a hand-over; a read mark from while it ran does not count', async () => {
+test('owner state: a night stopped early is running until it closes, then ready to save, and says what it cost', async () => {
   const repo = gitRepo('stopped');
   const id = start(repo, plan(TASKS.slice(0, 2)), session('mine', process.pid), NOW).night.night;
   record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
   const ref = registerRepo(repo);
   const app = createApp({ version: 'test' });
-  const summary = async () => {
-    const o = (await (await app.request('/api/overview')).json()) as Overview;
-    const n = o.nights.find((x) => x.repo === ref.id && x.id === id);
-    assert.ok(n);
-    return n;
-  };
-  // Opened while it runs: read, and nothing to hand over yet.
+  // Opened while it runs: still running, and the read mark does not count once it ends.
   markRead(ref.id, id, new Date('2026-09-26T23:30:00'));
-  let n = await summary();
-  assert.deepEqual([n.running, n.read, n.hand_over, inMorning(n)], [true, true, false, false]);
+  let s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.n.running, s.state, s.listed], [true, 'running', true]);
 
   onSessionEnd(repo, 'mine', null, new Date('2026-09-27T02:00:00'));
   const night = loadNight(repo, id).night;
   assert.equal(night.status, 'interrupted');
-  // The Viewer's rule and the follow-up builder agree on whether there is anything to hand over.
+  // The Viewer's rule and the follow-up builder agree on whether there is anything to save.
   assert.equal(needsHandOver(night, null), buildFollowUp(night).items.length > 0);
 
-  n = await summary();
-  assert.deepEqual([n.read, n.questions_open, n.hand_over, ownerSide(n), inMorning(n)], [false, 0, true, 'needs_you', true]);
+  s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.state, neverStarted(s.n)], ['new', 1]);
   markRead(ref.id, id, new Date('2026-09-27T08:00:00'));
-  assert.equal(inMorning(await summary()), true, 'read, but T2 is not handed over');
+  assert.equal((await stateOf(app, ref.id, id)).state, 'ready_to_save');
   assert.equal((await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' })).status, 200);
-  n = await summary();
-  assert.deepEqual([n.hand_over, ownerSide(n), inMorning(n)], [false, 'handed_over', false]);
-  // A follow-up file that no longer reads still blocks a second one, so it is not asked for again.
+  assert.equal((await stateOf(app, ref.id, id)).state, 'waiting');
+  // A follow-up file that no longer reads still blocks a second one; it counts as waiting.
   fs.writeFileSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`), '{ broken');
-  n = await summary();
-  assert.deepEqual([n.follow_up, n.hand_over, inMorning(n)], [true, false, false]);
+  s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.n.follow_up, s.n.hand_over, s.n.follow_up_open, s.state], [true, false, null, 'waiting']);
+});
+
+test('owner state: a night stopped early at no cost carries no warning; waiting says how long from two days on', async () => {
+  const repo = gitRepo('quiet');
+  const id = start(repo, plan(TASKS.slice(0, 2)), session('q', process.pid), NOW).night.night;
+  record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  record(repo, { task: 'T2', outcome: 'failed', checks: [false], why: 'The redirect lives in the provider' });
+  onSessionEnd(repo, 'q', null, new Date('2026-09-27T02:00:00'));
+  const ref = registerRepo(repo);
+  const app = createApp({ version: 'test' });
+  markRead(ref.id, id, new Date('2026-09-27T08:00:00'));
+  let s = await stateOf(app, ref.id, id);
+  assert.deepEqual([s.n.status, neverStarted(s.n), s.state], ['interrupted', 0, 'ready_to_save']);
+
+  await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  s = await stateOf(app, ref.id, id);
+  const created = readFollowUp(repo, id).created_at;
+  assert.deepEqual([s.state, s.n.follow_up_at], ['waiting', created]);
+  const at = Date.parse(created);
+  const day = 86_400_000;
+  assert.deepEqual([waitedDays(s.n.follow_up_at, at + day), waitedDays(s.n.follow_up_at, at + 2 * day), waitedDays(s.n.follow_up_at, at + 5.5 * day)], [null, 2, 5]);
+});
+
+test('owner state: the first state that holds wins, and each state has one label and a whose-turn colour', () => {
+  type Input = Parameters<typeof ownerState>[0];
+  const base: Input = { status: 'complete', started_at: '2026-09-26T23:10:00', read: true, questions_open: 0, hand_over: false, follow_up: false, follow_up_open: null };
+  const cases: [Partial<Input>, OwnerState][] = [
+    [{ status: 'open', read: false, questions_open: 2 }, 'running'],
+    [{ status: 'open', started_at: '' }, 'done'],
+    [{ status: 'open', started_at: '', read: false }, 'new'],
+    [{ read: false, questions_open: 2, hand_over: true }, 'new'],
+    [{ questions_open: 1, hand_over: true }, 'needs_answers'],
+    [{ questions_open: 1, follow_up: true, follow_up_open: 2 }, 'needs_answers'],
+    [{ hand_over: true }, 'ready_to_save'],
+    [{ follow_up: true, follow_up_open: 3 }, 'waiting'],
+    [{ follow_up: true, follow_up_open: null }, 'waiting'],
+    [{ follow_up: true, follow_up_open: 0 }, 'done'],
+    [{}, 'done'],
+  ];
+  for (const [over, want] of cases) assert.equal(ownerState({ ...base, ...over }), want, JSON.stringify(over));
+  assert.equal(new Set(OWNER_STATES.map((st) => OWNER_STATE[st].label)).size, OWNER_STATES.length, 'one label per state');
+  const coloured = (c: string) => OWNER_STATES.filter((st) => OWNER_STATE[st].color === c);
+  assert.deepEqual(coloured('var(--color-eyes)'), ['needs_answers', 'ready_to_save'], 'amber: the developer must act');
+  assert.deepEqual(coloured('var(--color-agent)'), ['running', 'waiting'], 'blue: an agent must act');
+  assert.deepEqual([coloured('var(--accent)'), coloured('var(--color-shipped)')], [['new'], ['done']]);
+  assert.deepEqual(OWNER_STATES.filter(ownersTurn), ['new', 'needs_answers', 'ready_to_save']);
 });
 
 test('answers: round trip, a stale write is refused, an unknown option is refused', async () => {

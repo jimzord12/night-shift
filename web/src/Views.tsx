@@ -1,7 +1,7 @@
 import type { Overview } from '../../src/types.ts';
-import { OUTCOMES, isOpenQuestionIn, ownerSide } from '../../src/types.ts';
+import { OUTCOMES, OWNER_STATE, isOpenQuestionIn, neverStarted, ownerState, waitedDays } from '../../src/types.ts';
 import type { DeckItem } from './QuestionDeck.tsx';
-import { Icon, NIGHT_STATUS, OwnerPill, STATUS, dollars, minutes, nightTitle } from './ui.tsx';
+import { Icon, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle } from './ui.tsx';
 
 // ---------------------------------------------------------------- questions
 
@@ -46,15 +46,19 @@ export function QuestionsView({ items, loading, onOpen }: { items: DeckItem[]; l
 export function HistoryView({ overview, selected, onPick }: { overview: Overview; selected?: string; onPick: (repo: string, night: string) => void }) {
   if (!overview.nights.length) return <Empty icon="moon" text="No night has run yet." />;
   const name = (id: string) => overview.repos.find((r) => r.id === id)?.name ?? id;
+  const now = Date.now();
   return (
     <ol className="relative space-y-3 border-l border-white/10 pl-6">
       {overview.nights.map((n, i) => {
-        const st = NIGHT_STATUS[n.running ? 'running' : n.status];
+        // A night file that could not be read has no start and nothing to judge: red, no state.
+        const readable = !!n.started_at;
+        const state = ownerState(n);
+        const color = readable ? OWNER_STATE[state].color : 'var(--color-broken)';
         const total = n.tasks || 1;
         return (
           <li key={`${n.repo}/${n.id}`} className="pop-in relative" style={{ animationDelay: `${i * 30}ms` }}>
             {/* Centred on the list's left border: pl-6 (1.5rem) + half the border + half the dot (size-3.5 / 2). */}
-            <span className="absolute left-[calc(-1.9375rem-0.5px)] z-10 mt-5 size-3.5 rounded-full border-2 border-night-950" style={{ background: st.color }} />
+            <span className="absolute left-[calc(-1.9375rem-0.5px)] z-10 mt-5 size-3.5 rounded-full border-2 border-night-950" style={{ background: color }} />
             <button onClick={() => onPick(n.repo, n.id)} className={`glass w-full rounded-2xl p-4 text-left transition hover:bg-white/10 ${`${n.repo}/${n.id}` === selected ? 'ring-2 ring-[var(--accent)]' : ''}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <span className="flex max-w-full min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -66,21 +70,18 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
                 <span className="flex flex-wrap items-center gap-4 text-sm text-white/55">
                   <span className="inline-flex items-center gap-1"><Icon name="clock" /> {minutes(n.duration_min)}</span>
                   <span className="inline-flex items-center gap-1"><Icon name="coin" /> {dollars(n.cost_usd)}</span>
-                  <span className="inline-flex items-center gap-2">
-                    <span className="font-semibold" style={{ color: st.color }}>{st.label}</span>
-                    {/* A night file that could not be read has no started_at and nothing to judge. */}
-                    {!n.running && n.started_at && <OwnerPill side={ownerSide(n)} />}
-                  </span>
+                  {readable ? <StateBadge state={state} waited={waitedDays(n.follow_up_at, now)} /> : <span className="font-semibold text-broken">Cannot be read</span>}
                 </span>
               </div>
               {n.summary && <p className="mt-2 text-sm text-white/70">{n.summary}</p>}
+              {neverStarted(n) > 0 && <div className="mt-1.5"><StoppedEarly count={neverStarted(n)} /></div>}
               <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-white/5">
                 {OUTCOMES.map((o) => n.counts[o] > 0 && <div key={o} style={{ width: `${(n.counts[o] / total) * 100}%`, background: STATUS[o].color }} title={`${n.counts[o]} ${STATUS[o].label}`} />)}
               </div>
               <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/60">
                 {OUTCOMES.map((o) => n.counts[o] > 0 && <span key={o} style={{ color: STATUS[o].color }}>{n.counts[o]} {STATUS[o].label.toLowerCase()}</span>)}
                 {n.questions_open > 0 && <span className="text-eyes">{n.questions_open} open question{n.questions_open === 1 ? '' : 's'}</span>}
-                {n.problems.length > 0 && <span className="text-blocked">{n.problems.length} file problem{n.problems.length === 1 ? '' : 's'}</span>}
+                {n.problems.length > 0 && <span className="text-broken">{n.problems.length} file problem{n.problems.length === 1 ? '' : 's'}</span>}
               </div>
             </button>
           </li>

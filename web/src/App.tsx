@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { inMorning, isOpenQuestionIn, needsHandOver } from '../../src/types.ts';
+import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, ownerState, ownersTurn } from '../../src/types.ts';
 import type { NightDetail, Overview } from '../../src/types.ts';
 import { getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
@@ -41,6 +41,8 @@ export function App() {
             // A follow-up file the server found but could not read still counts as handed over.
             follow_up: n.follow_up || !!d.follow_up,
             hand_over: !n.follow_up && needsHandOver(d.night, d.follow_up),
+            follow_up_open: d.follow_up ? followUpOpen(d.follow_up) : n.follow_up_open,
+            follow_up_at: d.follow_up?.created_at ?? n.follow_up_at,
           }
         : live;
     });
@@ -76,8 +78,9 @@ export function App() {
       document.title = 'Night Shift';
       setSelected((current) => {
         if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current)) return current;
-        // Morning opens on the newest night that still needs the developer; none means all caught up.
-        const first = o.nights.find(inMorning);
+        // Morning opens on the newest night that is the developer's turn, else the newest running one;
+        // none means all caught up.
+        const first = o.nights.find((n) => ownersTurn(ownerState(n))) ?? o.nights.find((n) => ownerState(n) === 'running');
         return first ? keyOf(first.repo, first.id) : null;
       });
     } catch (e) {
@@ -160,7 +163,7 @@ export function App() {
 
         {overview && (
           <main className="mt-4">
-            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
+            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} picking={!!selected && !detail} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
             {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
             {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
             {view === 'trends' && <TrendsView />}
@@ -182,5 +185,5 @@ export function App() {
 }
 
 function Banner({ children }: { children: ReactNode }) {
-  return <div className="mb-4 rounded-2xl bg-blocked/15 px-4 py-3 text-sm text-blocked">{children}</div>;
+  return <div className="mb-4 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">{children}</div>;
 }

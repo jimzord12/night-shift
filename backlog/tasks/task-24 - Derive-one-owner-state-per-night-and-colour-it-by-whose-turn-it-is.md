@@ -1,10 +1,11 @@
 ---
 id: TASK-24
 title: Derive one owner state per night and colour it by whose turn it is
-status: Queued
-assignee: []
+status: Active
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:54'
+updated_date: '2026-09-27 22:51'
 labels:
   - viewer
 dependencies: []
@@ -33,6 +34,12 @@ D24. Today a night shows two axes at once (how it ended as a coloured dot, what 
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+1. One ordered ownerState in src/types.ts shared by server and web, with OWNER_STATE labels/colours. 2. Summary carries follow_up_open and follow_up_at. 3. One StateBadge on chips, report and History; grey StoppedEarly line. 4. Colours: blue agent token, blocked outcome amber, failed red, partial blue. 5. Tests through the real overview route; screenshots on a scratch sample.
+<!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
 

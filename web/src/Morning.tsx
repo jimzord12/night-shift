@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { NightDetail, NightSummary, Overview, Task } from '../../src/types.ts';
-import { OUTCOMES, countOutcomes, inMorning, isOpenQuestionIn, needsHandOver, ownerSide, unfinishedTasks } from '../../src/types.ts';
+import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, ownersTurn, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import type { Media } from './Evidence.tsx';
-import { Icon, NIGHT_STATUS, OwnerPill, Pill, Ring, STATUS, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
+import { Icon, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
 
 interface Props {
   overview: Overview;
-  // The nights that needed the developer when the Viewer loaded, with their live state.
+  // The nights that were not done when the Viewer loaded, with their live state.
   inbox: NightSummary[];
   detail: NightDetail | null;
+  // A night is chosen and its detail is on the way.
+  picking: boolean;
   onPick: (repo: string, night: string) => void;
   onHistory: () => void;
   onOpenDeck: (startKey?: string) => void;
@@ -19,12 +21,14 @@ interface Props {
 
 const repoName = (o: Overview, id: string) => o.repos.find((r) => r.id === id)?.name ?? id;
 
-// The morning is an inbox: the nights still unread or needing the developer (open questions, or
-// work not yet handed over) as chips, newest first, and the chosen night in full. Nothing left
+// The morning is an inbox: every night not done yet (running, the developer's turn, or waiting for
+// an agent) as chips, newest first, and the chosen night in full. Nothing on the developer's side
 // means "All caught up"; every night stays one click away in History.
-export function Morning({ overview, inbox, detail, onPick, onHistory, onOpenDeck, onDetail }: Props) {
+export function Morning({ overview, inbox, detail, picking, onPick, onHistory, onOpenDeck, onDetail }: Props) {
   if (!overview.nights.length) return <Empty />;
-  const left = inbox.filter(inMorning).length;
+  const left = inbox.filter((n) => ownersTurn(ownerState(n))).length;
+  const now = Date.now();
+  const live = detail && overview.nights.find((n) => n.repo === detail.repo.id && n.id === detail.night.night);
   const last = overview.nights[0];
   return (
     <div className="space-y-6">
@@ -32,7 +36,7 @@ export function Morning({ overview, inbox, detail, onPick, onHistory, onOpenDeck
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-sm tracking-widest text-white/50 uppercase">{left ? 'Waiting for you' : 'All caught up'}</span>
           {inbox.map((n) => (
-            <NightChip key={`${n.repo}/${n.id}`} n={n} name={repoName(overview, n.repo)} active={detail?.repo.id === n.repo && detail.night.night === n.id} onClick={() => onPick(n.repo, n.id)} />
+            <NightChip key={`${n.repo}/${n.id}`} n={n} now={now} name={repoName(overview, n.repo)} active={detail?.repo.id === n.repo && detail.night.night === n.id} onClick={() => onPick(n.repo, n.id)} />
           ))}
         </div>
       )}
@@ -45,27 +49,31 @@ export function Morning({ overview, inbox, detail, onPick, onHistory, onOpenDeck
       ) : (
         <CaughtUp onLast={() => onPick(last.repo, last.id)} onHistory={onHistory} />
       ))}
-      {detail ? <NightView detail={detail} onOpenDeck={onOpenDeck} onDetail={onDetail} /> : inbox.length > 0 && <div className="py-24 text-center text-white/40">Loading the night…</div>}
+      {detail && live ? (
+        <NightView detail={detail} summary={live} onOpenDeck={onOpenDeck} onDetail={onDetail} />
+      ) : picking ? (
+        <div className="py-24 text-center text-white/40">Loading the night…</div>
+      ) : (
+        inbox.length > 0 && <CaughtUp onLast={() => onPick(last.repo, last.id)} onHistory={onHistory} />
+      )}
     </div>
   );
 }
 
-// What the developer still owes a night, newest reason first; a chip with nothing left is dimmed.
-function NightChip({ n, name, active, onClick }: { n: NightSummary; name: string; active: boolean; onClick: () => void }) {
-  const st = NIGHT_STATUS[n.running ? 'running' : n.status];
-  const settled = !n.running && !inMorning(n);
+// One badge per night: its state. A chip that is not the developer's turn or running is dimmed.
+function NightChip({ n, now, name, active, onClick }: { n: NightSummary; now: number; name: string; active: boolean; onClick: () => void }) {
+  const state = ownerState(n);
+  const settled = state === 'waiting' || state === 'done';
   return (
-    <button onClick={onClick} aria-current={active || undefined} className={`glass inline-flex max-w-full min-w-0 items-center gap-2 rounded-2xl px-3.5 py-1.5 text-left text-sm transition hover:bg-white/10 sm:rounded-full ${active ? 'outline-2 outline-[var(--accent)]' : ''} ${settled && !active ? 'opacity-60' : ''}`}>
-      <span className="size-2 shrink-0 rounded-full" style={{ background: st.color, boxShadow: `0 0 8px ${st.color}` }} />
+    <button onClick={onClick} aria-current={active || undefined} className={`glass inline-flex max-w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl px-3.5 py-1.5 text-left text-sm transition hover:bg-white/10 sm:rounded-full ${active ? 'outline-2 outline-[var(--accent)]' : ''} ${settled && !active ? 'opacity-60' : ''}`}>
       {/* Phone: the name above the date, so neither squeezes the other out. */}
       <span className="flex min-w-0 flex-col leading-tight sm:flex-row sm:items-baseline sm:gap-2">
         <span className="min-w-0 truncate font-semibold" title={name}>{name}</span>
         <span className="whitespace-nowrap text-white/60">{nightTitle(n.id, true)}</span>
       </span>
-      {!n.read && <span className="shrink-0 rounded-full bg-[var(--accent)] px-1.5 text-[11px] font-bold tracking-wide text-white uppercase">new</span>}
-      {n.questions_open > 0 && <span className="shrink-0 rounded-full bg-eyes px-1.5 text-[13px] font-bold text-night-950" title={`${n.questions_open} open question${n.questions_open === 1 ? '' : 's'}`}>{n.questions_open}</span>}
-      {n.hand_over && <span className="shrink-0 rounded-full border border-eyes/50 px-1.5 text-xs whitespace-nowrap text-eyes" title="Unfinished work or answers not handed over yet: Create follow-up">hand over</span>}
-      {settled && <Icon name="check" className="size-4 shrink-0 text-shipped" strokeWidth={2.6} />}
+      <StateBadge state={state} waited={waitedDays(n.follow_up_at, now)} small />
+      {/* Phone: the report says it; the chip keeps room for the name. */}
+      {neverStarted(n) > 0 && <span className="hidden min-w-0 sm:inline-flex"><StoppedEarly count={neverStarted(n)} short /></span>}
     </button>
   );
 }
@@ -96,14 +104,14 @@ function Empty() {
   );
 }
 
-export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void }) {
+export function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void }) {
   const [open, setOpen] = useState<Task | null>(null);
   const n = detail.night;
   const counts = countOutcomes(n.tasks);
   const openQ = n.questions.filter((q) => isOpenQuestionIn(q, detail.follow_up)).length;
   const answered = n.questions.length - openQ;
-  const st = NIGHT_STATUS[detail.running ? 'running' : n.status];
-  const side = ownerSide({ questions_open: openQ, hand_over: needsHandOver(n, detail.follow_up), follow_up: !!detail.follow_up });
+  // Open on the page: no longer new.
+  const state = ownerState({ ...summary, read: true });
   const m = n.metrics;
 
   return (
@@ -112,14 +120,11 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
         <div className="glass pop-in rounded-3xl p-6 md:col-span-2 2xl:col-span-1">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="tracking-widest text-white/50 uppercase">{detail.repo.name}</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 15%, transparent)` }}>
-              <span className="size-1.5 rounded-full" style={{ background: st.color, animation: detail.running ? 'redline 1.2s ease-in-out infinite' : undefined }} />
-              {st.label}
-            </span>
-            {!detail.running && <OwnerPill side={side} />}
+            <StateBadge state={state} waited={waitedDays(summary.follow_up_at, Date.now())} />
           </div>
           <h1 className="font-display mt-1 text-2xl font-semibold sm:text-3xl">{nightTitle(n.night)}</h1>
           {n.summary ? <p className="mt-3 leading-snug text-white/85 sm:text-lg">{n.summary}</p> : <p className="mt-3 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
+          {neverStarted(summary) > 0 && <div className="mt-2"><StoppedEarly count={neverStarted(summary)} /></div>}
           <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
             {OUTCOMES.map((o) => (
               <div key={o} className="flex min-w-0 items-center gap-2 rounded-2xl bg-white/5 px-2 py-2 sm:gap-2.5 sm:px-3" style={{ opacity: counts[o] ? 1 : 0.35 }}>
@@ -182,7 +187,7 @@ export function NightView({ detail, onOpenDeck, onDetail }: { detail: NightDetai
       {n.feedback.length > 0 && <FeedbackSection detail={detail} onDetail={onDetail} />}
 
       {detail.problems.length > 0 && (
-        <div className="rounded-2xl border border-blocked/40 bg-blocked/10 p-4 text-sm text-blocked">
+        <div className="rounded-2xl border border-broken/40 bg-broken/10 p-4 text-sm text-broken">
           <div className="mb-1 font-semibold">This night file has problems</div>
           <ul className="list-inside list-disc">{detail.problems.map((p) => <li key={p}>{p}</li>)}</ul>
         </div>
@@ -243,7 +248,7 @@ function FollowUpCard({ detail, onDetail }: { detail: NightDetail; onDetail: (d:
       ) : (
         <p className="text-white/60">Nothing to follow up: every task is done or skipped.</p>
       )}
-      {error && <div className="rounded-xl bg-blocked/15 px-3 py-2 text-sm text-blocked">{error}</div>}
+      {error && <div className="rounded-xl bg-broken/15 px-3 py-2 text-sm text-broken">{error}</div>}
     </div>
   );
 }
@@ -327,7 +332,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
             <ul className="space-y-2">
               {t.checks.map((c, i) => (
                 <li key={i} className="flex gap-3">
-                  <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full" style={{ background: c.met ? 'color-mix(in srgb, var(--color-shipped) 20%, transparent)' : 'color-mix(in srgb, var(--color-blocked) 20%, transparent)', color: c.met ? 'var(--color-shipped)' : 'var(--color-blocked)' }}>
+                  <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full" style={{ background: c.met ? 'color-mix(in srgb, var(--color-shipped) 20%, transparent)' : 'color-mix(in srgb, var(--color-idle) 20%, transparent)', color: c.met ? 'var(--color-shipped)' : 'var(--color-idle)' }}>
                     <Icon name={c.met ? 'check' : 'close'} className="size-3.5" strokeWidth={3} />
                   </span>
                   <span>

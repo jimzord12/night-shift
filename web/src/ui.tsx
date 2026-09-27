@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { NightStatus, Outcome, OwnerSide } from '../../src/types.ts';
+import { OWNER_STATE } from '../../src/types.ts';
+import type { Outcome, OwnerState } from '../../src/types.ts';
 
 const PATHS = {
   check: 'M5 12.5l4.5 4.5L19 7.5',
@@ -43,39 +44,40 @@ export function Icon({ name, className = 'size-4', strokeWidth = 2 }: { name: Ic
   );
 }
 
-// The six outcomes a task can end a night with.
+// The six outcomes a task can end a night with, coloured like the owner states: amber when the
+// developer must act, blue when an agent continues, red only when something broke (D24).
 export const STATUS: Record<Outcome, { label: string; color: string; icon: IconName }> = {
   done: { label: 'Done', color: 'var(--color-shipped)', icon: 'check' },
-  partial: { label: 'Partial', color: 'var(--color-eyes)', icon: 'half' },
-  blocked: { label: 'Blocked', color: 'var(--color-blocked)', icon: 'stop' },
-  failed: { label: 'Failed', color: 'var(--color-failed)', icon: 'warn' },
+  partial: { label: 'Partial', color: 'var(--color-agent)', icon: 'half' },
+  blocked: { label: 'Blocked', color: 'var(--color-eyes)', icon: 'stop' },
+  failed: { label: 'Failed', color: 'var(--color-broken)', icon: 'warn' },
   not_started: { label: 'Not started', color: 'var(--color-idle)', icon: 'dash' },
   skipped: { label: 'Skipped', color: 'var(--color-skipped)', icon: 'skip' },
 };
 
 // A task of a running night with no outcome yet.
-export const WORKING = { label: 'Working', color: 'var(--color-moon)', icon: 'moon' as IconName };
+export const WORKING = { label: 'Working', color: 'var(--color-agent)', icon: 'moon' as IconName };
 export const taskStyle = (outcome: Outcome | null) => (outcome === null ? WORKING : STATUS[outcome]);
 
-export const NIGHT_STATUS: Record<NightStatus | 'running', { label: string; color: string }> = {
-  complete: { label: 'Closed', color: 'var(--color-shipped)' },
-  interrupted: { label: 'Stopped early', color: 'var(--color-failed)' },
-  open: { label: 'Stopped, not closed yet', color: 'var(--color-eyes)' },
-  running: { label: 'Running now', color: 'var(--color-moon)' },
-};
-
-// The developer's side of a night, shown beside how the night ended.
-export const OWNER_SIDE: Record<OwnerSide, { label: string; color: string; hint: string }> = {
-  needs_you: { label: 'Needs you', color: 'var(--color-eyes)', hint: 'Open questions, or unfinished work not handed over yet' },
-  handed_over: { label: 'Handed over', color: 'var(--accent)', hint: 'Its follow-up is with the next agent' },
-  nothing: { label: 'Nothing left', color: 'var(--color-idle)', hint: 'Every task done or skipped, no questions' },
-};
-
-export function OwnerPill({ side }: { side: OwnerSide }) {
-  const s = OWNER_SIDE[side];
+// The one badge a night shows; `waited` adds how long it has waited for an agent, from two days on.
+export function StateBadge({ state, waited = null, small = false }: { state: OwnerState; waited?: number | null; small?: boolean }) {
+  const s = OWNER_STATE[state];
+  const days = state === 'waiting' && waited ? ` · ${waited} days` : '';
   return (
-    <span title={s.hint} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${s.color} 70%, white)`, borderColor: `color-mix(in srgb, ${s.color} 45%, transparent)` }}>
-      {s.label}
+    <span title={s.hint} className={`inline-flex shrink-0 items-center gap-1.5 rounded-full font-semibold whitespace-nowrap ${small ? 'px-2 py-px text-xs' : 'px-2.5 py-0.5 text-xs'}`} style={{ color: `color-mix(in srgb, ${s.color} 75%, white)`, background: `color-mix(in srgb, ${s.color} 18%, transparent)` }}>
+      {state === 'done' ? <Icon name="check" className="size-3.5" strokeWidth={3} /> : <span className="size-1.5 rounded-full" style={{ background: s.color, animation: state === 'running' ? 'redline 1.2s ease-in-out infinite' : undefined }} />}
+      {s.label}{days}
+    </span>
+  );
+}
+
+// How a night ended, only when it cost work: grey, a warning rather than a state.
+export function StoppedEarly({ count, short = false }: { count: number; short?: boolean }) {
+  if (!count) return null;
+  const text = `${count} task${count === 1 ? '' : 's'} never started`;
+  return (
+    <span title={`Stopped early: ${text}`} className="inline-flex min-w-0 items-center gap-1 text-sm text-white/50">
+      <Icon name="warn" className="size-3.5 shrink-0" /> <span className="truncate">{short ? `${count} never started` : `Stopped early: ${text}`}</span>
     </span>
   );
 }

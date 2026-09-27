@@ -12,7 +12,7 @@ import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
-import { countOutcomes, emptyCounts, isOpenQuestionIn, needsHandOver } from './types.ts';
+import { countOutcomes, emptyCounts, followUpOpen, isOpenQuestionIn, needsHandOver } from './types.ts';
 
 const WEB_DIST = path.join(REPO_ROOT, 'web', 'dist');
 
@@ -87,6 +87,8 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     cost_usd: null,
     read: !!readMarks[`${repo.id}/${id}`],
     follow_up: fs.existsSync(followUpFile(repo.path, id)),
+    follow_up_open: null,
+    follow_up_at: null,
     hand_over: false,
     running: false,
     problems: r.problems,
@@ -109,6 +111,8 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
     // A follow-up file that exists but cannot be read still blocks a second one.
     hand_over: !base.follow_up && needsHandOver(n, followUp),
+    follow_up_open: followUp ? followUpOpen(followUp) : null,
+    follow_up_at: followUp?.created_at ?? null,
     duration_min: n.metrics?.duration_min.total ?? null,
     cost_usd: n.metrics?.cost_usd ?? null,
     running: n.status === 'open' && sessionRunning(repo.path, n, now),
