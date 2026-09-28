@@ -21,7 +21,6 @@ import {
   nightFile,
   nightProblems,
   planFile,
-  readNight,
   readPlanInput,
   registerRepo,
   nightShapeProblems,
@@ -313,11 +312,12 @@ export function feedback(repo: string, input: { kind?: string; title: string; ta
 
 export function status(repo: string): string {
   const ids = listNightIds(repo);
-  const open = ids.map((id) => loadNight(repo, id).night).filter((n) => n.status === 'open');
+  const all = ids.map((id) => loadNight(repo, id).night);
+  const open = all.filter((n) => n.status === 'open');
   if (!open.length) {
     const items = openItems(repo);
     const last = ids.length ? ids[ids.length - 1] : null;
-    return [`No night is open.${last ? ` The last one was ${last}.` : ''}`, items.length ? `${items.length} open follow-up item(s): ${items.map((o) => o.ref).join(', ')}.` : 'No open follow-up items.', 'Start a night with: night-shift start (the plan as JSON).', ...feedbackOfEarlierNights(repo, ids)].join('\n');
+    return [`No night is open.${last ? ` The last one was ${last}.` : ''}`, items.length ? `${items.length} open follow-up item(s): ${items.map((o) => o.ref).join(', ')}.` : 'No open follow-up items.', 'Start a night with: night-shift start (the plan as JSON).', ...feedbackOfEarlierNights(all)].join('\n');
   }
   const n = open[open.length - 1];
   const lines = [`Night ${n.night} is open (started ${n.started_at}).`];
@@ -325,7 +325,7 @@ export function status(repo: string): string {
   if (n.questions.length) lines.push(`Questions: ${n.questions.map((q) => q.id).join(', ')}`);
   if (n.feedback.length) lines.push(`Feedback: ${feedbackLine(n)}`);
   lines.push(nextStep(n));
-  lines.push(...feedbackOfEarlierNights(repo, ids.filter((id) => id !== n.night)));
+  lines.push(...feedbackOfEarlierNights(all.filter((x) => x !== n)));
   return lines.join('\n');
 }
 
@@ -343,8 +343,8 @@ function feedbackLine(n: Night): string {
 
 // Earlier nights' feedback: the latest night that logged any, and every night still awaiting the
 // developer, so an agent never has to read the JSON to know what was sent.
-function feedbackOfEarlierNights(repo: string, ids: string[]): string[] {
-  const nights = ids.map((id) => readNight(repo, id).night).filter((n): n is Night => !!n && n.feedback.length > 0);
+function feedbackOfEarlierNights(earlier: Night[]): string[] {
+  const nights = earlier.filter((n) => n.feedback.length > 0);
   const latest = nights[nights.length - 1];
   const shown = nights.filter((n) => n === latest || n.feedback.some((f) => !f.sent));
   return shown.length ? ['Feedback of earlier nights:', ...shown.map((n) => `  ${n.night}: ${feedbackLine(n)}`)] : [];

@@ -1,9 +1,11 @@
 ---
 id: TASK-43
 title: 'Show which feedback was sent to GitHub in the agent commands (GitHub #6)'
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-28 10:24'
+updated_date: '2026-09-28 10:33'
 labels:
   - cli
 dependencies: []

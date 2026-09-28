@@ -1,9 +1,11 @@
 ---
 id: TASK-42
 title: 'Keep the hook''s output when a history commit fails (GitHub #5)'
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-28 10:24'
+updated_date: '2026-09-28 10:33'
 labels:
   - cli
   - git

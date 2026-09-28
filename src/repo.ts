@@ -5,8 +5,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+// Hooks can print a lot (a whole test suite); a smaller buffer would kill git mid-commit.
 function git(repo: string, args: string[]) {
-  return spawnSync('git', args, { cwd: repo, encoding: 'utf8', windowsHide: true });
+  return spawnSync('git', args, { cwd: repo, encoding: 'utf8', windowsHide: true, maxBuffer: 256 * 1024 * 1024 });
 }
 
 // The repository a command acts on: the git top level of `dir`, else `dir` itself.
@@ -56,7 +57,15 @@ export interface CommitResult {
 }
 
 // The last lines a refused commit printed: the hook's reason sits there, above git's own last line.
-const tail = (out: string, lines = 6) => out.trim().split('\n').map((l) => l.trimEnd()).filter(Boolean).slice(-lines).join('\n  ');
+const tail = (out: string, lines = 6) =>
+  out
+    .trim()
+    .split('\n')
+    .map((l) => l.trimEnd())
+    .filter(Boolean)
+    .slice(-lines)
+    .map((l) => (l.length > 500 ? `${l.slice(0, 500)}…` : l))
+    .join('\n  ');
 
 // Commits only `rel` (a path inside the repository), whatever else is staged or changed, so the
 // developer's own work is never swept into a Night Shift commit. Git hooks run as usual.
@@ -68,8 +77,9 @@ export function commitPath(repo: string, rel: string, message: string): CommitRe
   if (diff.status === 0) return { committed: false, message: 'history already up to date' };
   const commit = git(repo, ['commit', '-m', message, '--only', '--', rel]);
   if (commit.status !== 0) {
-    const output = [commit.stdout, commit.stderr].filter((s) => s?.trim()).join('\n');
-    return { committed: false, message: `git commit failed:\n  ${tail(output)}`, output };
+    const output = [commit.stdout, commit.stderr, commit.error?.message].filter((s) => s?.trim()).join('\n');
+    const reason = output.trim() ? tail(output) : `(no output; exit ${commit.status ?? commit.signal})`;
+    return { committed: false, message: `git commit failed:\n  ${reason}`, output: output.trim() ? output : undefined };
   }
   return { committed: true, message: 'history committed' };
 }
