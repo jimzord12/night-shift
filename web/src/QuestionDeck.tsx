@@ -378,13 +378,13 @@ function QuestionFiles({ detail, q, onView }: { detail: NightDetail; q: Question
           return (
             <li key={`${f.path}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-white/10 bg-night-900/70 px-3 py-2">
               <Icon name="file" className="size-4 shrink-0 text-white/50" />
-              <span className="min-w-0 flex-1">
+              <span className="min-w-[12rem] flex-1">
                 <span className="block font-mono text-sm break-all text-white/85">{f.path}</span>
                 {f.caption && <span className="block text-xs text-white/55">{f.caption}</span>}
               </span>
               <span className="flex shrink-0 gap-2">
                 {viewable ? (
-                  <button onClick={() => onView({ src, title: f.caption ?? f.path })} className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20">View</button>
+                  <button onClick={() => onView({ src, kind: mediaKind(f.path), title: f.caption ?? f.path })} className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20">View</button>
                 ) : (
                   <a href={src} target="_blank" rel="noreferrer" className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20">Open</a>
                 )}
