@@ -1,19 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DISCUSS, answerLabel, handedItem, isOpenQuestionIn } from '../../src/types.ts';
-import type { NightDetail, Question } from '../../src/types.ts';
-import { ApiError, fileUrl, postAnswer, questionFileUrl, revealQuestionFile } from './api.ts';
+import { DISCUSS, answerLabel, disagreementItem, handedItem, isOpenQuestionIn, takenBack } from '../../src/types.ts';
+import type { AgentDecision, FollowUpItem, NightDetail, Question } from '../../src/types.ts';
+import { ApiError, fileUrl, postAnswer, postReview, questionFileUrl, revealQuestionFile } from './api.ts';
 import { MediaThumb, MediaViewer, mediaKind } from './Evidence.tsx';
 import { Gate, gateState } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
 import { Starfield } from './Starfield.tsx';
 import { Icon, nightTitle } from './ui.tsx';
 
-// One question as the deck shows it, with the night it belongs to.
+// One question as the deck shows it, with the night it belongs to. A decision the agent took for
+// the developer (D31) is shown the same way: a question with one answer, "Fine, keep it", and
+// "I disagree" in the place of let's discuss, which needs a note.
 export interface DeckItem {
   key: string;
   detail: NightDetail;
   question: Question;
+  decision?: AgentDecision;
 }
+
+const OK = 'ok';
+const DISAGREE = 'disagree';
+export const decisionItem = (detail: NightDetail, d: AgentDecision): DeckItem => ({
+  key: `${detail.repo.id}/${detail.night.night}/${d.id}`,
+  detail,
+  decision: d,
+  question: { id: d.id, task: d.task, ask: d.decision, why: d.why, options: [{ id: OK, label: 'Fine, keep it' }], recommended: OK, answer: d.review, note: d.note },
+});
+
+// The follow-up item an item was handed over as: a question's, or a disagreement's.
+const handedOf = (i: DeckItem): FollowUpItem | undefined => (i.decision ? disagreementItem(i.detail.follow_up, i.decision) : handedItem(i.detail.follow_up, i.question));
+// Waiting for the developer: an open question, or a decision not reviewed yet.
+export const isOpenItem = (i: DeckItem) => (i.decision ? i.decision.review === null : isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
 
 interface Draft {
   answer: string;
@@ -37,7 +54,7 @@ export const deckKey = (d: NightDetail, q: Question) => `${d.repo.id}/${d.night.
 // answers can be reviewed and changed.
 export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConflict }: Props) {
   const order = useMemo(() => {
-    const open = items.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
+    const open = items.filter(isOpenItem);
     const base = (open.length ? open : items).map((i) => i.key);
     if (startKey) return [startKey, ...base.filter((k) => k !== startKey)];
     return base;
@@ -74,18 +91,19 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const key = order[index];
   const item = key ? byKey.get(key) : undefined;
   const q = item?.question ?? null;
+  // What the talk card means here: let's discuss on a question, I disagree on a decision.
+  const TALK = item?.decision ? DISAGREE : DISCUSS;
   // A night running now that took this item on (planned it or skipped it) holds it until it closes.
   const takenBy = (i: DeckItem | undefined) => {
-    const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
+    const h = i ? handedOf(i) : undefined;
     return h && i ? i.detail.taken?.[`${i.detail.night.night}/${h.id}`] : undefined;
   };
+  // A settled follow-up item locks the answer; a disagreement the developer took back does not.
+  const settled = (h: FollowUpItem | undefined) => !!h && h.status !== 'open' && !takenBack(h);
   // Settled or held elsewhere: no recommendation is shown as if it were the answer.
-  const settledHere = !!q && !!item && ((handedItem(item.detail.follow_up, q)?.status ?? 'open') !== 'open' || !!takenBy(item));
+  const settledHere = !!q && !!item && (settled(handedOf(item)) || !!takenBy(item));
   const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? (settledHere ? '' : q.recommended), note: q.note ?? '' }) : null;
-  const locked = (i: DeckItem | undefined) => {
-    const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
-    return (!!h && h.status !== 'open') || !!takenBy(i);
-  };
+  const locked = (i: DeckItem | undefined) => settled(i ? handedOf(i) : undefined) || !!takenBy(i);
   const handled = (k: string, saved: Set<string>) => saved.has(k) || (byKey.get(k)?.question.answer ?? null) !== null || locked(byKey.get(k));
   // Editing the answer clears an earlier save error: it no longer describes what is on screen.
   const setDraft = (d: Draft) => {
@@ -96,10 +114,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const url = (rel: string) => (item ? fileUrl(item.detail.repo.id, item.detail.night.night, rel) : rel);
   // The follow-up item this question was handed over as; once an agent worked on its decision, the
   // answer is locked (the server refuses a change too).
-  const handed = q && item ? handedItem(item.detail.follow_up, q) : undefined;
+  const handed = q && item ? handedOf(item) : undefined;
   const running = takenBy(item);
   const nightOf = (id: string) => nightTitle(id).replace(/^Night/, 'night');
-  const lock = handed && handed.status !== 'open'
+  const lock = handed && settled(handed)
     ? handed.status === 'carried' && handed.kind === 'waiting'
       ? 'Locked: a later night asked this again. Answer it there.'
       : `Locked: an agent already worked on this (${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in the ${nightOf(handed.resolved?.by ?? '')}`}), so the answer can no longer change.`
@@ -146,9 +164,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     if (!q || !item || !draft || !key || busy || lock) return;
     const draft_ = answer ? { ...draft, answer } : draft;
     if (answer) setDraft(draft_);
-    // Let's discuss says what to talk through, or the next agent has nothing to start from.
-    if (draft_.answer === DISCUSS && !draft_.note.trim()) {
-      setMessage("Let's discuss needs a note: what is unclear, or what you want to talk through.");
+    // Let's discuss says what to talk through, and a disagreement what to do instead, or the next
+    // agent has nothing to start from.
+    if (draft_.answer === TALK && !draft_.note.trim()) {
+      setMessage(item.decision ? 'A disagreement needs a note: what should the next agent do instead?' : "Let's discuss needs a note: what is unclear, or what you want to talk through.");
       setShowNote(true);
       setFocusNote(true);
       // The error makes the footer taller: bring the note above it and into focus.
@@ -163,7 +182,9 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     setBusy(true);
     setMessage(null);
     try {
-      const detail = await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft_.answer, note: draft_.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
+      const detail = item.decision
+        ? await postReview(item.detail.repo.id, item.detail.night.night, { decision: item.decision.id, review: draft_.answer as 'ok' | 'disagree', note: draft_.note, baseHash: item.detail.hash, was: { review: item.decision.review, note: item.decision.note } })
+        : await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft_.answer, note: draft_.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
       onSaved(detail);
       const nextSaved = new Set(savedKeys).add(key);
       setSavedKeys(nextSaved);
@@ -219,10 +240,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           return t.click();
         }
         const option = t.getAttribute('data-option');
-        if (option === DISCUSS && !draft?.note.trim()) {
+        if (option === TALK && !draft?.note.trim()) {
           // Nothing to talk through yet: pick it and write the note first, as D does.
           e.preventDefault();
-          if (draft) setDraft({ ...draft, answer: DISCUSS });
+          if (draft) setDraft({ ...draft, answer: TALK });
           setShowNote(true);
           setFocusNote(true);
           return focusNoteSoon();
@@ -256,7 +277,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       if (letter === 'd') {
         // The key picks the choice; it must not also land in the note that opens focused.
         e.preventDefault();
-        setDraft({ ...draft, answer: DISCUSS });
+        setDraft({ ...draft, answer: TALK });
         setShowNote(true);
         setFocusNote(true);
         // An open note takes the cursor now, before the next key; a new one once it is drawn.
@@ -270,7 +291,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const answeredCount = order.filter((k) => handled(k, savedKeys)).length;
   // The nights this deck walked, each with its latest detail, in the deck's order.
   const deckNights = [...new Map(order.map((k) => byKey.get(k)!).filter(Boolean).map((i) => [`${i.detail.repo.id}/${i.detail.night.night}`, i.detail])).values()];
-  const rec = q?.options.find((o) => o.id === q.recommended);
+  // A decision's only option is the agent's own: no recommendation to show.
+  const rec = item?.decision ? undefined : q?.options.find((o) => o.id === q.recommended);
 
   return (
     <div ref={scroller} tabIndex={-1} onPointerDown={() => (clicked.current = true)} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
@@ -310,15 +332,16 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               <span className="rounded-full bg-white/10 px-2.5 py-1 font-semibold tracking-wide uppercase">{item.detail.repo.name}</span>
               <span className="rounded-full bg-white/5 px-2.5 py-1 text-white/60">{nightTitle(item.detail.night.night)}</span>
               {q.task && <span className="rounded-full bg-eyes/20 px-2.5 py-1 font-mono font-semibold text-eyes">{q.task}</span>}
-              {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
+              {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">{item.decision ? 'reviewed' : 'answered'}; you can change it</span>}
             </div>
+            {item.decision && <p className="mt-4 text-sm font-semibold tracking-wide text-agent uppercase">A decision the agent took for you</p>}
             {lock && (
               <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/15 bg-white/8 px-3 py-2 text-sm text-white/85">
                 <Icon name="lock" className="mt-0.5 size-4 shrink-0" strokeWidth={2.4} />
                 <span>{lock}</span>
               </div>
             )}
-            <h2 className="font-display mt-4 text-2xl leading-tight font-semibold sm:text-4xl">{q.ask}</h2>
+            <h2 className={`font-display leading-tight font-semibold ${item.decision ? 'mt-1 text-xl sm:text-3xl' : 'mt-4 text-2xl sm:text-4xl'}`}>{q.ask}</h2>
             {q.why && <p className="mt-2 text-white/60 sm:text-lg">{q.why}</p>}
             {q.files && q.files.length > 0 && <QuestionFiles detail={item.detail} q={q} onView={setZoom} />}
 
@@ -355,7 +378,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                       <span className="block font-medium sm:text-lg">{o.label}</span>
                       {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                     </span>
-                    {o.id === q.recommended && <Icon name="sparkle" className="size-4 text-moon" />}
+                    {o.id === q.recommended && !item.decision && <Icon name="sparkle" className="size-4 text-moon" />}
                     {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
                     {!lock && <kbd className="hidden text-white/40 sm:inline">{i + 1}</kbd>}
                   </button>
@@ -364,13 +387,13 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             </div>
 
             {(() => {
-              const on = draft.answer === DISCUSS;
+              const on = draft.answer === TALK;
               if (lock && !on) return null;
               return (
                 <button
-                  data-option={DISCUSS}
+                  data-option={TALK}
                   onClick={() => {
-                    setDraft({ ...draft, answer: DISCUSS });
+                    setDraft({ ...draft, answer: TALK });
                     setShowNote(true);
                     setFocusNote(true);
                   }}
@@ -382,8 +405,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                     {on && <Icon name="check" className="size-4 text-night-950" strokeWidth={3} />}
                   </span>
                   <span className="flex-1">
-                    <span className="block font-medium">I'm not sure, let's discuss</span>
-                    <span className="block text-sm text-white/55">Say what is unclear in a note; the next agent talks it through with you before any work on it.</span>
+                    <span className="block font-medium">{item.decision ? 'I disagree' : "I'm not sure, let's discuss"}</span>
+                    <span className="block text-sm text-white/55">{item.decision ? 'Say in a note what the next agent should do instead; it revisits the decision.' : 'Say what is unclear in a note; the next agent talks it through with you before any work on it.'}</span>
                   </span>
                   {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
                   {!lock && <kbd className="hidden text-white/40 sm:inline">D</kbd>}
@@ -403,11 +426,11 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             )}
 
             <div className="mt-4">
-              {lock ? (
+              {item.decision && draft.answer !== TALK && !lock ? null : lock ? (
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
                 <>
-                <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => { setInNote(true); e.currentTarget.scrollIntoView({ block: 'nearest' }); }} onBlur={() => setInNote(false)} />
+                <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === TALK ? (item.decision ? 'What should the next agent do instead? (needed)' : 'What is unclear, or what do you want to talk through? (needed)') : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => { setInNote(true); e.currentTarget.scrollIntoView({ block: 'nearest' }); }} onBlur={() => setInNote(false)} />
                   <p className="mt-1 hidden text-xs text-white/40 sm:block"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> saves · <kbd>Esc</kbd> leaves the note</p>
                 </>
               ) : (
@@ -418,7 +441,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             <footer className="sticky bottom-0 z-10 -mx-4 mt-auto border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
               {message && <div className="mb-2 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{message}</div>}
               {/* On a phone the options may be above the fold: name the answer Save would keep. */}
-              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{answerLabel({ ...q, answer: draft.answer })}</span></div>}
+              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{draft.answer === DISAGREE && item.decision ? 'I disagree' : answerLabel({ ...q, answer: draft.answer })}</span></div>}
               <div className="flex items-center gap-2">
               <div className="hidden gap-2 sm:flex">
                 <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous" title="Previous question (←)"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>

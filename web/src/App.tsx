@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { followUpDiscuss, followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
+import { agentDecisions, decisionsOpen, followUpDiscuss, followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
 import { getNextNight, getNight, getOverview, getProposals, markRead } from './api.ts';
 import { Inbox } from './Inbox.tsx';
@@ -8,7 +8,7 @@ import { ReportPage } from './Report.tsx';
 import { Starfield } from './Starfield.tsx';
 import { ExplainerOverlay, explain, useExplainRequests } from './Explainer.tsx';
 import type { ExplainStep } from './Explainer.tsx';
-import { QuestionDeck, deckKey } from './QuestionDeck.tsx';
+import { QuestionDeck, deckKey, decisionItem, isOpenItem } from './QuestionDeck.tsx';
 import type { DeckItem } from './QuestionDeck.tsx';
 import { HistoryView, NextNightView } from './Views.tsx';
 import { Icon } from './ui.tsx';
@@ -52,6 +52,7 @@ export function App() {
         ? {
             ...live,
             questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up, d.taken)).length,
+            decisions_open: decisionsOpen(d.night),
             feedback_unsent: d.night.feedback.filter((f) => !f.sent).length,
             // A follow-up file the server found but could not read still counts as handed over.
             follow_up: n.follow_up || !!d.follow_up,
@@ -170,14 +171,19 @@ export function App() {
     void markRead(repo, night).catch(() => {});
   }, [selected, overview]);
 
-  // The Inbox's Start my morning needs every night that still has open questions.
+  // The Inbox's Start my morning needs every night that still has open questions or decisions to review.
+  const toWalk = (n: Overview['nights'][number]) => n.questions_open > 0 || n.decisions_open > 0;
   useEffect(() => {
     if (route.page !== 'inbox' || !overview) return;
-    for (const n of overview.nights) if (n.questions_open > 0 && readable(n) && !details[keyOf(n.repo, n.id)] && !failures.has(keyOf(n.repo, n.id))) void loadNight(n.repo, n.id);
+    for (const n of overview.nights) if (toWalk(n) && readable(n) && !details[keyOf(n.repo, n.id)] && !failures.has(keyOf(n.repo, n.id))) void loadNight(n.repo, n.id);
   }, [route.page, overview, details, failures, loadNight]);
 
+  // Every question, then every decision the agents took (D31: reviewed after the questions).
   const allItems = useMemo<DeckItem[]>(
-    () => Object.values(details).flatMap((d) => d.night.questions.map((q) => ({ key: deckKey(d, q), detail: d, question: q }))),
+    () => [
+      ...Object.values(details).flatMap((d) => d.night.questions.map((q) => ({ key: deckKey(d, q), detail: d, question: q }))),
+      ...Object.values(details).flatMap((d) => agentDecisions(d.night).map((x) => decisionItem(d, x))),
+    ],
     [details],
   );
   useEffect(() => {
@@ -189,12 +195,12 @@ export function App() {
   const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.held || i.item.kind === 'waiting'));
   const detail = selected ? (details[selected] ?? null) : null;
   const summary = selected ? (overview?.nights.find((n) => keyOf(n.repo, n.id) === selected) ?? null) : null;
-  // Every open question across nights: what Start my morning walks through.
-  const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
+  // Every open question and unreviewed decision across nights: what Start my morning walks through.
+  const openItems = allItems.filter(isOpenItem);
   // A night whose load failed is left out rather than holding the button back; the Inbox names it.
-  const questionsReady = !!overview && overview.nights.every((n) => !n.questions_open || !readable(n) || !!details[keyOf(n.repo, n.id)] || failures.has(keyOf(n.repo, n.id)));
+  const questionsReady = !!overview && overview.nights.every((n) => !toWalk(n) || !readable(n) || !!details[keyOf(n.repo, n.id)] || failures.has(keyOf(n.repo, n.id)));
   // A night that failed only on a reload keeps its older detail, and the deck still walks it.
-  const unloaded = overview ? overview.nights.filter((n) => n.questions_open > 0 && failures.has(keyOf(n.repo, n.id)) && !details[keyOf(n.repo, n.id)]) : [];
+  const unloaded = overview ? overview.nights.filter((n) => toWalk(n) && failures.has(keyOf(n.repo, n.id)) && !details[keyOf(n.repo, n.id)]) : [];
   const failure = selected ? failures.get(selected) : undefined;
 
   // A night opens on its own page, at the top.
@@ -255,12 +261,12 @@ export function App() {
                 inbox={inbox}
                 scheduled={nextCount}
                 questionsReady={questionsReady}
-                unloaded={unloaded.map((n) => ({ repo: n.repo, night: n.id, count: n.questions_open }))}
+                unloaded={unloaded.map((n) => ({ repo: n.repo, night: n.id, count: n.questions_open + n.decisions_open }))}
                 onReload={() => void load()}
                 onOpen={pick}
                 onAnswer={(repo, night) => {
                   const items = nightItems(keyOf(repo, night));
-                  if (items.length) openDeck(items, items.find((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken))?.key);
+                  if (items.length) openDeck(items, items.find(isOpenItem)?.key);
                   else pick(repo, night);
                 }}
                 onStartMorning={() => openDeck(openItems)}
@@ -269,7 +275,7 @@ export function App() {
               />
             )}
             {route.page === 'night' && (
-              <ReportPage detail={detail} summary={summary} picking={!detail} failed={!!failure} onBack={() => go('#/')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(selected), startKey)} onReload={() => { if (selected) void loadNight(...(selected.split('/') as [string, string]), true); }} />
+              <ReportPage detail={detail} summary={summary} picking={!detail} failed={!!failure} onBack={() => go('#/')} onDetail={putDetail} onOpenDeck={(startKey, only) => openDeck(only === 'decisions' ? nightItems(selected).filter((i) => i.decision) : nightItems(selected), startKey)} onReload={() => { if (selected) void loadNight(...(selected.split('/') as [string, string]), true); }} />
             )}
             {route.page === 'next' && <NextNightView next={next} onPick={pick} />}
             {route.page === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}

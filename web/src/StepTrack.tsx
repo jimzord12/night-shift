@@ -54,16 +54,21 @@ export function StepTrack({ state, small = false }: { state: OwnerState; small?:
 
 // What comes next in each state, in one line, with the phrase to say where an agent is the next step.
 // `held`: every open follow-up item is taken on by a night running now.
-export function nextStep(state: OwnerState, n: Pick<NightSummary, 'questions_open' | 'follow_up'>, held = false): { text: string; phrase?: string } {
+export function nextStep(state: OwnerState, n: Pick<NightSummary, 'questions_open' | 'follow_up'> & Partial<Pick<NightSummary, 'decisions_open'>>, held = false): { text: string; phrase?: string } {
   switch (state) {
     case 'running':
       return { text: 'an agent is on it; reload to see how far it got.' };
     case 'new':
       return { text: 'read what the night did.' };
     case 'needs_answers':
-      if (!n.questions_open) return { text: 'talk it through with an agent: open Claude Code in this folder and say', phrase: 'work on the follow-up' };
-      // Already saved: an answer now goes straight to the next agent.
-      return { text: `answer ${n.questions_open === 1 ? 'its question' : `its ${n.questions_open} questions`}${n.follow_up ? '; your answer reaches the next agent.' : ', then save for the next agent.'}` };
+    {
+      const q = n.questions_open;
+      const d = n.decisions_open ?? 0;
+      if (!q && !d) return { text: 'talk it through with an agent: open Claude Code in this folder and say', phrase: 'work on the follow-up' };
+      const todo = [q && `answer ${q === 1 ? 'its question' : `its ${q} questions`}`, d && `review ${d === 1 ? 'the decision' : `the ${d} decisions`} the agent took for you`].filter(Boolean).join(' and ');
+      // Already saved: an answer or a disagreement now goes straight to the next agent.
+      return { text: `${todo}${n.follow_up ? '; what you say reaches the next agent.' : ', then save for the next agent.'}` };
+    }
     case 'ready_to_save':
       return { text: 'save for the next agent. Nothing runs until you start one.' };
     case 'waiting':

@@ -7,14 +7,14 @@ import { spawn } from 'node:child_process';
 import { serve } from '@hono/node-server';
 import { createApp } from './server.ts';
 import { StoreError, followUpSchemaProblems, forgetRepo, listFollowUpIds, listNightIds, parseJson, readFollowUp, readNight } from './store.ts';
-import { ask, close, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
+import { ask, close, decide, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
 import { openItems, resolveItem } from './followup.ts';
 import { allow, install } from './install.ts';
 import { repoRoot } from './repo.ts';
 import { versionString } from './version.ts';
 import { notifyNightEnded, raise, readNotify, writeNotify } from './notify.ts';
 import type { Night } from './types.ts';
-import type { AskInput, RecordInput } from './night.ts';
+import type { AskInput, DecideInput, RecordInput } from './night.ts';
 
 const USAGE = `night-shift — unattended agent work, read in the morning
 
@@ -23,6 +23,7 @@ For agents (JSON with --file .night-shift/input.json, on stdin, or with --json '
   night-shift start                           open a night from a plan (night-shift/plan@2)
   night-shift record                          record one task's outcome, checks and evidence
   night-shift ask                             add a question for the developer
+  night-shift decide                          record a decision taken for the developer (task, decision, why)
   night-shift feedback                        log friction with Night Shift itself
   night-shift close --summary "<text>"        close the night
   night-shift follow-up list | show <id>      open follow-up items
@@ -148,7 +149,7 @@ function commandFollowUp(p: Parsed, repo: string): number {
   if (sub === 'list') {
     const items = openItems(repo);
     if (!items.length) console.log('No open follow-up items.');
-    for (const o of items) console.log(`${o.ref}  ${o.item.kind.padEnd(10)} ${o.item.title}${o.item.decision_label ? ` → ${o.item.decision_label}` : ''}`);
+    for (const o of items) console.log(`${o.ref}  ${o.item.kind.padEnd(10)} ${o.item.title}${o.item.decision_label ? ` → ${o.item.decision_label}` : ''}${o.item.kind === 'disagreed' ? `: the agent decided "${o.item.question}"; the developer: ${o.item.owner_note ?? '-'}` : ''}`);
     return 0;
   }
   if (sub === 'show') {
@@ -217,6 +218,9 @@ async function main(argv: string[]): Promise<number> {
     }
     case 'record':
       console.log(record(repo(), input<RecordInput>(p)).message);
+      return 0;
+    case 'decide':
+      console.log(decide(repo(), input<DecideInput>(p)).message);
       return 0;
     case 'ask':
       console.log(ask(repo(), input<AskInput>(p)).message);

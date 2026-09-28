@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import type { Night } from './types.ts';
-import { OUTCOMES, countOutcomes } from './types.ts';
+import { decisionsOpen, OUTCOMES, countOutcomes } from './types.ts';
 import { installRoot, parseJson, registerRepo, writeJson } from './store.ts';
 
 export interface NotifySettings {
@@ -37,12 +37,14 @@ export function writeNotify(s: NotifySettings): void {
 
 export const reportUrl = (port: number, repoId: string, night: string) => `http://127.0.0.1:${port}/#/night/${encodeURIComponent(repoId)}/${encodeURIComponent(night)}`;
 
-// "blog: night finished" and "2 questions for you · 3 done, 1 blocked".
+// "blog: night finished" and "2 questions, 1 decision for you · 3 done, 1 blocked".
 export function nightMessage(repoName: string, n: Night): { title: string; text: string } {
   const open = n.questions.filter((q) => q.answer === null).length;
   const counts = countOutcomes(n.tasks);
   const tally = OUTCOMES.filter((o) => counts[o]).map((o) => `${counts[o]} ${o.replace('_', ' ')}`).join(', ');
-  const ask = open ? `${open} question${open === 1 ? '' : 's'} for you` : 'nothing to answer';
+  const decisions = decisionsOpen(n);
+  const parts = [open && `${open} question${open === 1 ? '' : 's'}`, decisions && `${decisions} decision${decisions === 1 ? '' : 's'}`].filter(Boolean);
+  const ask = parts.length ? `${parts.join(', ')} for you` : 'nothing to answer';
   return { title: `${repoName}: ${n.status === 'interrupted' ? 'night stopped early' : 'night finished'}`, text: [ask, tally].filter(Boolean).join(' · ') };
 }
 

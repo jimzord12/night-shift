@@ -34,6 +34,8 @@ const PATHS = {
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
   folder: 'M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.5h8.8A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z',
+  // A decision the agent took for the developer (D31).
+  compass: 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM15.5 8.5l-2 5l-5 2l2-5z',
 } as const;
 
 export type IconName = keyof typeof PATHS;

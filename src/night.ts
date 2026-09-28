@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import type { Block, Check, Feedback, Night, Option, PlanInput, Question, QuestionFile, Session, Task } from './types.ts';
+import type { AgentDecision, Block, Check, Feedback, Night, Option, PlanInput, Question, QuestionFile, Session, Task } from './types.ts';
 import { BLOCK_TYPES, DISCUSS, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, forTalk, refsOf } from './types.ts';
 import {
   StoreError,
@@ -165,6 +165,7 @@ export function start(repo: string, planText: string, session: Session | null = 
     tasks: plan.tasks.map((t) => ({ id: t.id, title: t.title, source: t.source, ...(t.follow_up ? { follow_up: t.follow_up } : {}), done_when: t.done_when, outcome: null, checks: [], evidence: [] })),
     skipped_follow_ups: plan.skipped_follow_ups ?? [],
     questions: [],
+    agent_decisions: [],
     feedback: [],
     metrics: null,
   };
@@ -179,6 +180,7 @@ export function start(repo: string, planText: string, session: Session | null = 
     for (const ref of refsOf(t)) {
       const item = checkRef(repo, ref).item;
       if (item.kind === 'decision') messages.push(`${t.id} follows ${ref}: the developer chose "${item.decision_label}"${item.owner_note ? ` (note: ${item.owner_note})` : ''}.`);
+      else if (item.kind === 'disagreed') messages.push(`${t.id} follows ${ref}: the developer disagrees with a decision an agent took ("${item.question}"): ${(item.owner_note ?? 'no note').replace(/[.!?]+$/, '')}. Revisit it as they ask.`);
       else if (item.kind === 'waiting') messages.push(`${t.id} follows ${ref}: no answer yet; if the task still needs it, ask it again word for word ("${item.question}") and record the task blocked. Not asked again, it stays open where it was asked.`);
     }
   }
@@ -322,6 +324,33 @@ export function ask(repo: string, input: AskInput): { night: Night; question: Qu
   return { night: n, question: q, message: `${q.id} added; the developer answers it in the Viewer.${blocked} ${nextStep(n)}` };
 }
 
+export interface DecideInput {
+  task?: string | null;
+  decision: string;
+  why: string;
+}
+
+// A decision the agent took on the developer's behalf (D31): recorded when it is taken, reviewed
+// by the developer in the Viewer. A night started by an older release (version 2 file) cannot hold
+// one: the tool says so rather than rewrite the file's version under that release.
+export function decide(repo: string, input: DecideInput, now = new Date()): { night: Night; decision: AgentDecision; message: string } {
+  if (!isObject(input)) throw new StoreError('send one JSON object: { "task": "T1", "decision": "...", "why": "..." }');
+  const n = openNight(repo);
+  if (n.schema !== NIGHT_SCHEMA) throw new StoreError(`this night was started by an older release (${n.schema}); record the decision in the night's summary or a note instead`);
+  if (!text(input.decision)) throw new StoreError('a decision needs "decision": what you chose, in one sentence');
+  if (!text(input.why)) throw new StoreError('a decision needs "why": what the developer would want to know to judge it');
+  const all = n.agent_decisions ?? [];
+  const d: AgentDecision = { id: `AD${all.length + 1}`, task: input.task ?? null, decision: text(input.decision), why: text(input.why), at: localIso(now), review: null, note: null };
+  const trial = { ...n, agent_decisions: [...all, d] };
+  const shape = nightShapeProblems(trial);
+  if (shape.length) throw new StoreError(`the decision was not recorded: ${shape.join('; ')}`);
+  const problems = nightProblems(trial, nightDir(repo, n.night)).filter((p) => p.startsWith(`${d.id}:`));
+  if (problems.length) throw new StoreError(`the decision was not recorded: ${problems.join('; ')}`);
+  n.agent_decisions = trial.agent_decisions;
+  saveNight(repo, n);
+  return { night: n, decision: d, message: `${d.id} recorded; the developer reviews it in the Viewer. ${nextStep(n)}` };
+}
+
 const FEEDBACK_KINDS = ['missing-block', 'confusing-rule', 'bad-fit', 'tool-bug', 'other'];
 
 export function feedback(repo: string, input: { kind?: string; title: string; tags?: string[]; body: string }): { night: Night; item: Feedback; message: string } {
@@ -350,6 +379,7 @@ export function status(repo: string): string {
   const lines = [`Night ${n.night} is open (started ${n.started_at}).`];
   for (const t of n.tasks) lines.push(`  ${t.id} ${t.outcome ?? '…'}  ${t.title}`);
   if (n.questions.length) lines.push(`Questions: ${n.questions.map((q) => q.id).join(', ')}`);
+  if (n.agent_decisions?.length) lines.push(`Decisions taken for the developer: ${n.agent_decisions.map((d) => d.id).join(', ')}`);
   if (n.feedback.length) lines.push(`Feedback: ${feedbackLine(n)}`);
   lines.push(nextStep(n));
   lines.push(...feedbackOfEarlierNights(all.filter((x) => x !== n)));

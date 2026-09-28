@@ -1,14 +1,15 @@
 ---
 name: do-night-shift-follow-up
-description: Work through a Night Shift follow-up by day - the decisions the developer made and the unfinished work from a night - and mark each item done or skipped. Use when the user says "work on the follow-up", "do the night shift follow-up", "pick up the follow-up", or asks you to act on the answers they gave to a night's questions.
+description: Work through a Night Shift follow-up by day - the decisions the developer made, the agent decisions they disagree with, and the unfinished work from a night - and mark each item done or skipped. Use when the user says "work on the follow-up", "do the night shift follow-up", "pick up the follow-up", or asks you to act on the answers they gave to a night's questions.
 ---
 
 # Do a Night Shift follow-up
 
 After a night, the developer answers its questions in the Night Shift Viewer
 and creates a follow-up: one item per unfinished task, with the decision
-they made, plus decisions about no particular task. This skill works those
-items outside a night, with the developer around.
+they made, plus decisions about no particular task and each decision an
+agent took that they disagree with. This skill works those items outside
+a night, with the developer around.
 
 Run the tool as: `{{cli}}`
 
@@ -36,12 +37,17 @@ Each item has a `kind`:
   says what remains.
 - `waiting`: a question still without an answer. Ask the developer now,
   in the conversation, before working on it.
+- `disagreed`: a decision an earlier agent took on the developer's behalf
+  (`question`) that they disagree with; `owner_note` says what they want
+  instead. Redo that part their way.
 
 ## 2. Check before you fix
 
 The developer may have fixed an item by other means since the night.
 Look at the real code first. Then do the work the repository's normal way
 (its tests, review and commits), and check the item's `done_when` lines.
+When a choice that belongs to the developer comes up while you work, ask
+them in the conversation; they are around.
 
 ## 3. Mark each item
 

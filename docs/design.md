@@ -66,7 +66,7 @@ are in `docs/glossary.md`.
 |---|---|---|---|
 | 1 Plan | Agent, skill `start-night-shift` | The developer's instructions; open follow-up files | `plan.json`, checked by the tool; the night is marked open |
 | 2 Work | Agent, the developer's way | The plan | Code, commits, evidence files |
-| 3 Record | Agent, one tool call per task | What it did | Each task's outcome, checks and evidence, right after the task; questions and feedback as they arise |
+| 3 Record | Agent, one tool call per task | What it did | Each task's outcome, checks and evidence, right after the task; questions, decisions and feedback as they arise |
 | 4 Meter | Tool, a Claude Code session-end hook, or crash recovery | Claude Code's session logs; the night file | The metrics, added to the night file (closing it first if it is still open) |
 | 5 Close | Tool | Plan, records | `night.json`, validated, marked `complete` or `interrupted` |
 | 6 Viewer | Local app | Every night file of every registered repository; the developer's clicks | Inbox, reports, history; answers written into the night file; follow-up files; GitHub issues |
@@ -89,10 +89,10 @@ are in `docs/glossary.md`.
   once, so a crash loses at most the task in progress. Every tool reply ends
   with the next step, so the agent stays on track even after the harness has
   compressed older context.
-- **Normal end.** The agent adds the summary (questions and feedback were
-  recorded as they arose); the tool closes the night as `complete`. When the
-  session then ends, the Meter adds the metrics. They cover the whole
-  session, including anything done in it after the close.
+- **Normal end.** The agent adds the summary (questions, decisions and
+  feedback were recorded as they arose); the tool closes the night as
+  `complete`. When the session then ends, the Meter adds the metrics. They
+  cover the whole session, including anything done in it after the close.
 - **The session ends early** (context exhausted, the developer exits, the
   process is killed). The session-end hook closes the night as
   `interrupted`, with every outcome recorded so far, and adds the metrics.
@@ -175,6 +175,11 @@ release then lists the answer as a problem ("not an option") and may
 build a follow-up that treats it as a decision. Run one release against a
 repository's nights at a time.
 
+**Version 3** (D31): `night@3` adds `agent_decisions` and `follow-up@3` the
+`disagreed` item kind (with `agent_decision`, the decision it comes from).
+The plan stays at version 2. Older files read as they are; a night started
+by an older release cannot record a decision (the tool says so).
+
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
 git ignores except `.night-shift/history/`. At close, the night file is copied
@@ -231,19 +236,24 @@ The agent's promise. `source` is free text so it fits any workflow.
 
 The single record of the night. Start copies the plan's tasks in, so the file
 stands on its own in history. The agent writes `summary`, `tasks`,
-`questions` and `feedback`; the tool writes `status` and `metrics`; the
-Viewer writes only `questions[].answer`, `questions[].note` and
-`feedback[].sent`. A metric Claude Code did not provide is `null` and shows
-as "unknown". `summary` is the headline on the Inbox card: one sentence on
-one line, at most 200 characters, checked at close (older nights keep
-longer ones). A question may carry `files` (paths inside the repository,
-with an optional caption); the Viewer shows them and opens the file manager
-on one. An answer is an option id, `"discuss"` (with a note), or `null`. An
-abridged example (the schema has every field):
+`questions`, `agent_decisions` and `feedback`; the tool writes `status` and
+`metrics`; the Viewer writes only `questions[].answer`, `questions[].note`,
+`agent_decisions[].review`, `agent_decisions[].note` (with `reviewed_at`)
+and `feedback[].sent`. An agent decision (`night-shift decide`, D31) is a
+decision the agent took on the developer's behalf: `decision`, `why`, the
+task; the developer reviews it as fine or disagrees with a note, and a
+disagreement becomes a `disagreed` follow-up item. Unreviewed decisions keep
+the night in the developer's turn. A metric Claude Code did not provide is
+`null` and shows as "unknown". `summary` is the headline on the Inbox card:
+one sentence on one line, at most 200 characters, checked at close (older
+nights keep longer ones). A question may carry `files` (paths inside the
+repository, with an optional caption); the Viewer shows them and opens the
+file manager on one. An answer is an option id, `"discuss"` (with a note),
+or `null`. An abridged example (the schema has every field):
 
 ```json
 {
-  "schema": "night-shift/night@2",
+  "schema": "night-shift/night@3",
   "night": "2026-09-26-a",
   "status": "complete",
   "started_at": "2026-09-26T23:10:00+03:00",
@@ -325,7 +335,7 @@ it up, in a night or by day, does the digging for context.
 
 ```json
 {
-  "schema": "night-shift/follow-up@2",
+  "schema": "night-shift/follow-up@3",
   "id": "2026-09-26-a",
   "from_night": "2026-09-26-a",
   "created_at": "2026-09-27T08:40:00+03:00",
@@ -348,16 +358,18 @@ it up, in a night or by day, does the digging for context.
 }
 ```
 
-- Item kinds: `decision`, `unfinished`, `waiting` (a question the
-  developer did not answer; the next agent plans it, asks again instead of
-  guessing, and records it `blocked` if it still needs the answer), and
-  `discuss` (the developer answered "let's discuss" with a note: no night
-  plans or skips it, nor the other open items of its task; a day session
-  raises it with them first, and while only those items are open the
-  night is the developer's turn). Once
+- Item kinds: `decision`, `unfinished`, `waiting` (a question the developer
+  did not answer; the next agent plans it, asks again instead of guessing,
+  and records it `blocked` if it still needs the answer), and `discuss` (the
+  developer answered "let's discuss" with a note: no night plans or skips
+  it, nor the other open items of its task; a day session raises it with
+  them first, and while only those items are open the night is the
+  developer's turn), and `disagreed` (the developer disagrees with an agent
+  decision: `question` holds the decision, `owner_note` what they want
+  instead, `agent_decision` its id; the next agent redoes that part). Once
   it is asked again (word for word), or its task ends done or skipped, the
-  old copy of the question is locked in the Viewer: the answer belongs
-  where the question is open now. A night that works on the task without
+  old copy of the question is locked in the Viewer: the answer belongs where
+  the question is open now. A night that works on the task without
   asking again leaves it open where it was, still answerable, and the next
   night plans or skips it again (D30).
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
@@ -379,7 +391,7 @@ slash command.
 
 | Skill | Triggered by | Teaches |
 |---|---|---|
-| `start-night-shift` | "start night shift" | The whole night: follow-ups, plan, record per task, questions, feedback, close |
+| `start-night-shift` | "start night shift" | The whole night: follow-ups, plan, record per task, questions, decisions, feedback, close |
 | `do-night-shift-follow-up` | "work on the follow-up" | Pick up a follow-up file by day, check items against the code, fix them, update their status |
 
 No `/ns:ask` in version 1: outside a night the developer is at the terminal.
@@ -404,13 +416,15 @@ One local web app for every registered repository, opened with one command
 from any folder. Screens:
 
 1. **Inbox** (D24; the home page, `#/`): at a glance, the questions
-   waiting for the developer, the nights that need them and the items
-   scheduled for the next night; **Start my morning**, one deck through
-   every open question across repositories; one card per night that is
+   and agent decisions waiting for the developer, the nights that need
+   them and the items scheduled for the next night; **Start my morning**,
+   one deck through every open question across repositories, then every
+   agent decision to review (D31); one card per night that is
    Running or the developer's turn (repository, date, its `Owner state`
    with a small step track, a one-line result, the non-zero outcome counts, the grey stopped-early
-   line, and one next-step button: Answer N questions, Save for the next
-   agent, Read the report or Watch it run); below, a slim strip of the
+   line, and one next-step button: Answer N questions, Review N
+   decisions, Answer N · review M, Save for the next agent, Read the
+   report or Watch it run); below, a slim strip of the
    nights Waiting for an agent or settled since the Viewer loaded, and
    any night file that cannot be read (a red "Cannot be read" badge, not
    counted, gone once opened; History keeps it). No night opens until it
@@ -423,15 +437,19 @@ from any folder. Screens:
    phrase to say where an agent is next (TASK-27), the non-zero outcome
    counts, duration, cost, sub-agents); **What needs
    you** (the questions as one row with a small ring, opening the deck;
+   the agent decisions to review as another, opening only them;
    **Save for the next agent**, which writes the `Follow-up file`); the
-   items saved for the next agent; **What happened**, one row per task
-   (open one for its checks, questions and proof); feedback with tick
+   agent decisions with their reviews; the items saved for the next
+   agent; **What happened**, one row per task (open one for its checks,
+   questions, decisions and proof); feedback with tick
    boxes and **Send to GitHub**. Opening a night marks it read; a night
    opened while it ran is unread again once it ends.
 3. **The question deck** (over any page): one question per screen, the
-   recommendation preselected. It ends on the **gate** (TASK-28): for each
-   night it walked that is not saved yet, the answers and the unfinished
-   work with one **Save for the next agent**; once saved, a confirmation
+   recommendation preselected; after the questions, one card per agent
+   decision to review: Enter keeps it, D disagrees with a note (D31). It
+   ends on the **gate** (TASK-28): for each night it walked that is not
+   saved yet, the answers, the disagreements and the unfinished work with
+   one **Save for the next agent**; once saved, a confirmation
    that nothing runs until the developer starts an agent, with the
    phrases to copy ("start night shift", "work on the follow-up") and the
    folder to say them in; a night still running is named instead, to be

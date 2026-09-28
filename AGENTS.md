@@ -148,14 +148,15 @@ without committing.
   of real projects, boards, people and clients. Personal detail belongs in
   `.local/`.
 - One writer per field: in a `Night file` the `Viewer` writes only
-  `questions[].answer`, `questions[].note` and `feedback[].sent`, and the
-  tool alone writes `status` and `metrics`.
+  `questions[].answer`, `questions[].note`, the review of
+  `agent_decisions[]` and `feedback[].sent`, and the tool alone writes
+  `status` and `metrics`.
 - File shapes are versioned by their `schema` values
-  (`night-shift/plan@2`, `night-shift/night@2`, `night-shift/follow-up@2`;
-  `@1` still read). A breaking change adds the next version and keeps
-  reading the older ones, or, while the only
-  `Adopter`s are the owner's own repositories, updates them in the same
-  change and says so in CHANGELOG.md.
+  (`night-shift/plan@2`, `night-shift/night@3`,
+  `night-shift/follow-up@3`; older versions still read). A breaking
+  change adds the next version and keeps reading the older ones, or,
+  while the only `Adopter`s are the owner's own repositories, updates
+  them in the same change and says so in CHANGELOG.md.
 - Credentials (a `gh` login, tokens) stay with the tool; the browser never
   sees them.
 - Releases: tags `v1`, `v2`, … never moved; a bad release takes the next

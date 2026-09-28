@@ -9,7 +9,7 @@ import { serve } from '@hono/node-server';
 import { chromium } from 'playwright';
 import { DEAD_PID, TASKS, gitRepo, plan, session } from '../helpers.ts';
 import { createApp } from '../../src/server.ts';
-import { ask, close, record, recover, start } from '../../src/night.ts';
+import { ask, close, decide, record, recover, start } from '../../src/night.ts';
 import { loadNight, readFollowUp, registerRepo } from '../../src/store.ts';
 
 test('the deck saves the chosen answer and its note into the night file', async () => {
@@ -194,6 +194,60 @@ test('mouse and keyboard together: Enter saves what the screen shows as chosen',
     await page.keyboard.press('Enter');
     await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
     assert.deepEqual(loadNight(repo, id).night.questions.map((q) => q.answer), ['b', 'a', 'b', 'b']);
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
+
+test('a morning reviews the decisions the agent took, after the questions (D31)', async () => {
+  const repo = gitRepo('decisions');
+  const id = start(repo, plan(TASKS.slice(0, 2)), session('d', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'b' });
+  decide(repo, { task: 'T1', decision: 'Generate invoices with pdfkit', why: 'It streams large invoices.' });
+  decide(repo, { task: 'T2', decision: 'Keep the login cookie at 14 days', why: 'The framework default.' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  close(repo, 'The login is fixed; invoices wait for you.');
+  recover(repo);
+  const ref = registerRepo(repo);
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    // The Inbox counts them and Start my morning names them (other tests' nights share the registry).
+    await page.goto(`http://127.0.0.1:${port}/#/`);
+    await page.getByText('decisions to review').waitFor();
+    await page.locator('button', { hasText: 'Start my morning' }).filter({ hasText: '2 decisions' }).waitFor();
+    // This night's own deck: its question, then its decisions.
+    await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
+    await page.getByText('2 decisions to review', { exact: true }).waitFor();
+    await page.getByRole('button', { name: /Start answering/ }).click();
+    const deck = page.locator('div.sky.fixed');
+    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor();
+    await page.keyboard.press('Enter');
+    // Enter keeps the decision; D disagrees, with a note for the next agent.
+    await deck.getByRole('heading', { name: 'Generate invoices with pdfkit' }).waitFor();
+    await deck.getByText('A decision the agent took for you').waitFor();
+    // A note belongs to "I disagree" only: under "Fine, keep it" none is offered.
+    assert.equal(await deck.getByText('+ add a note').count(), 0);
+    assert.equal(await deck.locator('textarea').count(), 0);
+    await page.keyboard.press('Enter');
+    await deck.getByRole('heading', { name: 'Keep the login cookie at 14 days' }).waitFor();
+    await page.keyboard.press('d');
+    await page.keyboard.type('Seven days: the client asked for it.');
+    await page.keyboard.press('Control+Enter');
+    await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
+    await deck.getByText('You disagree: Seven days: the client asked for it.').waitFor();
+    await page.keyboard.press('s');
+    await deck.getByRole('heading', { name: 'All clear' }).waitFor({ timeout: 10_000 });
+
+    const n = loadNight(repo, id).night;
+    assert.deepEqual(n.agent_decisions!.map((d) => [d.review, d.note]), [['ok', null], ['disagree', 'Seven days: the client asked for it.']]);
+    assert.deepEqual(readFollowUp(repo, id).items.map((i) => [i.kind, i.task]), [['decision', 'T1'], ['disagreed', 'T2']]);
   } finally {
     await browser.close();
     server.close();

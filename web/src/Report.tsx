@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { FollowUp, FollowUpItem, NightDetail, NightSummary, Task } from '../../src/types.ts';
-import { OUTCOMES, answerLabel, countOutcomes, forTalk, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import type { AgentDecision, FollowUp, FollowUpItem, NightDetail, NightSummary, Task } from '../../src/types.ts';
+import { takenBack, agentDecisions, decisionsOpen, disagreed, OUTCOMES, answerLabel, countOutcomes, forTalk, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { Phrase } from './Gate.tsx';
 import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
@@ -22,7 +22,7 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
   picking: boolean;
   failed: boolean;
   onBack: () => void;
-  onOpenDeck: (startKey?: string) => void;
+  onOpenDeck: (startKey?: string, only?: 'decisions') => void;
   onDetail: (d: NightDetail) => void;
   onReload: () => void;
 }) {
@@ -50,7 +50,7 @@ function talkId(f: FollowUp, item: FollowUpItem): string {
   return talk ? ` (${talk.id})` : '';
 }
 
-function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
+function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string, only?: 'decisions') => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
   const [open, setOpen] = useState<Task | null>(null);
   const n = detail.night;
   const counts = countOutcomes(n.tasks);
@@ -94,6 +94,14 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
         <NeedsYou detail={detail} onOpenDeck={onOpenDeck} onDetail={onDetail} onReload={onReload} />
       </Section>
 
+      {agentDecisions(n).length > 0 && (
+        <Section title="Decisions the agent took for you" aside={decisionsOpen(n) ? `${decisionsOpen(n)} to review` : 'all reviewed'}>
+          <ul className="divide-y divide-white/8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            {agentDecisions(n).map((d) => <DecisionRow key={d.id} decision={d} onOpen={() => onOpenDeck(decisionKey(detail, d), 'decisions')} />)}
+          </ul>
+        </Section>
+      )}
+
       {detail.follow_up && (
         <Section title="Saved for the next agent" aside={`${detail.follow_up.items.filter((i) => i.status === 'open').length} open`}>
           <ul className="divide-y divide-white/8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
@@ -104,6 +112,12 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
                   {i.title}
                   {i.decision_label && <span className="font-semibold text-white"> → {i.decision_label}</span>}
                   {i.decision_label && i.question && <span className="block text-sm text-white/55">{i.question}</span>}
+                  {i.kind === 'disagreed' && (
+                    <span className="block text-sm text-white/55">
+                      The agent decided: {i.question}
+                      {i.owner_note && <span className={`block ${takenBack(i) ? 'text-white/40' : 'text-white/80'}`}>Your note: {i.owner_note}</span>}
+                    </span>
+                  )}
                   {i.status === 'open' && i.kind !== 'discuss' && forTalk(detail.follow_up!, i) && (
                     // Held with a point the developer wants to talk through: no night takes it on.
                     <span className="block text-sm text-eyes/90">Waits for your talk{talkId(detail.follow_up!, i)}.</span>
@@ -115,7 +129,7 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
                 ) : i.status === 'open' ? (
                   <span className="shrink-0 rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${KIND[i.kind].color} 75%, white)`, background: `color-mix(in srgb, ${KIND[i.kind].color} 18%, transparent)` }}>{KIND[i.kind].label}</span>
                 ) : (
-                  <span className="shrink-0 text-xs text-white/50">{i.status}</span>
+                  <span className="shrink-0 text-xs text-white/50">{takenBack(i) ? 'withdrawn: you kept the decision' : i.status}</span>
                 )}
               </li>
             ))}
@@ -126,7 +140,7 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
       <Section title="What happened" aside={<span className="hidden sm:inline">open a task for its checks and proof</span>}>
         {n.tasks.length ? (
           <ul className="divide-y divide-white/8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-            {n.tasks.map((t) => <TaskRow key={t.id} task={t} onOpen={() => setOpen(t)} />)}
+            {n.tasks.map((t) => <TaskRow key={t.id} task={t} decisions={agentDecisions(n).filter((d) => d.task === t.id)} onOpen={() => setOpen(t)} />)}
           </ul>
         ) : (
           <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white/60">No task yet.</p>
@@ -142,13 +156,13 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
         </div>
       )}
 
-      {open && <TaskDrawer task={open} detail={detail} onClose={() => setOpen(null)} onQuestion={(key) => { setOpen(null); onOpenDeck(key); }} />}
+      {open && <TaskDrawer task={open} detail={detail} onClose={() => setOpen(null)} onQuestion={(key, only) => { setOpen(null); onOpenDeck(key, only); }} />}
     </div>
   );
 }
 
 // The questions as one compact row, and the save for the next agent; what is left when neither applies.
-function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDetail; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
+function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDetail; onOpenDeck: (startKey?: string, only?: 'decisions') => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Saved from this row just now: say what happens next, as the deck's gate does.
@@ -214,13 +228,32 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
       </div>,
     );
   }
+  const decisions = agentDecisions(n);
+  if (decisions.length) {
+    const toReview = decisions.filter((d) => d.review === null);
+    const against = disagreed(n).length;
+    rows.push(
+      <div key="a" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
+        <Ring done={decisions.length - toReview.length} total={decisions.length} size={64}>
+          <span className="text-lg font-bold">{toReview.length}</span>
+        </Ring>
+        <div className="min-w-[12rem] flex-1">
+          <div className="font-semibold">{toReview.length ? `${toReview.length} decision${toReview.length === 1 ? '' : 's'} to review` : 'Every decision reviewed'}</div>
+          <div className="text-sm text-white/55">{decisions.length - toReview.length} of {decisions.length} reviewed{against ? `; you disagree with ${against}, which the next agent revisits` : ''}</div>
+        </div>
+        <button onClick={() => onOpenDeck(decisionKey(detail, toReview[0] ?? decisions[0]), 'decisions')} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 font-semibold transition hover:brightness-110 ${toReview.length ? 'bg-[var(--accent)] text-white' : 'glass text-white/85'}`}>
+          {toReview.length ? 'Review decisions' : 'See decisions'} <Icon name="right" className="size-4" strokeWidth={2.6} />
+        </button>
+      </div>,
+    );
+  }
   if (save) {
     rows.push(
       <div key="s" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="forward" className="size-5" strokeWidth={2.4} /></span>
         <div className="min-w-[14rem] flex-1">
           <div className="flex items-center gap-2 font-semibold">Save for the next agent <HelpDot step="save" term="Save for the next agent" /></div>
-          <div className="text-sm text-white/55">{[pending ? `${pending} unfinished task${pending === 1 ? '' : 's'}` : '', n.questions.length ? `${n.questions.length} question${n.questions.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. {openQ ? 'Answer what you can first; nothing' : 'Nothing'} runs until you start an agent.</div>
+          <div className="text-sm text-white/55">{[pending ? `${pending} unfinished task${pending === 1 ? '' : 's'}` : '', n.questions.length ? `${n.questions.length} question${n.questions.length === 1 ? '' : 's'}` : '', disagreed(n).length ? `${disagreed(n).length} disagreement${disagreed(n).length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. {openQ || decisionsOpen(n) ? `${openQ ? 'Answer' : 'Review'}${openQ && decisionsOpen(n) ? ' and review' : ''} what you can first; nothing` : 'Nothing'} runs until you start an agent.</div>
         </div>
         <button onClick={() => void create()} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
           {busy ? 'Saving…' : 'Save'}
@@ -240,7 +273,8 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
 }
 
 // One task as a row: its outcome, id and title, one line of result, and what it carries.
-function TaskRow({ task: t, onOpen }: { task: Task; onOpen: () => void }) {
+function TaskRow({ task: t, decisions, onOpen }: { task: Task; decisions: AgentDecision[]; onOpen: () => void }) {
+  const toReview = decisions.filter((d) => d.review === null).length;
   const s = taskStyle(t.outcome);
   const met = t.checks.filter((c) => c.met).length;
   const line = t.outcome === null ? 'In progress' : t.why ?? t.reason ?? (t.checks.length ? `${met} of ${t.checks.length} checks met` : '');
@@ -251,6 +285,11 @@ function TaskRow({ task: t, onOpen }: { task: Task; onOpen: () => void }) {
       </Pill>
     ),
     t.blocked_by && <Pill key="b" className="!bg-eyes/20 !text-eyes"><Icon name="question" className="size-3" /> {t.blocked_by}</Pill>,
+    decisions.length > 0 && (
+      <Pill key="d" className={toReview ? '!bg-eyes/20 !text-eyes' : ''} title="Decisions the agent took for you in this task">
+        <Icon name="compass" className="size-3.5" /> {toReview ? `${toReview} to review` : `${decisions.length} decision${decisions.length === 1 ? '' : 's'}`}
+      </Pill>
+    ),
     refsOf(t).length > 0 && <Pill key="f">from {refsOf(t).join(', ')}</Pill>,
     t.unplanned && <Pill key="u">unplanned</Pill>,
   ].filter(Boolean);
@@ -277,7 +316,7 @@ function TaskRow({ task: t, onOpen }: { task: Task; onOpen: () => void }) {
   );
 }
 
-function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; detail: NightDetail; onClose: () => void; onQuestion: (key: string) => void }) {
+function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; detail: NightDetail; onClose: () => void; onQuestion: (key: string, only?: 'decisions') => void }) {
   const [zoom, setZoom] = useState<Media | null>(null);
   const s = taskStyle(t.outcome);
   const url = (rel: string) => fileUrl(detail.repo.id, detail.night.night, rel);
@@ -336,6 +375,15 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {agentDecisions(detail.night).some((d) => d.task === t.id) && (
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm tracking-widest text-white/50 uppercase">Decisions the agent took for you</h3>
+            <ul className="divide-y divide-white/8 overflow-hidden rounded-xl border border-white/10">
+              {agentDecisions(detail.night).filter((d) => d.task === t.id).map((d) => <DecisionRow key={d.id} decision={d} inTask onOpen={() => onQuestion(decisionKey(detail, d), 'decisions')} />)}
+            </ul>
           </div>
         )}
 
@@ -422,5 +470,29 @@ function FeedbackSection({ detail, onDetail }: { detail: NightDetail; onDetail: 
       {unsent.length > 0 && <p className="mt-2 text-xs text-white/50">Sending creates a public issue{issuesRepo ? ` on github.com/${issuesRepo}` : ' on GitHub'}. Read each entry first and untick anything private.</p>}
       {message && <div className="mt-2 text-sm text-white/70">{message}</div>}
     </section>
+  );
+}
+
+const decisionKey = (detail: NightDetail, d: AgentDecision) => `${detail.repo.id}/${detail.night.night}/${d.id}`;
+
+// A decision the agent took for the developer (D31): what, why, and where the review stands. Opens it
+// in the deck to review or change.
+function DecisionRow({ decision: d, inTask = false, onOpen }: { decision: AgentDecision; inTask?: boolean; onOpen: () => void }) {
+  const state =
+    d.review === null ? { label: 'Not reviewed', cls: 'bg-eyes/15 text-eyes' }
+      : d.review === 'ok' ? { label: 'Fine', cls: 'bg-shipped/15 text-shipped' }
+        : { label: 'You disagree', cls: 'bg-agent/15 text-agent' };
+  return (
+    <li>
+      <button onClick={onOpen} className="flex w-full flex-wrap items-start gap-x-3 gap-y-1 px-4 py-3 text-left transition hover:bg-white/5">
+        {!inTask && <span className="mt-0.5 shrink-0 self-start rounded bg-white/10 px-1.5 font-mono text-xs leading-6">{d.task ?? d.id}</span>}
+        <span className="min-w-[12rem] flex-1">
+          <span className="block text-white/90">{d.decision}</span>
+          <span className="block text-sm text-white/55">{d.why}</span>
+          {d.review === 'disagree' && d.note && <span className="mt-0.5 block text-sm text-white/80">Your note: {d.note}</span>}
+        </span>
+        <span className={`shrink-0 rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap ${state.cls}`}>{state.label}</span>
+      </button>
+    </li>
   );
 }
