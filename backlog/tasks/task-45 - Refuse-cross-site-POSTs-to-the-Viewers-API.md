@@ -1,9 +1,11 @@
 ---
 id: TASK-45
 title: Refuse cross-site POSTs to the Viewer's API
-status: Queued
-assignee: []
+status: Done
+assignee:
+  - '@claude'
 created_date: '2026-09-28 13:28'
+updated_date: '2026-09-28 13:46'
 labels:
   - triage
 dependencies: []
@@ -25,3 +27,9 @@ Code review of file shapes v2 (docs/work/TASK-29/reviews/01-code-reviewer.md N2)
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Built on fix/same-origin, merged to main as 506ae4f: every non-GET request a browser marks as from another site (Sec-Fetch-Site, else Origin) is refused; the tool and the Viewer's own page pass. Review round 1 (docs/work/TASK-45/reviews/01-code-reviewer.md on main): PASS; m1 recorded as D29, m2 tested (Origin-only save). Evidence: tests/server.test.ts, the browser test still saves through the page.
+<!-- SECTION:NOTES:END -->

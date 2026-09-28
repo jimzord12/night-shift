@@ -189,7 +189,7 @@ test("a question's files: served from the repository and shown in the file manag
   q.questions[0].files = [...(q.questions[0].files ?? []), { path: 'concepts/notes.md' }];
   saveNight(repo, q);
   const md = await app.request(`${base}/1`);
-  assert.deepEqual([md.status, md.headers.get('Content-Type'), md.headers.get('Content-Disposition')], [200, 'text/plain; charset=utf-8', null]);
+  assert.deepEqual([md.status, md.headers.get('Content-Type'), md.headers.get('Content-Disposition'), md.headers.get('Content-Security-Policy')], [200, 'text/plain; charset=utf-8', null, 'sandbox']);
   assert.equal(await md.text(), '# Concepts');
   assert.equal((await app.request(`/api/nights/${id}/${night}/questions/Q9/files/0`)).status, 404);
   assert.equal((await app.request(`${base}/0/reveal`, { method: 'POST' })).status, 200);
@@ -242,4 +242,37 @@ test('an answer saves when only other parts of the night changed since it was op
   const stillSeen = await post({ question: 'Q1', answer: 'a', baseHash: noted.hash, was: { answer: 'b', note: null } });
   assert.equal(stillSeen.status, 409);
   assert.deepEqual([loadNight(repo, id).night.questions[0].answer, loadNight(repo, id).night.questions[0].note], ['b', 'from tab one']);
+});
+
+test('a carried task that ends on a new question keeps the decisions it carried', async () => {
+  const { repo, id, ref } = withFollowUp('carry-q');
+  const app = createApp({ version: 'test' });
+  for (const [q, a] of [['Q1', 'b'], ['Q2', 'a']]) {
+    await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: q, answer: a, baseHash: loadNight(repo, id).hash }) });
+  }
+  const first = createFollowUp(repo, loadNight(repo, id).night);
+  assert.equal(first.schema, 'night-shift/follow-up@2');
+  const s = start(repo, plan([{ ...TASKS[0], follow_up: [`${id}/A1`, `${id}/A2`] }]), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
+  ask(repo, { task: 'T1', ask: 'Which PDF library?', options: [{ label: 'pdfkit' }, { label: 'jsPDF' }], recommended: 'a' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  close(repo, 'The invoices wait for a library.');
+  const unanswered = createFollowUp(repo, loadNight(repo, s.night.night).night);
+  assert.deepEqual(unanswered.items.map((i) => [i.kind, i.decision_label ?? i.question]), [['waiting', 'Which PDF library?'], ['decision', 'Detailed'], ['decision', 'Cookie']]);
+  // Answered later, the question's item turns into a decision and the carried ones stay.
+  const res = await app.request(`/api/nights/${ref.id}/${s.night.night}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'a', baseHash: loadNight(repo, s.night.night).hash }) });
+  assert.equal(res.status, 200);
+  assert.deepEqual(readFollowUp(repo, s.night.night).items.map((i) => [i.kind, i.decision_label]), [['decision', 'pdfkit'], ['decision', 'Detailed'], ['decision', 'Cookie']]);
+});
+
+test('an older follow-up takes version 2 when an answer flows into it; "discuss" is no option id', async () => {
+  const { repo, id, ref } = withFollowUp('old-follow-up');
+  createFollowUp(repo, loadNight(repo, id).night);
+  const file = path.join(repo, '.night-shift', 'follow-ups', `${id}.json`);
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('night-shift/follow-up@2', 'night-shift/follow-up@1'));
+  const res = await createApp({ version: 'test' }).request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'discuss', note: 'Talk first', baseHash: loadNight(repo, id).hash }) });
+  assert.equal(res.status, 200);
+  assert.equal(readFollowUp(repo, id).schema, 'night-shift/follow-up@2');
+  const live = gitRepo('reserved');
+  start(live, plan(TASKS.slice(0, 1)), session('r', process.pid));
+  refused(() => ask(live, { task: 'T1', ask: 'Who decides?', options: [{ id: 'discuss', label: 'Discuss with the team' }, { label: 'Me' }], recommended: 'b' }), /"discuss" is reserved/);
 });

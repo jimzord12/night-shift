@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { Block, Check, Feedback, Night, Option, PlanInput, Question, QuestionFile, Session, Task } from './types.ts';
-import { BLOCK_TYPES, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, refsOf } from './types.ts';
+import { BLOCK_TYPES, DISCUSS, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, refsOf } from './types.ts';
 import {
   StoreError,
   evidenceDir,
@@ -295,6 +295,7 @@ export function ask(repo: string, input: AskInput): { night: Night; question: Qu
     ...(o.detail ? { detail: o.detail } : {}),
     ...(typeof o.image === 'string' && o.image ? { image: relEvidence(repo, n.night, o.image) } : {}),
   }));
+  if (options.some((o) => o.id === DISCUSS)) throw new StoreError(`"${DISCUSS}" is reserved for the developer's "let's discuss" answer; give the option another id`);
   const files = questionFiles(repo, input.files);
   const rec = String(input.recommended ?? '');
   const recommended = options.find((o) => o.id === rec)?.id ?? options.find((o) => o.label === rec)?.id ?? rec;

@@ -168,7 +168,12 @@ Left out on purpose: diffs (link the commit), tables, charts, headings.
 `follow-up@2` add a task that follows several follow-up items, questions
 that carry files, and the "let's discuss" answer with its `discuss` item.
 Version 1 files stay valid and read as they are; the tool writes version 2.
-An older release refuses a version 2 file rather than misread it.
+An older release refuses a version 2 file rather than misread it. One
+limit: the `Viewer` never changes a night file's `schema`, so a `night@1`
+file answered "let's discuss" by a new `Viewer` still says `@1`; an older
+release then lists the answer as a problem ("not an option") and may
+build a follow-up that treats it as a decision. Run one release against a
+repository's nights at a time.
 
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which

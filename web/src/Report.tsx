@@ -174,7 +174,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
               <li key={i.id}>{i.question ?? i.title}{i.owner_note && <span className="text-white/85"> · your note: {i.owner_note}</span>}</li>
             ))}
           </ul>
-          <p className="mt-2 text-sm text-white/55">No night works on these. Open Claude Code in this folder, with you there, and say:</p>
+          <p className="mt-2 text-sm text-white/55">No night works on these. Open Claude Code in this folder and say:</p>
           <div className="mt-2 sm:max-w-sm"><Phrase text="work on the follow-up" hint="now, with you there" /></div>
         </div>
       </div>,

@@ -53,6 +53,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                             {!item.decision_label && item.question && <div className="mt-0.5 text-sm text-white/60">{item.question}</div>}
                             {item.owner_note && <div className="mt-0.5 text-sm text-white/60">Your note: {item.owner_note}</div>}
                             {item.left && item.left.length > 0 && <div className="mt-0.5 text-sm text-white/55">Still to do: {item.left.join(' · ')}</div>}
+                            {item.kind === 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">No night works on this: talk it through with an agent, with you there (&ldquo;work on the follow-up&rdquo;).</div>}
                           </div>
                         </li>
                       );

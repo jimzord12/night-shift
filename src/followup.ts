@@ -25,19 +25,23 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
     const q = n.questions.find((x) => x.id === t.blocked_by) ?? n.questions.find((x) => x.task === t.id);
     if (q) used.add(q.id);
     const base = { task: t.id, title: t.title, done_when: t.done_when };
+    // Every decision the task carried keeps the developer's answer, one item each, whatever the task
+    // ended on: the new question first when it asked one, else the work left on the first decision.
+    const priors = refsOf(t).map((r) => earlier(r)).filter((i): i is FollowUpItem => i?.kind === 'decision');
+    const carried = (prior: FollowUpItem, extra: object = {}) =>
+      add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...extra });
     if (q && q.answer !== null) {
       add({ ...base, ...answered(q) });
+      priors.forEach((prior) => carried(prior));
     } else if (q) {
       add({ ...base, kind: 'waiting', question: q.ask });
+      priors.forEach((prior) => carried(prior));
     } else {
-      // Every decision the task carried keeps the developer's answer: one item each, the work left on
-      // the first.
-      const priors = refsOf(t).map((r) => earlier(r)).filter((i): i is FollowUpItem => i?.kind === 'decision');
       const left = t.checks.filter((c) => !c.met).map((c) => (c.note ? `${c.done_when}: ${c.note}` : c.done_when));
       if (t.outcome === 'failed' && t.why) left.unshift(`failed: ${t.why}`);
       if (t.outcome === 'not_started' || (!left.length && t.outcome !== 'partial')) left.push('not started');
       if (!priors.length) add({ ...base, kind: 'unfinished', left });
-      priors.forEach((prior, i) => add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...(i === 0 ? { left } : {}) }));
+      priors.forEach((prior, i) => carried(prior, i === 0 ? { left } : {}));
     }
   }
   for (const q of n.questions) {
