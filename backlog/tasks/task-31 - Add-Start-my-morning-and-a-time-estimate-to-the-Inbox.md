@@ -5,7 +5,7 @@ status: Review
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 12:33'
+updated_date: '2026-09-28 13:03'
 labels:
   - viewer
 dependencies:
@@ -45,4 +45,6 @@ D24; replaces the Questions tab. On top of the Inbox, an estimate (about 4 minut
 Acceptance #3 is superseded: D26 and D27 make the navigation Inbox, Next night and History.
 
 Estimate built on feat/estimate: morningEstimate() in src/types.ts (questions walked; saves = closed unsaved nights among them; about 1 min a question + 30 s a save, rounded up), shown on Start my morning. The run ending on each repository's gate shipped with TASK-28. Evidence: .local/evidence/2026-09-28-estimate/inbox-{1440,390}.png; test in tests/server.test.ts (3 questions, 1 save, 4 min from real nights).
+
+Review round 1 (docs/work/TASK-31/reviews/01-*): code FINDINGS, design FINDINGS. Dispositions: code M1 fixed: the test adds a closed night with only unfinished work (ready to save, never walked) and a 2-question/1-save case that separates the half-minute rounding. m1: merge order handled: feat/save-gate (the gate) merges to main before this branch; the earlier note meant 'built on feat/save-gate', not yet integrated. N1 no action; N2 recorded for TASK-28's owner (the estimate is the more accurate side). Design D1 Blocking fixed: the button stacks until lg and the title never wraps (checked at 320, 390, 768, 1024, 1440: .local/evidence/2026-09-28-estimate/r2/). D2 fixed: the time takes its own line when stacked. D3 fixed with D1. D4, D5 no action.
 <!-- SECTION:NOTES:END -->

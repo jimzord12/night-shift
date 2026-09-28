@@ -4,6 +4,7 @@ title: Viewer polish left from the Inbox review
 status: Queued
 assignee: []
 created_date: '2026-09-28 08:21'
+updated_date: '2026-09-28 13:03'
 labels:
   - viewer
 dependencies: []
@@ -24,3 +25,9 @@ Notes deferred from TASK-25's review rounds 2 and 3 (docs/work/TASK-25/reviews/)
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+At 768 px the header's version and proposals pill wrap to a second row under the tabs (seen in TASK-31 round 2 shots).
+<!-- SECTION:NOTES:END -->
