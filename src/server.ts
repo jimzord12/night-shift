@@ -210,13 +210,16 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
   // The Viewer's one write to a question: the answer and a note, over the exact file version the
   // developer saw (409 otherwise). `answer: null` takes an answer back.
   app.post('/api/nights/:repo/:night/answer', async (c) => {
-    const b = await body<{ question?: string; answer?: string | null; note?: string; baseHash?: string }>(c);
+    const b = await body<{ question?: string; answer?: string | null; note?: string; baseHash?: string; was?: { answer: string | null; note: string | null } }>(c);
     const repo = findRepo(c.req.param('repo'));
     const r = readNight(repo.path, c.req.param('night'));
     if (!r.night) throw new StoreError('the night file is invalid', 422);
-    if (r.hash !== b.baseHash) throw new StoreError('the night changed since you opened it; showing the new version', 409);
     const q = r.night.questions.find((x) => x.id === b.question);
     if (!q) throw new StoreError(`no question ${String(b.question)}`, 404);
+    // The file changed since the developer opened it: fine when this question is still as they saw
+    // it (the Meter adding metrics, another question answered); a conflict only when it is not.
+    const unchanged = !!b.was && b.was.answer === q.answer && (b.was.note ?? null) === (q.note ?? null);
+    if (r.hash !== b.baseHash && !unchanged) throw new StoreError('the night changed since you opened it; showing the new version', 409);
     if (b.answer !== null && b.answer !== undefined && b.answer !== DISCUSS && !q.options.some((o) => o.id === b.answer)) throw new StoreError(`"${b.answer}" is not an option of ${q.id}`);
     // "Let's discuss" says what is unclear, so the day session can start from it.
     if (b.answer === DISCUSS && !b.note?.trim()) throw new StoreError("let's discuss needs a note: what is unclear, or what you want to talk through");

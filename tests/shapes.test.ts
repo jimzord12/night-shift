@@ -168,3 +168,24 @@ test("the day skill raises discuss items first; the night skill leaves them out 
   assert.match(night, /close with \*\*one\nsentence\*\*/);
   assert.match(night, /"schema": "night-shift\/plan@2"/);
 });
+
+test('an answer saves when only other parts of the night changed since it was opened (TASK-44)', async () => {
+  const { repo, id, ref } = withFollowUp('meter');
+  const app = createApp({ version: 'test' });
+  const seen = loadNight(repo, id);
+  // The Meter measures the night after the developer opened it.
+  const n = structuredClone(seen.night);
+  n.metrics = { source: 'claude-code', harness_version: null, session_id: 's1', measured_at: '2026-09-27T09:00:00+03:00', duration_min: { total: 42, model: null, tools: null }, models: {}, cost_usd: 1.5, sub_agents: [], lines: { added: null, removed: null } };
+  saveNight(repo, n);
+  const post = (bodyObj: object) => app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify(bodyObj) });
+  // Without what the developer saw, the old rule holds: a conflict.
+  assert.equal((await post({ question: 'Q1', answer: 'b', baseHash: seen.hash })).status, 409);
+  // With it, the answer saves and the metrics stay.
+  const ok = await post({ question: 'Q1', answer: 'b', baseHash: seen.hash, was: { answer: null, note: null } });
+  assert.equal(ok.status, 200);
+  assert.deepEqual([loadNight(repo, id).night.questions[0].answer, loadNight(repo, id).night.metrics?.cost_usd], ['b', 1.5]);
+  // The same question changed meanwhile (another tab): still a conflict, and nothing is written.
+  const stale = await post({ question: 'Q1', answer: 'a', baseHash: seen.hash, was: { answer: null, note: null } });
+  assert.equal(stale.status, 409);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, 'b');
+});
