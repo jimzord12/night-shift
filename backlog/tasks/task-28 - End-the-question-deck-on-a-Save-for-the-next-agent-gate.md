@@ -1,10 +1,11 @@
 ---
 id: TASK-28
 title: End the question deck on a Save for the next agent gate
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:49'
+updated_date: '2026-09-28 11:12'
 labels:
   - viewer
 dependencies:
