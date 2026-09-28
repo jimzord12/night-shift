@@ -1,24 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, ownerState, ownersTurn, readable } from '../../src/types.ts';
+import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
 import { getNextNight, getNight, getOverview, markRead } from './api.ts';
-import { Morning } from './Morning.tsx';
+import { Inbox } from './Inbox.tsx';
+import { ReportPage } from './Report.tsx';
 import { Starfield } from './Starfield.tsx';
 import { QuestionDeck, deckKey } from './QuestionDeck.tsx';
 import type { DeckItem } from './QuestionDeck.tsx';
-import { HistoryView, NextNightView, QuestionsView, TrendsView } from './Views.tsx';
+import { HistoryView, NextNightView } from './Views.tsx';
 import { Icon } from './ui.tsx';
 
-type View = 'morning' | 'next' | 'questions' | 'history' | 'trends';
-// `short` is the label on a phone, where the tabs must fit in 360 pixels; the empty Trends tab
-// (to be removed, D24) is left off a phone.
-const VIEWS: { id: View; label: string; short?: string; wide?: true }[] = [
-  { id: 'morning', label: 'Morning' },
-  { id: 'next', label: 'Next night', short: 'Next' },
-  { id: 'questions', label: 'Questions' },
-  { id: 'history', label: 'History' },
-  { id: 'trends', label: 'Trends', wide: true },
+// Every page has its own address, so the browser's Back works: #/ the Inbox, #/next, #/history,
+// and #/night/<repo>/<night> for one Night Report (D24, D26).
+type Route = { page: 'inbox' } | { page: 'next' } | { page: 'history' } | { page: 'night'; key: string };
+function parseRoute(hash: string): Route {
+  const m = /^#\/night\/([^/]+)\/([^/]+)$/.exec(hash);
+  if (m) return { page: 'night', key: `${decodeURIComponent(m[1])}/${decodeURIComponent(m[2])}` };
+  return hash === '#/next' ? { page: 'next' } : hash === '#/history' ? { page: 'history' } : { page: 'inbox' };
+}
+const TABS: { page: 'inbox' | 'next' | 'history'; hash: string; label: string; short?: string }[] = [
+  { page: 'inbox', hash: '#/', label: 'Inbox' },
+  { page: 'next', hash: '#/next', label: 'Next night', short: 'Next' },
+  { page: 'history', hash: '#/history', label: 'History' },
 ];
 
 const keyOf = (repo: string, night: string) => `${repo}/${night}`;
@@ -51,13 +55,25 @@ export function App() {
     });
     return { ...loaded, nights };
   }, [loaded, details, seen]);
-  // Morning's list is fixed at load, so a night does not vanish while the developer works on it;
+  // The Inbox's list is fixed at load, so a night does not vanish while the developer works on it;
   // each entry still shows its live state.
   const inbox = useMemo(() => (loaded && overview ? overview.nights.filter((_, i) => inMorning(loaded.nights[i])) : []), [loaded, overview]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
+  useEffect(() => {
+    const on = () => {
+      setRoute(parseRoute(window.location.hash));
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const go = (hash: string) => {
+    if (window.location.hash === hash || (hash === '#/' && !window.location.hash)) return;
+    window.location.hash = hash;
+  };
+  const selected = route.page === 'night' ? route.key : null;
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<View>('morning');
   const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string } | null>(null);
 
   // What the next night in each repository will pick up; fetched with the overview and whenever the
@@ -94,15 +110,6 @@ export function App() {
       setError(null);
       setFailedKey(null);
       document.title = 'Night Shift';
-      setSelected((current) => {
-        if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current && readable(n))) return current;
-        // Morning opens on the newest night that is the developer's turn, else the newest running one;
-        // none means all caught up.
-        // A night file that cannot be read has nothing to open.
-        const openable = o.nights.filter(readable);
-        const first = openable.find((n) => ownersTurn(ownerState(n))) ?? openable.find((n) => ownerState(n) === 'running');
-        return first ? keyOf(first.repo, first.id) : null;
-      });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -127,37 +134,38 @@ export function App() {
     void markRead(repo, night).catch(() => {});
   }, [selected, overview]);
 
-  // The Questions view needs every night that still has open questions.
+  // The Inbox's Start my morning needs every night that still has open questions.
   useEffect(() => {
-    if (view !== 'questions' || !overview) return;
-    for (const n of overview.nights) if (n.questions_open > 0 && !details[keyOf(n.repo, n.id)]) void loadNight(n.repo, n.id);
-  }, [view, overview, details, loadNight]);
+    if (route.page !== 'inbox' || !overview) return;
+    for (const n of overview.nights) if (n.questions_open > 0 && readable(n) && !details[keyOf(n.repo, n.id)]) void loadNight(n.repo, n.id);
+  }, [route.page, overview, details, loadNight]);
 
   const allItems = useMemo<DeckItem[]>(
     () => Object.values(details).flatMap((d) => d.night.questions.map((q) => ({ key: deckKey(d, q), detail: d, question: q }))),
     [details],
   );
   useEffect(() => {
-    if (view === 'next') loadNext();
-  }, [view, loadNext]);
+    if (route.page === 'next') loadNext();
+  }, [route.page, loadNext]);
   const nextCount = next?.repos.reduce((sum, r) => sum + r.items.length, 0) ?? 0;
   // Amber when an item still needs the developer's answer: their turn (D24).
   const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.item.kind === 'waiting'));
-  const openCount = overview?.nights.reduce((sum, n) => sum + n.questions_open, 0) ?? 0;
   const detail = selected ? (details[selected] ?? null) : null;
+  const summary = selected ? (overview?.nights.find((n) => keyOf(n.repo, n.id) === selected) ?? null) : null;
+  // Every open question across nights: what Start my morning walks through.
+  const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
+  const questionsReady = !!overview && overview.nights.every((n) => !n.questions_open || !readable(n) || !!details[keyOf(n.repo, n.id)]);
 
-  // A night opens at the top of its report, wherever the list was scrolled.
+  // A night opens on its own page, at the top.
   const pick = (repo: string, night: string) => {
     if (keyOf(repo, night) !== failedKey) {
       setError(null);
       setFailedKey(null);
     }
-    setSelected(keyOf(repo, night));
-    setView('morning');
-    window.scrollTo(0, 0);
+    go(`#/night/${encodeURIComponent(repo)}/${encodeURIComponent(night)}`);
   };
   const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey });
-  const nightItems = (d: NightDetail | null) => (d ? allItems.filter((i) => i.detail.repo.id === d.repo.id && i.detail.night.night === d.night.night) : []);
+  const nightItems = (key: string | null) => (key ? allItems.filter((i) => keyOf(i.detail.repo.id, i.detail.night.night) === key) : []);
   // The deck reads the latest details, so a saved answer updates the file hash for the next save.
   const deckItems = deck ? deck.items.map((i) => allItems.find((x) => x.key === i.key) ?? i) : [];
 
@@ -175,14 +183,13 @@ export function App() {
               <div className="hidden text-xs text-white/50 sm:block">{overview ? `${overview.repos.filter((r) => !r.missing).length} repositor${overview.repos.length === 1 ? 'y' : 'ies'}` : '…'}</div>
             </div>
           </div>
-          <nav className="glass order-last flex w-full justify-between overflow-x-auto rounded-full p-1 [scrollbar-width:none] sm:order-none sm:w-auto sm:justify-start">
-            {VIEWS.map((v) => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`relative shrink-0 flex-auto rounded-full px-1.5 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${v.wide ? 'hidden sm:block' : ''} ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
-                <span className="sm:hidden">{v.short ?? v.label}</span>
-                <span className="hidden sm:inline">{v.label}</span>
-                {v.id === 'next' && nextCount > 0 && <span className={`ml-1 rounded-full px-1.5 text-[13px] font-bold text-night-950 sm:ml-1.5 ${nextWaits ? 'bg-eyes' : 'bg-agent'}`}>{nextCount}</span>}
-                {v.id === 'questions' && openCount > 0 && <span className="ml-1 rounded-full bg-eyes px-1.5 sm:ml-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
-              </button>
+          <nav className="glass order-last flex w-full justify-between rounded-full p-1 sm:order-none sm:w-auto sm:justify-start">
+            {TABS.map((t) => (
+              <a key={t.page} href={t.hash} aria-current={route.page === t.page ? 'page' : undefined} className={`relative flex-auto rounded-full px-3 py-1.5 text-center text-sm whitespace-nowrap transition sm:flex-none sm:px-4 ${route.page === t.page ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
+                <span className="sm:hidden">{t.short ?? t.label}</span>
+                <span className="hidden sm:inline">{t.label}</span>
+                {t.page === 'next' && nextCount > 0 && <span className={`ml-1.5 rounded-full px-1.5 text-[13px] font-bold text-night-950 ${nextWaits ? 'bg-eyes' : 'bg-agent'}`}>{nextCount}</span>}
+              </a>
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
@@ -197,11 +204,28 @@ export function App() {
 
         {overview && (
           <main className="mt-4">
-            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} selected={selected} picking={!!selected && !detail} failed={!!selected && selected === failedKey} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
-            {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
-            {view === 'next' && <NextNightView next={next} onPick={pick} />}
-            {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
-            {view === 'trends' && <TrendsView />}
+            {route.page === 'inbox' && (
+              <Inbox
+                overview={overview}
+                inbox={inbox}
+                scheduled={nextCount}
+                questionsReady={questionsReady}
+                onOpen={pick}
+                onAnswer={(repo, night) => {
+                  const items = nightItems(keyOf(repo, night));
+                  if (items.length) openDeck(items, items.find((i) => isOpenQuestionIn(i.question, i.detail.follow_up))?.key);
+                  else pick(repo, night);
+                }}
+                onStartMorning={() => openDeck(openItems)}
+                onNext={() => go('#/next')}
+                onHistory={() => go('#/history')}
+              />
+            )}
+            {route.page === 'night' && (
+              <ReportPage detail={detail} summary={summary} picking={!detail} failed={selected === failedKey} onBack={() => go('#/')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(selected), startKey)} />
+            )}
+            {route.page === 'next' && <NextNightView next={next} onPick={pick} />}
+            {route.page === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
           </main>
         )}
         {!overview && !error && <div className="py-32 text-center text-white/40">Loading the nights…</div>}

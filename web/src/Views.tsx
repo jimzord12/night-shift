@@ -1,45 +1,6 @@
 import type { FollowUpItem, NextNight, NextNightItem, Overview } from '../../src/types.ts';
-import { OUTCOMES, OWNER_STATE, isOpenQuestionIn, neverStarted, ownerState } from '../../src/types.ts';
-import type { DeckItem } from './QuestionDeck.tsx';
+import { OUTCOMES, OWNER_STATE, neverStarted, ownerState } from '../../src/types.ts';
 import { Icon, NightBadge, STATUS, StoppedEarly, dollars, minutes, nightTitle } from './ui.tsx';
-
-// ---------------------------------------------------------------- questions
-
-export function QuestionsView({ items, loading, onOpen }: { items: DeckItem[]; loading: boolean; onOpen: (key: string) => void }) {
-  if (loading && !items.length) return <div className="py-24 text-center text-white/40">Loading the questions…</div>;
-  if (!items.length) return <Empty icon="question" text="No open questions. When an agent needs a decision, it asks here instead of guessing." />;
-  const groups = new Map<string, DeckItem[]>();
-  for (const i of items) {
-    const k = `${i.detail.repo.name} · ${nightTitle(i.detail.night.night)}`;
-    groups.set(k, [...(groups.get(k) ?? []), i]);
-  }
-  return (
-    <div className="space-y-8">
-      {[...groups.entries()].map(([title, list]) => (
-        <section key={title}>
-          <h2 className="mb-3 text-sm tracking-widest text-white/50 uppercase">{title}</h2>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {list.map((i, n) => {
-              const q = i.question;
-              const open = isOpenQuestionIn(q, i.detail.follow_up);
-              const color = open ? 'var(--color-eyes)' : q.answer === null ? 'var(--color-idle)' : 'var(--accent)';
-              return (
-                <button key={i.key} onClick={() => onOpen(i.key)} className="glass glow-soft pop-in flex flex-col gap-1 rounded-2xl p-4 text-left transition hover:-translate-y-0.5" style={{ ['--glow' as string]: color, animationDelay: `${n * 40}ms` }}>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-semibold" style={{ color }}>● {open ? 'open' : q.answer === null ? 'locked' : 'answered'}</span>
-                    {q.task && <span className="font-mono text-white/45">{q.task}</span>}
-                  </div>
-                  <div className="leading-snug font-medium">{q.ask}</div>
-                  {q.answer !== null && <div className="truncate text-sm text-white/55">→ {q.options.find((o) => o.id === q.answer)?.label ?? q.answer}</div>}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------- next night
 
@@ -155,13 +116,7 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
   );
 }
 
-// ---------------------------------------------------------------- trends
-
-export function TrendsView() {
-  return <Empty icon="chart" text="Trends arrive once there are enough nights to compare. Which measures matter (promised versus delivered, cost per finished task, …) is still being decided." />;
-}
-
-function Empty({ icon, text }: { icon: 'question' | 'moon' | 'chart'; text: string }) {
+function Empty({ icon, text }: { icon: 'moon'; text: string }) {
   return (
     <div className="grid place-items-center rounded-3xl border border-dashed border-white/10 px-6 py-16 text-center text-white/50">
       <Icon name={icon} className="mb-3 size-10" strokeWidth={1.5} />
