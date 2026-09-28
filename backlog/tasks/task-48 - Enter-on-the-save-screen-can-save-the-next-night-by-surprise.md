@@ -1,10 +1,10 @@
 ---
 id: TASK-48
 title: Enter on the save screen can save the next night by surprise
-status: Active
+status: Done
 assignee: []
 created_date: '2026-09-28 19:42'
-updated_date: '2026-09-28 20:55'
+updated_date: '2026-09-28 20:57'
 labels:
   - bug
 dependencies: []
@@ -19,15 +19,15 @@ Found by the TASK-46 visual review (V5), older than it (TASK-28): after saving o
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 After saving one night on the gate, a second Enter or S within a moment does not save the next night; the next Save works once it is ready (UI test, mutant with no wait fails)
+- [x] #1 After saving one night on the gate, a second Enter or S within a moment does not save the next night; the next Save works once it is ready (UI test, mutant with no wait fails)
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -37,3 +37,9 @@ Review round 1 (0b36518): visual PASS (V1 held Enter still saved every night: ta
 
 Review round 2 (7a82675): code PASS (N1 an early Tab can lose focus to Save at arming, N2 key cannot tell two first nights apart at equal count (cannot happen today), N3 below-fold Save: left), visual PASS (V1 below-fold confirmation: added to TASK-40; V2 All clear no wait: harmless).
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The gate's Save buttons stay disabled for 500 ms after each state change (armed per state in render), then take the focus without scrolling; auto-repeated Enter/S are ignored on the gate. Checks: npm run check 68/68, test:ui 5/5 on the merge, CI green; the new UI test fails on the pre-fix Gate (2 !== 1), without the repeat guard, and with ARM_MS = 0. Review: code PASS r2, visual PASS r2 (below-fold confirmation added to TASK-40). Unverified: the owner's own use.
+<!-- SECTION:FINAL_SUMMARY:END -->
