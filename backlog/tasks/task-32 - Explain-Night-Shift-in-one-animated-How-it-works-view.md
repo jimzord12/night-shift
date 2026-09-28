@@ -1,10 +1,11 @@
 ---
 id: TASK-32
 title: Explain Night Shift in one animated How it works view
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:49'
+updated_date: '2026-09-28 12:29'
 labels:
   - viewer
 dependencies:
@@ -32,3 +33,9 @@ D24. The owner forgets the concepts between mornings (what a follow-up or hand-o
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Built on feat/explainer (from feat/save-gate, since the ? sits on the gate). web/src/Explainer.tsx: HowItWorks (five steps on a ring, autoplay only on the first run and never with reduced motion), ExplainerOverlay (Esc and arrows captured so the deck behind never sees a key), HelpDot, explain() by a window event. Placed: the empty Inbox, the header ?, the gate's Save, the Report's Save row, its outcome counts and stopped-early line. Evidence: .local/evidence/2026-09-28-explainer/r2/{1440,390} (log.txt: the ? opens at Save, ArrowRight moves, Esc closes the explainer and leaves the deck open, no console errors, no sideways scroll).
+<!-- SECTION:NOTES:END -->

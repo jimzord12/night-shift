@@ -92,7 +92,7 @@ export function ExplainerOverlay({ step, onClose }: { step: ExplainStep; onClose
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    panel.current?.focus();
+    panel.current?.focus({ preventScroll: true });
     return () => opener?.focus?.();
   }, []);
   return (
