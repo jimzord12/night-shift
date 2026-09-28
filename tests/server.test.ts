@@ -248,12 +248,16 @@ test('answers after the follow-up: a running night on the item blocks a change; 
   assert.equal(busy.status, 409);
   assert.match(((await busy.json()) as { error: string }).error, /working on this right now/);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+  // The detail names the night holding the item, so the deck locks it before a save is tried.
+  const taken = async () => ((await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail).taken;
+  assert.deepEqual(await taken(), { [`${id}/A1`]: live.night.night });
   // That night settles it. The old copy of the question is no longer open, and an answer there,
   // which would reach no agent, is refused with the reason.
   record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
   close(repo, 'Login fixed.');
   const overview = (await (await app.request('/api/overview')).json()) as Overview;
   assert.equal(overview.nights.find((n) => n.repo === ref.id && n.id === id)?.questions_open, 0);
+  assert.deepEqual(await taken(), {});
   const late = await answer('b');
   assert.equal(late.status, 409);
   assert.match(((await late.json()) as { error: string }).error, /handed over unanswered and it was settled in night/);

@@ -238,6 +238,9 @@ export interface NightDetail {
   hash: string;
   running: boolean;
   follow_up: FollowUp | null;
+  // This night's follow-up items a running night has taken on, by item ref, with that night's id:
+  // their answers are locked until it closes.
+  taken: Record<string, string>;
   problems: string[];
 }
 

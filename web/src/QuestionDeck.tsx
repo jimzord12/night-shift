@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import confetti from 'canvas-confetti';
 import { handedItem, isOpenQuestionIn } from '../../src/types.ts';
 import type { NightDetail, Question } from '../../src/types.ts';
 import { ApiError, fileUrl, postAnswer } from './api.ts';
 import { MediaThumb, MediaViewer } from './Evidence.tsx';
+import { Gate } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
 import { Starfield } from './Starfield.tsx';
 import { Icon, nightTitle } from './ui.tsx';
@@ -59,9 +59,14 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const q = item?.question ?? null;
   const settledHere = !!q && !!item && (handedItem(item.detail.follow_up, q)?.status ?? 'open') !== 'open';
   const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? (settledHere ? '' : q.recommended), note: q.note ?? '' }) : null;
+  // A night running now that took this item on (planned it or skipped it) holds it until it closes.
+  const takenBy = (i: DeckItem | undefined) => {
+    const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
+    return h && i ? i.detail.taken?.[`${i.detail.night.night}/${h.id}`] : undefined;
+  };
   const locked = (i: DeckItem | undefined) => {
     const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
-    return !!h && h.status !== 'open';
+    return (!!h && h.status !== 'open') || !!takenBy(i);
   };
   const handled = (k: string, saved: Set<string>) => saved.has(k) || (byKey.get(k)?.question.answer ?? null) !== null || locked(byKey.get(k));
   // Editing the answer clears an earlier save error: it no longer describes what is on screen.
@@ -74,7 +79,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   // The follow-up item this question was handed over as; once an agent worked on its decision, the
   // answer is locked (the server refuses a change too).
   const handed = q && item ? handedItem(item.detail.follow_up, q) : undefined;
-  const lock = handed && handed.status !== 'open' ? (handed.status === 'carried' && handed.kind === 'waiting' ? 'follow-up item was asked again in a later night' : `follow-up's ${handed.id} is ${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in night ${handed.resolved?.by ?? ''}`}`) : null;
+  const running = takenBy(item);
+  const lock = handed && handed.status !== 'open' ? (handed.status === 'carried' && handed.kind === 'waiting' ? 'follow-up item was asked again in a later night' : `follow-up's ${handed.id} is ${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in night ${handed.resolved?.by ?? ''}`}`) : running ? `night ${running} is working on it now; change it after that night closes` : null;
 
   useEffect(() => {
     setMessage(null);
@@ -122,17 +128,6 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, item, draft, key, busy, savedKeys, order, index]);
 
-  useEffect(() => {
-    if (!finished) return;
-    const end = Date.now() + 900;
-    const colors = ['#f5d76e', '#7c5cff', '#34d399', '#ffffff'];
-    (function frame() {
-      confetti({ particleCount: 6, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors });
-      confetti({ particleCount: 6, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    })();
-  }, [finished]);
-
   const qRef = useRef(q);
   qRef.current = q;
   useEffect(() => {
@@ -163,6 +158,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   });
 
   const answeredCount = order.filter((k) => handled(k, savedKeys)).length;
+  // The nights this deck walked, each with its latest detail, in the deck's order.
+  const deckNights = [...new Map(order.map((k) => byKey.get(k)!).filter(Boolean).map((i) => [`${i.detail.repo.id}/${i.detail.night.night}`, i.detail])).values()];
   const rec = q?.options.find((o) => o.id === q.recommended);
 
   return (
@@ -194,14 +191,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
         </header>
 
         {finished ? (
-          <div className="pop-in my-auto text-center">
-            <div className="mx-auto grid size-28 place-items-center rounded-full bg-[var(--accent)]/20 text-moon shadow-[0_0_60px_var(--accent)]">
-              <Icon name="moon" className="size-14" strokeWidth={1.6} />
-            </div>
-            <h2 className="font-display mt-6 text-4xl font-semibold">All clear</h2>
-            <p className="mt-2 text-white/60">{order.every((k) => byKey.get(k)?.detail.follow_up) ? 'Every question is settled. What you saved for the next agent carries your answers.' : 'Every question has an answer. Open the night and save it for the next agent, so your answers reach them.'}</p>
-            <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the Inbox</button>
-          </div>
+          <Gate nights={deckNights} onSaved={onSaved} onClose={onClose} />
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (
