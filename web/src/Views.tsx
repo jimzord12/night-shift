@@ -71,7 +71,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
             <div className="space-y-3">
               {[...groups.entries()].map(([night, list]) => (
                 <div key={night} className="glass rounded-2xl p-4">
-                  <button onClick={() => onPick(repo.id, night)} className="mb-2 inline-flex items-center gap-1 text-sm text-[color-mix(in_srgb,var(--accent)_70%,white)] hover:underline">
+                  <button onClick={() => onPick(repo.id, night)} className="mb-2 inline-flex items-center gap-1 text-left text-sm text-[color-mix(in_srgb,var(--accent)_70%,white)] hover:underline">
                     From the {nightTitle(night)} <Icon name="right" className="size-3.5" />
                   </button>
                   <ul className="space-y-3">
@@ -85,10 +85,10 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                               <span className="font-medium">{item.title}</span>
                               <span className="rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${k.color} 75%, white)`, background: `color-mix(in srgb, ${k.color} 18%, transparent)` }}>{k.label}</span>
                             </div>
-                            {item.decision_label && <div className="mt-0.5 text-sm text-white/70">{item.question ? `${item.question} ` : ''}<span className="text-[color-mix(in_srgb,var(--accent)_70%,white)]">→ {item.decision_label}</span></div>}
+                            {item.decision_label && <div className="mt-0.5 text-sm text-white/70">{item.question ? `${item.question} ` : ''}<span className="font-semibold text-white/85">→ {item.decision_label}</span></div>}
                             {!item.decision_label && item.question && <div className="mt-0.5 text-sm text-white/60">{item.question}</div>}
                             {item.owner_note && <div className="mt-0.5 text-sm text-white/60">Your note: {item.owner_note}</div>}
-                            {item.left && item.left.length > 0 && <div className="mt-0.5 text-sm text-white/55">Left: {item.left.join('; ')}</div>}
+                            {item.left && item.left.length > 0 && <div className="mt-0.5 text-sm text-white/55">Still to do: {item.left.join(' · ')}</div>}
                           </div>
                         </li>
                       );

@@ -181,6 +181,12 @@ test('next night: every open follow-up item, per repository, until an agent sett
   r = await mine();
   assert.deepEqual(r?.items.map((i) => [i.item.kind, i.item.decision_label]), [['decision', 'Own domain']]);
 
+  // A running night that took the item on owns it; if it never starts it, the item is next again.
+  start(repo, plan([{ ...TASKS[1], follow_up: `${id}/A1` }]), session('next', DEAD_PID), new Date('2026-09-27T22:00:00'));
+  assert.equal(await mine(), undefined, 'taken on by the running night');
+  close(repo, 'Did not get to it.');
+  assert.deepEqual((await mine())?.items.map((i) => i.ref), [`${id}/A1`]);
+
   resolveItem(repo, `${id}/A1`, 'done', 'day', undefined);
   assert.equal(await mine(), undefined, 'a settled item leaves the list');
 

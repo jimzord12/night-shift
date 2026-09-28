@@ -11,9 +11,10 @@ import { HistoryView, NextNightView, QuestionsView, TrendsView } from './Views.t
 import { Icon } from './ui.tsx';
 
 type View = 'morning' | 'next' | 'questions' | 'history' | 'trends';
-const VIEWS: { id: View; label: string }[] = [
+// `short` is the label on a phone, where five tabs must fit in 360 pixels.
+const VIEWS: { id: View; label: string; short?: string }[] = [
   { id: 'morning', label: 'Morning' },
-  { id: 'next', label: 'Next night' },
+  { id: 'next', label: 'Next night', short: 'Next' },
   { id: 'questions', label: 'Questions' },
   { id: 'history', label: 'History' },
   { id: 'trends', label: 'Trends' },
@@ -139,6 +140,8 @@ export function App() {
     if (view === 'next') loadNext();
   }, [view, loadNext]);
   const nextCount = next?.repos.reduce((sum, r) => sum + r.items.length, 0) ?? 0;
+  // Amber when an item still needs the developer's answer: their turn (D24).
+  const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.item.kind === 'waiting'));
   const openCount = overview?.nights.reduce((sum, n) => sum + n.questions_open, 0) ?? 0;
   const detail = selected ? (details[selected] ?? null) : null;
 
@@ -173,9 +176,10 @@ export function App() {
           </div>
           <nav className="glass order-last flex w-full justify-between overflow-x-auto rounded-full p-1 [scrollbar-width:none] sm:order-none sm:w-auto sm:justify-start">
             {VIEWS.map((v) => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`relative shrink-0 flex-auto rounded-full px-2 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
-                {v.label}
-                {v.id === 'next' && nextCount > 0 && <span className="ml-1 rounded-full bg-agent px-1.5 text-[13px] font-bold text-night-950 sm:ml-1.5">{nextCount}</span>}
+              <button key={v.id} onClick={() => setView(v.id)} className={`relative shrink-0 flex-auto rounded-full px-1.5 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
+                <span className="sm:hidden">{v.short ?? v.label}</span>
+                <span className="hidden sm:inline">{v.label}</span>
+                {v.id === 'next' && nextCount > 0 && <span className={`ml-1 rounded-full px-1.5 text-[13px] font-bold text-night-950 sm:ml-1.5 ${nextWaits ? 'bg-eyes' : 'bg-agent'}`}>{nextCount}</span>}
                 {v.id === 'questions' && openCount > 0 && <span className="ml-1 rounded-full bg-eyes px-1.5 sm:ml-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
               </button>
             ))}

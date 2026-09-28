@@ -170,16 +170,27 @@ export function createApp({ version, port }: AppOptions): Hono {
     for (const repo of listRepos()) {
       if (repo.missing) continue;
       const entry: NextNight['repos'][number] = { repo, items: [], problems: [] };
+      // Items a running night has taken on are that night's work, not the next one's.
+      const taken = new Set<string>();
+      for (const nid of listNightIds(repo.path)) {
+        const n = readNight(repo.path, nid).night;
+        if (n?.status !== 'open') continue;
+        for (const t of n.tasks) if (t.follow_up) taken.add(t.follow_up);
+        for (const s of n.skipped_follow_ups) taken.add(s.follow_up);
+      }
       for (const id of listFollowUpIds(repo.path)) {
         try {
           const f = readFollowUp(repo.path, id);
-          for (const item of f.items) if (item.status === 'open') entry.items.push({ ref: `${id}/${item.id}`, from_night: f.from_night, created_at: f.created_at, item });
+          for (const item of f.items) if (item.status === 'open' && !taken.has(`${id}/${item.id}`)) entry.items.push({ ref: `${id}/${item.id}`, from_night: f.from_night, created_at: f.created_at, item });
         } catch (e) {
           entry.problems.push(`follow-up ${id}: ${(e as Error).message}`);
         }
       }
       if (entry.items.length || entry.problems.length) out.repos.push(entry);
     }
+    // The repository with the newest follow-up first, like the nights everywhere else.
+    const newest = (r: NextNight['repos'][number]) => r.items.reduce((m, i) => (i.created_at > m ? i.created_at : m), '');
+    out.repos.sort((a, b) => newest(b).localeCompare(newest(a)));
     return c.json(out);
   });
 
