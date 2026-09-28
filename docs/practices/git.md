@@ -81,6 +81,10 @@ gh run watch <run-id> --exit-status
 - Small, coherent commits; each one builds.
 - Conventional Commits, imperative, first line under 72 characters. The
   body says why and names the evidence.
+- A commit that brings the work of a task from a GitHub issue to `main`
+  (on the branch, so it survives a fast-forward, or the merge commit) has one
+  `Closes #<n>` line per issue in its body
+  ([task-flow.md](task-flow.md#github-issues)).
 
 ```text
 feat: filter the catalogue by colour and size

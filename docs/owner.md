@@ -46,6 +46,8 @@ command by **what it could lose, not by its name** ([practices/git.md](practices
 - **Agents decide and do, then report:** architecture inside an approved
   task, naming and glossary terms, structure, wording, small design
   choices, the order of work, creating and editing Backlog.md tasks,
+  turning this repository's GitHub issues into tasks and closing them
+  ([practices/task-flow.md](practices/task-flow.md#github-issues)),
   decisions entries, and all routine Git: commit, push, merge into `main`
   (a `Night`'s branch once the owner has seen the report of every night it
   brings, D25), stash, reset, amend, rebase, cherry-pick, `--force-with-lease` on a

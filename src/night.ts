@@ -312,19 +312,42 @@ export function feedback(repo: string, input: { kind?: string; title: string; ta
 
 export function status(repo: string): string {
   const ids = listNightIds(repo);
-  const open = ids.map((id) => loadNight(repo, id).night).filter((n) => n.status === 'open');
+  const all = ids.map((id) => loadNight(repo, id).night);
+  const open = all.filter((n) => n.status === 'open');
   if (!open.length) {
     const items = openItems(repo);
     const last = ids.length ? ids[ids.length - 1] : null;
-    return [`No night is open.${last ? ` The last one was ${last}.` : ''}`, items.length ? `${items.length} open follow-up item(s): ${items.map((o) => o.ref).join(', ')}.` : 'No open follow-up items.', 'Start a night with: night-shift start (the plan as JSON).'].join('\n');
+    return [`No night is open.${last ? ` The last one was ${last}.` : ''}`, items.length ? `${items.length} open follow-up item(s): ${items.map((o) => o.ref).join(', ')}.` : 'No open follow-up items.', 'Start a night with: night-shift start (the plan as JSON).', ...feedbackOfEarlierNights(all)].join('\n');
   }
   const n = open[open.length - 1];
   const lines = [`Night ${n.night} is open (started ${n.started_at}).`];
   for (const t of n.tasks) lines.push(`  ${t.id} ${t.outcome ?? '…'}  ${t.title}`);
   if (n.questions.length) lines.push(`Questions: ${n.questions.map((q) => q.id).join(', ')}`);
-  if (n.feedback.length) lines.push(`Feedback: ${n.feedback.length} item(s)`);
+  if (n.feedback.length) lines.push(`Feedback: ${feedbackLine(n)}`);
   lines.push(nextStep(n));
+  lines.push(...feedbackOfEarlierNights(all.filter((x) => x !== n)));
   return lines.join('\n');
+}
+
+// Where each feedback item stands: sent to GitHub (with the issue) or still waiting for the
+// developer to read it in the Viewer. Only the Viewer writes `sent` (one writer per field, AGENTS.md).
+function feedbackLine(n: Night): string {
+  return n.feedback
+    .map((f) => {
+      if (!f.sent) return `${f.id} awaiting the developer`;
+      const issue = f.sent.url && /\/issues\/(\d+)$/.exec(f.sent.url);
+      return `${f.id} sent (${issue ? `#${issue[1]} ${f.sent.url}` : f.sent.via === 'link' ? 'by link' : f.sent.url ?? f.sent.via})`;
+    })
+    .join(', ');
+}
+
+// Earlier nights' feedback: the latest night that logged any, and every night still awaiting the
+// developer, so an agent never has to read the JSON to know what was sent.
+function feedbackOfEarlierNights(earlier: Night[]): string[] {
+  const nights = earlier.filter((n) => n.feedback.length > 0);
+  const latest = nights[nights.length - 1];
+  const shown = nights.filter((n) => n === latest || n.feedback.some((f) => !f.sent));
+  return shown.length ? ['Feedback of earlier nights:', ...shown.map((n) => `  ${n.night}: ${feedbackLine(n)}`)] : [];
 }
 
 // ------------------------------------------------------------------ close and recovery
@@ -356,11 +379,18 @@ export function close(repo: string, summary: string, now = new Date()): { night:
   if (problems.length) throw new StoreError(`the night was not closed: ${problems.join('; ')}`);
   finish(repo, n, 'complete', now);
   const c = commitPath(repo, '.night-shift/history', `night-shift: history of ${n.night}`);
+  // A refused commit keeps git's and the hooks' full output beside the night, for finding the cause.
+  let log = '';
+  if (c.output) {
+    const file = path.join(nightDir(repo, n.night), 'history-commit.log');
+    fs.writeFileSync(file, `${c.output.trimEnd()}\n`);
+    log = ` Full output: ${file}.`;
+  }
   const counts = countOutcomes(n.tasks);
   const tally = OUTCOMES.filter((o) => counts[o]).map((o) => `${counts[o]} ${o.replace('_', ' ')}`).join(', ');
   return {
     night: n,
-    message: `Night ${n.night} closed: ${tally || 'no tasks'}. ${c.committed ? 'Its history copy is committed.' : `History: ${c.message}.`} Next: commit your own work as you normally would, then end the session; the Meter adds the cost when the session ends.`,
+    message: `Night ${n.night} closed: ${tally || 'no tasks'}. ${c.committed ? 'Its history copy is committed.' : `History: ${c.message}.${log}`} Next: commit your own work as you normally would, then end the session; the Meter adds the cost when the session ends.`,
   };
 }
 

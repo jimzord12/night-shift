@@ -29,11 +29,15 @@ in it. Orient in this order, read-only, then give the four-line briefing
    decision without new facts) and `docs/glossary.md` (official terms; use
    them in backticks when talking to the owner).
 3. The work: `backlog/README.md` (our conventions), then
-   `backlog task list --plain` and the session handoff,
-   `backlog doc view doc-1 --plain`. Tasks, Git and evidence win when the
-   handoff disagrees with them.
+   `backlog task list --plain`, `gh issue list --state open` and the
+   session handoff, `backlog doc view doc-1 --plain`. Tasks, Git and
+   evidence win when the handoff disagrees with them.
 4. `CHANGELOG.md`, `git log --oneline -15`, `git tag -l`, and
    `npm run release list` for what is released and installed.
+
+In a day session, after the briefing and before new work, turn each open
+GitHub issue without the `tracked` label into a task
+(docs/practices/task-flow.md, D28).
 
 ## Read when
 

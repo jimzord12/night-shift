@@ -11,21 +11,25 @@ Read this when starting or ending any session, day or night.
    the previous session's resume point, parked owner decisions and
    pitfalls.
 3. Derive the state from the sources: the design, relevant decisions, the
-   tasks, Git state and the evidence for the revision you are looking at.
-   The handoff orients; tasks, Git and evidence are the authority when they
-   disagree.
-4. Give the four-line briefing, then continue within authorised scope.
+   tasks, open GitHub issues (`gh issue list --state open`), Git state and
+   the evidence for the revision you are looking at. The handoff orients;
+   tasks, Git and evidence are the authority when they disagree.
+4. Give the four-line briefing. In a day session, before new work, turn
+   every open issue without the `tracked` label into a task
+   ([task-flow.md](task-flow.md#github-issues)); a `Night` leaves that to
+   the next day session. Then continue within authorised scope.
 
 Rules for orientation:
 
 - **Read-only and repeatable.** No state changes, no saved status file, no
-  background watcher. Unchanged inputs give the same report.
+  background watcher; issue intake comes after the briefing. Unchanged
+  inputs give the same report.
 - **Approved design is not implemented behaviour.** Say which one you mean.
 - **A historical check is not current proof.** A test that passed last week
   on another commit proves nothing about today's `main`.
 - Flag missing or conflicting evidence; never invent certainty.
-- If the tracker cannot be read, say so. Do not infer state from an old
-  export.
+- If the tracker or the GitHub issues cannot be read, say so. Do not infer
+  state from an old export.
 
 ## The four-line briefing
 
