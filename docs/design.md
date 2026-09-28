@@ -446,7 +446,9 @@ not post to a public tracker unattended.
   link, submitted from the browser. Labels stick only for people with rights
   on the repository.
 
-Unsent entries stay in the night file as history.
+Unsent entries stay in the night file as history. When `gh` is ready, the
+`Viewer`'s header shows how many `proposal` issues are still open, with the
+GitHub mark, linking to their list (TASK-35).
 
 ## Meter
 

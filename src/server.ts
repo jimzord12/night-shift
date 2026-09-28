@@ -8,7 +8,8 @@ import path from 'node:path';
 import { Hono } from 'hono';
 import { contentType, insideDir } from './files.ts';
 import { createFollowUp, followAnswer } from './followup.ts';
-import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
+import { ISSUES_REPO, createIssue, ghReady, newIssueUrl, openProposals } from './github.ts';
+import type { Proposals } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
@@ -234,6 +235,30 @@ export function createApp({ version, port }: AppOptions): Hono {
 
   app.get('/api/gh', (c) => c.json({ ready: ghReady(), repo: ISSUES_REPO() }));
 
+  // The header's count of open proposals (null when gh is missing): asked of gh at most every five
+  // minutes, or at once with ?fresh (the Reload button), one ask at a time. gh runs asynchronously,
+  // so the Inbox never waits for GitHub.
+  let proposals: { at: number; value: Proposals | null } | null = null;
+  let asking: Promise<Proposals | null> | null = null;
+  // Bumped when a proposal is sent: an ask started before it does not keep the old count.
+  let generation = 0;
+  app.get('/api/proposals', async (c) => {
+    const stale = !proposals || Date.now() - proposals.at > 5 * 60_000 || c.req.query('fresh') !== undefined;
+    if (stale && !asking) {
+      const gen = generation;
+      asking = openProposals()
+        .catch(() => null)
+        .then((value) => {
+          if (gen === generation) proposals = { at: Date.now(), value };
+          return value;
+        })
+        .finally(() => {
+          asking = null;
+        });
+    }
+    return c.json(asking ? await asking : (proposals?.value ?? null));
+  });
+
   // Sends ticked feedback entries: with gh when it is ready, else hands back pre-filled links.
   app.post('/api/nights/:repo/:night/feedback/send', async (c) => {
     const b = await body<{ ids?: string[]; via?: 'gh' | 'link' }>(c);
@@ -260,6 +285,10 @@ export function createApp({ version, port }: AppOptions): Hono {
       } catch (error) {
         errors.push(`${f.id}: ${(error as Error).message}`);
       }
+    }
+    if (entries.some((f) => f.sent?.via === 'gh')) {
+      proposals = null;
+      generation += 1;
     }
     const fresh = loadNight(repo.path, n.night).night;
     for (const f of entries) {
