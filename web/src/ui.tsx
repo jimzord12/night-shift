@@ -81,12 +81,12 @@ export function NightBadge({ n, now, small = false }: { n: NightSummary; now: nu
 }
 
 // How a night ended, only when it cost work: grey, a warning rather than a state.
-export function StoppedEarly({ count, short = false }: { count: number; short?: boolean }) {
+export function StoppedEarly({ count, short = false, after }: { count: number; short?: boolean; after?: ReactNode }) {
   if (!count) return null;
   const text = `${count} task${count === 1 ? '' : 's'} never started`;
   return (
     <span title={`Stopped early: ${text}`} className="flex max-w-full min-w-0 items-start gap-1 text-sm text-white/50">
-      <Icon name="warn" className="mt-[0.2em] size-3.5 shrink-0" /> <span className={short ? 'truncate' : 'min-w-0'}>{short ? `${count} never started` : `Stopped early: ${text}`}</span>
+      <Icon name="warn" className="mt-[0.2em] size-3.5 shrink-0" /> <span className={short ? 'truncate' : 'min-w-0'}>{short ? `${count} never started` : `Stopped early: ${text}`}{after && <span className="ml-1.5 inline-block align-middle">{after}</span>}</span>
     </span>
   );
 }

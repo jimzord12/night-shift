@@ -6,6 +6,8 @@ import { getNextNight, getNight, getOverview, getProposals, markRead } from './a
 import { Inbox } from './Inbox.tsx';
 import { ReportPage } from './Report.tsx';
 import { Starfield } from './Starfield.tsx';
+import { ExplainerOverlay, explain, useExplainRequests } from './Explainer.tsx';
+import type { ExplainStep } from './Explainer.tsx';
 import { QuestionDeck, deckKey } from './QuestionDeck.tsx';
 import type { DeckItem } from './QuestionDeck.tsx';
 import { HistoryView, NextNightView } from './Views.tsx';
@@ -198,6 +200,9 @@ export function App() {
   const pick = (repo: string, night: string) => {
     go(`#/night/${encodeURIComponent(repo)}/${encodeURIComponent(night)}`);
   };
+  const [explaining, setExplaining] = useState<ExplainStep | null>(null);
+  useExplainRequests(useCallback((step: ExplainStep) => setExplaining(step), []));
+  const closeExplainer = useCallback(() => setExplaining(null), []);
   const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey, from: route.page === 'night' ? 'report' : 'Inbox' });
   const nightItems = (key: string | null) => (key ? allItems.filter((i) => keyOf(i.detail.repo.id, i.detail.night.night) === key) : []);
   // The deck reads the latest details, so a saved answer updates the file hash for the next save.
@@ -207,8 +212,8 @@ export function App() {
     <div className="sky min-h-screen">
       <Starfield />
       <div className="relative mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-        <header className="flex flex-wrap items-center gap-3 py-4 sm:gap-4 sm:py-5">
-          <div className="flex items-center gap-3">
+        <header className="flex flex-wrap items-center gap-x-2 gap-y-3 py-4 sm:gap-4 sm:py-5">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="grid size-10 place-items-center rounded-full bg-moon/15 text-moon shadow-[0_0_24px_#f5d76e55]">
               <Icon name="moon" className="size-5" strokeWidth={2.2} />
             </span>
@@ -226,9 +231,12 @@ export function App() {
               </a>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
+          <div className="ml-auto flex items-center gap-1.5 text-xs text-white/40 sm:gap-3">
             <span className="hidden sm:inline">{overview?.version}</span>
             <Proposals reloads={reloads} />
+            <button onClick={() => explain()} className="glass grid size-8 place-items-center rounded-full text-sm font-bold text-white/70 hover:text-white" title="How Night Shift works" aria-label="How Night Shift works">
+              ?
+            </button>
             <button onClick={() => { setReloads((r) => r + 1); void load(); }} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -278,6 +286,7 @@ export function App() {
           onConflict={async (repo, night) => loadNight(repo, night, true)}
         />
       )}
+      {explaining && <ExplainerOverlay step={explaining} onClose={closeExplainer} />}
     </div>
   );
 }
@@ -295,13 +304,13 @@ function Proposals({ reloads }: { reloads: number }) {
   }, [reloads]);
   if (!p?.open) return null;
   const what = `${p.open} open proposal${p.open === 1 ? '' : 's'} on GitHub (the Night Shift Repo)`;
-  // The GitHub mark and an outward arrow say where it goes at every width; the word joins from sm up.
+  // The GitHub mark says where it goes at every width; the word and an outward arrow join from sm up.
   return (
-    <a href={p.url} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white/75 hover:text-white" title={what} aria-label={what}>
+    <a href={p.url} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-white/75 hover:text-white sm:px-3" title={what} aria-label={what}>
       <GitHubMark />
       <span className="font-semibold">{p.open}</span>
       <span className="hidden sm:inline">proposal{p.open === 1 ? '' : 's'}</span>
-      <Icon name="external" className="size-3.5 text-white/50" />
+      <Icon name="external" className="hidden size-3.5 text-white/50 sm:block" />
     </a>
   );
 }

@@ -4,7 +4,7 @@ title: Viewer polish left from the Inbox review
 status: Queued
 assignee: []
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-28 13:04'
+updated_date: '2026-09-28 13:10'
 labels:
   - viewer
 dependencies: []
@@ -36,4 +36,8 @@ From TASK-28 design review round 2: D3 three date styles on one gate screen (pic
 From TASK-28 round 4: the deck counter and progress bar count questions held by a running night as done ('2 / 2' on the first screen); the Report's 'N open' above follow-up items that are all 'Taken by a running night'; a night whose items a running night holds still reads 'Waiting for an agent' (consider 'An agent is on it', an owner-state change per D24).
 
 From TASK-28 round 5: the Report subtitle names only 'N held by a running night' when held and settled questions mix; name both.
+
+From TASK-32 round 1: reduced motion still runs pop-in, the ring's glow and transitions; a text drag from the explainer onto its backdrop closes it; the page behind scrolls through the overlay.
+
+From TASK-32 round 2: after a failed gate Save the focus returns behind an open explainer; the ring size follows a resize only on the next step; the ring's centre label is crowded at 390; the gate's Save wraps to two lines beside its ?; the Answer (note) and Report (file) icons look alike; the stopped-early ? sits 2 px low at 1440; step 2 of the explainer still scrolls on a phone.
 <!-- SECTION:NOTES:END -->

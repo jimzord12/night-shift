@@ -9,6 +9,7 @@ import type { Media } from './Evidence.tsx';
 import { Section } from './Inbox.tsx';
 import { KIND } from './Views.tsx';
 import { Icon, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
+import { HelpDot } from './Explainer.tsx';
 
 // The Night Report page (D24): back to the Inbox, a header strip, what needs the developer, then
 // what happened as one row per task. Sections that have nothing to say are left out.
@@ -59,11 +60,12 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
         </div>
         <h1 className="font-display mt-1 text-2xl font-semibold sm:text-3xl">{nightTitle(n.night)}</h1>
         {n.summary ? <p className="mt-2 leading-snug text-white/85 sm:text-lg">{n.summary}</p> : <p className="mt-2 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
-        {neverStarted(summary) > 0 && <div className="mt-2 flex min-w-0"><StoppedEarly count={neverStarted(summary)} /></div>}
+        {neverStarted(summary) > 0 && <div className="mt-2 flex min-w-0"><StoppedEarly count={neverStarted(summary)} after={<HelpDot step="report" term="stopped early" />} /></div>}
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-white/10 pt-3 text-sm">
-          {nonZero.map((o) => (
+          {nonZero.map((o, i) => (
             <span key={o} className="inline-flex items-center gap-1.5 font-semibold" style={{ color: STATUS[o].color }}>
               <Icon name={STATUS[o].icon} className="size-4" strokeWidth={2.4} /> {counts[o]} {STATUS[o].label.toLowerCase()}
+              {i === nonZero.length - 1 && <HelpDot step="report" term="the six outcomes" />}
             </span>
           ))}
           {/* Only what was measured: an unknown duration or cost, or no sub-agent, says nothing (D24). */}
@@ -179,7 +181,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
       <div key="s" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="forward" className="size-5" strokeWidth={2.4} /></span>
         <div className="min-w-[14rem] flex-1">
-          <div className="font-semibold">Save for the next agent</div>
+          <div className="flex items-center gap-2 font-semibold">Save for the next agent <HelpDot step="save" term="Save for the next agent" /></div>
           <div className="text-sm text-white/55">{[pending ? `${pending} unfinished task${pending === 1 ? '' : 's'}` : '', n.questions.length ? `${n.questions.length} question${n.questions.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. {openQ ? 'Answer what you can first; nothing' : 'Nothing'} runs until you start an agent.</div>
         </div>
         <button onClick={() => void create()} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
