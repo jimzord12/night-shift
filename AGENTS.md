@@ -21,9 +21,7 @@ is listed in one place, `docs/owner.md`; read it there, not from a summary.
 
 This repository is self-contained: everything needed to continue its work is
 in it. Orient in this order, read-only, then give the four-line briefing
-(Goal / Now / Next / You, docs/practices/orientation-and-handoff.md). In a
-day session, before new work, turn each open GitHub issue without the
-`tracked` label into a task (docs/practices/task-flow.md, D28):
+(Goal / Now / Next / You, docs/practices/orientation-and-handoff.md):
 
 1. This file, `docs/owner.md`, and every file in `.local/preferences/` when
    it exists (the owner's private profile; never copy it into the repo).
@@ -36,6 +34,10 @@ day session, before new work, turn each open GitHub issue without the
    evidence win when the handoff disagrees with them.
 4. `CHANGELOG.md`, `git log --oneline -15`, `git tag -l`, and
    `npm run release list` for what is released and installed.
+
+In a day session, after the briefing and before new work, turn each open
+GitHub issue without the `tracked` label into a task
+(docs/practices/task-flow.md, D28).
 
 ## Read when
 

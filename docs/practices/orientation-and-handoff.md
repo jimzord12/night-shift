@@ -22,7 +22,8 @@ Read this when starting or ending any session, day or night.
 Rules for orientation:
 
 - **Read-only and repeatable.** No state changes, no saved status file, no
-  background watcher; issue intake comes after the briefing. Unchanged inputs give the same report.
+  background watcher; issue intake comes after the briefing. Unchanged
+  inputs give the same report.
 - **Approved design is not implemented behaviour.** Say which one you mean.
 - **A historical check is not current proof.** A test that passed last week
   on another commit proves nothing about today's `main`.
