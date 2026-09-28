@@ -4,7 +4,7 @@ title: Viewer polish left from the Inbox review
 status: Queued
 assignee: []
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-28 13:01'
+updated_date: '2026-09-28 13:10'
 labels:
   - viewer
 dependencies: []
@@ -34,4 +34,6 @@ From TASK-28 visual review round 1, V4: a night whose follow-up items a running 
 From TASK-28 design review round 2: D3 three date styles on one gate screen (pick one); D5 the Report's save confirmation is a card inside a card.
 
 From TASK-32 round 1: reduced motion still runs pop-in, the ring's glow and transitions; a text drag from the explainer onto its backdrop closes it; the page behind scrolls through the overlay.
+
+From TASK-32 round 2: after a failed gate Save the focus returns behind an open explainer; the ring size follows a resize only on the next step; the ring's centre label is crowded at 390; the gate's Save wraps to two lines beside its ?; the Answer (note) and Report (file) icons look alike; the stopped-early ? sits 2 px low at 1440; step 2 of the explainer still scrolls on a phone.
 <!-- SECTION:NOTES:END -->
