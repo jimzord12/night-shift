@@ -9,7 +9,7 @@ import { ask, close, feedback, onSessionEnd, record, start } from '../src/night.
 import { loadNight, markRead, readFollowUp, registerRepo } from '../src/store.ts';
 import { buildFollowUp, resolveItem } from '../src/followup.ts';
 import { issueBody, newIssueUrl } from '../src/github.ts';
-import { OWNER_STATE, OWNER_STATES, inMorning, needsHandOver, neverStarted, ownerState, ownersTurn, waitedDays } from '../src/types.ts';
+import { OWNER_STATE, OWNER_STATES, inMorning, morningEstimate, needsHandOver, neverStarted, ownerState, ownersTurn, waitedDays } from '../src/types.ts';
 import type { NextNight, NightDetail, Overview, OwnerState } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -399,4 +399,33 @@ test('proposals: the count of open proposal issues with a link, and nothing when
     if (before === undefined) delete process.env.NIGHT_SHIFT_GH;
     else process.env.NIGHT_SHIFT_GH = before;
   }
+});
+
+test('Start my morning estimate: its questions, the saves its gates ask for, and the minutes', async () => {
+  // A closed night not saved yet: one question and one save.
+  const unsaved = closedNight('est-unsaved');
+  // A closed night already saved: its question is still open, but there is nothing left to save.
+  const saved = closedNight('est-saved');
+  await createApp({ version: 'test' }).request(`/api/nights/${saved.ref.id}/${saved.id}/follow-up`, { method: 'POST' });
+  // A running night that asked: a question, and no save until it ends.
+  const live = gitRepo('est-live');
+  start(live, plan(TASKS.slice(0, 1)), session('est', process.pid), new Date('2026-09-27T01:00:00'));
+  ask(live, { task: 'T1', ask: 'Which layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  const liveRef = registerRepo(live);
+  // A closed night with only unfinished work: ready to save, but the deck never walks it.
+  const workOnly = gitRepo('est-work');
+  start(workOnly, plan(TASKS.slice(0, 1)), session('w', DEAD_PID), NOW);
+  record(workOnly, { task: 'T1', outcome: 'partial', checks: [true, { met: false, note: 'the download is left' }] });
+  close(workOnly, 'Half the invoices.');
+  const workRef = registerRepo(workOnly);
+  const mine = new Set([unsaved.ref.id, saved.ref.id, liveRef.id, workRef.id]);
+  const overview = (await (await createApp({ version: 'test' }).request('/api/overview')).json()) as Overview;
+  assert.equal(overview.nights.find((n) => n.repo === workRef.id)?.hand_over, true);
+  const est = morningEstimate(overview.nights.filter((n) => mine.has(n.repo)));
+  assert.deepEqual(est, { questions: 3, saves: 1, minutes: 4 });
+  // Half a minute a save: two unsaved nights with a question each take 3 minutes (2 + 2 × ½); a full
+  // minute a save would say 4, and leaving saves out would say 2.
+  const pair = [unsaved.ref.id, unsaved.ref.id].map(() => overview.nights.find((n) => n.repo === unsaved.ref.id)!);
+  assert.deepEqual(morningEstimate(pair), { questions: 2, saves: 2, minutes: 3 });
+  assert.deepEqual(morningEstimate([]), { questions: 0, saves: 0, minutes: 0 });
 });

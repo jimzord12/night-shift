@@ -40,4 +40,6 @@ From TASK-28 round 5: the Report subtitle names only 'N held by a running night'
 From TASK-32 round 1: reduced motion still runs pop-in, the ring's glow and transitions; a text drag from the explainer onto its backdrop closes it; the page behind scrolls through the overlay.
 
 From TASK-32 round 2: after a failed gate Save the focus returns behind an open explainer; the ring size follows a resize only on the next step; the ring's centre label is crowded at 390; the gate's Save wraps to two lines beside its ?; the Answer (note) and Report (file) icons look alike; the stopped-early ? sits 2 px low at 1440; step 2 of the explainer still scrolls on a phone.
+
+At 768 px the header's version and proposals pill wrap to a second row under the tabs (seen in TASK-31 round 2 shots).
 <!-- SECTION:NOTES:END -->
