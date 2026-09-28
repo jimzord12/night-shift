@@ -56,6 +56,9 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const [showNote, setShowNote] = useState(false);
   const [focusNote, setFocusNote] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  // Whether the focus came from a click rather than the keyboard: a clicked button leaves Enter to
+  // Save. Tab clears it. (Browsers mark a clicked button :focus-visible once a key is pressed.)
+  const clicked = useRef(false);
   const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
   const [savedNow, setSavedNow] = useState<ReadonlySet<string>>(new Set());
@@ -101,6 +104,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     setMessage(null);
     setShowNote(!!draft?.note);
     setFocusNote(false);
+    // The note that had the cursor is gone with the question: Save's hint is plain Enter again.
+    setInNote(false);
     scroller.current?.scrollTo({ top: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
@@ -173,6 +178,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (zoom) return;
+      if (e.key === 'Tab') clicked.current = false;
       const letter = e.code.startsWith('Key') ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const typing = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
       if (e.key === 'Escape' && typing) return (e.target as HTMLElement).blur();
@@ -214,7 +220,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           e.preventDefault();
           return void save(option);
         }
-        if ((t instanceof HTMLButtonElement || t.matches('a[href]')) && t.matches(':focus-visible')) return;
+        if ((t instanceof HTMLButtonElement || t.matches('a[href]')) && !clicked.current) return;
       }
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
         e.preventDefault();
@@ -230,7 +236,12 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       if (lock) return;
       const n = Number(e.key);
       const pick = qRef.current.options[n - 1];
-      if (n >= 1 && pick) setDraft({ ...draft, answer: pick.id });
+      if (n >= 1 && pick) {
+        setDraft({ ...draft, answer: pick.id });
+        // The picked option takes the focus, so Enter saves what the screen shows as chosen.
+        clicked.current = false;
+        scroller.current?.querySelector<HTMLElement>(`[data-option="${CSS.escape(pick.id)}"]`)?.focus();
+      }
       if (letter === 'd') {
         // The key picks the choice; it must not also land in the note that opens focused.
         e.preventDefault();
@@ -252,7 +263,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const rec = q?.options.find((o) => o.id === q.recommended);
 
   return (
-    <div ref={scroller} tabIndex={-1} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
+    <div ref={scroller} tabIndex={-1} onPointerDown={() => (clicked.current = true)} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">

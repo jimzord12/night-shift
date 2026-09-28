@@ -121,3 +121,48 @@ test('a whole morning without the mouse: accept, discuss one, save', async () =>
     server.close();
   }
 });
+
+test('mouse and keyboard together: Enter saves what the screen shows as chosen', async () => {
+  const repo = gitRepo('mixed');
+  const id = start(repo, plan(TASKS), session('m', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  ask(repo, { task: 'T2', ask: 'Which login fix?', options: [{ label: 'Relax the cookie' }, { label: 'Own-domain login' }], recommended: 'a' });
+  record(repo, { task: 'T2', outcome: 'blocked', checks: [false], blocked_by: 'Q2' });
+  ask(repo, { task: 'T3', ask: 'Upgrade now or after the release?', options: [{ label: 'Now' }, { label: 'After the release' }], recommended: 'a' });
+  record(repo, { task: 'T3', outcome: 'blocked', checks: [false, false], blocked_by: 'Q3' });
+  close(repo, 'Three choices wait for you.');
+  recover(repo);
+  const ref = registerRepo(repo);
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
+    await page.getByRole('button', { name: /Start answering/ }).click();
+    const deck = page.locator('div.sky.fixed');
+    // A click on one option, then a number key for the other: Enter saves the one now checked.
+    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor();
+    await deck.getByRole('button', { name: /^Compact/ }).click();
+    await page.keyboard.press('2');
+    await page.keyboard.press('Enter');
+    // A click on "use it" leaves Enter to Save.
+    await deck.getByRole('heading', { name: 'Which login fix?' }).waitFor();
+    await deck.getByRole('button', { name: 'use it' }).click();
+    await page.keyboard.press('Enter');
+    // From the keyboard alone: focus on one option, the number key of the other, Enter.
+    await deck.getByRole('heading', { name: 'Upgrade now or after the release?' }).waitFor();
+    await page.keyboard.press('Tab');
+    await deck.getByRole('button', { name: /^Now/ }).focus();
+    await page.keyboard.press('2');
+    await page.keyboard.press('Enter');
+    await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
+    assert.deepEqual(loadNight(repo, id).night.questions.map((q) => q.answer), ['b', 'a', 'b']);
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
