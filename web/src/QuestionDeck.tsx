@@ -48,11 +48,24 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const [index, setIndex] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  // Questions left with Not now: the deck moves past them, and the gate says the next agent asks again.
+  const [passed, setPassed] = useState<Set<string>>(new Set());
+  const [inNote, setInNote] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [showNote, setShowNote] = useState(false);
   const [focusNote, setFocusNote] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+  // Whether the focus came from a click rather than the keyboard: a clicked button leaves Enter to
+  // Save. Tab clears it. (Browsers mark a clicked button :focus-visible once a key is pressed.)
+  const clicked = useRef(false);
+  // A focus the note still owes (D on a note not drawn yet); Esc cancels it, or it pulls the cursor back.
+  const noteFocus = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const focusNoteSoon = () => {
+    noteRef.current?.focus();
+    clearTimeout(noteFocus.current);
+    noteFocus.current = setTimeout(() => noteRef.current?.focus(), 0);
+  };
   const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
   const [savedNow, setSavedNow] = useState<ReadonlySet<string>>(new Set());
@@ -98,6 +111,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     setMessage(null);
     setShowNote(!!draft?.note);
     setFocusNote(false);
+    // The note that had the cursor is gone with the question: Save's hint is plain Enter again.
+    setInNote(false);
     scroller.current?.scrollTo({ top: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
@@ -109,24 +124,37 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(order.length - 1, i))), [order.length]);
 
-  const advance = (nextSaved: Set<string>) => {
-    const ahead = order.findIndex((k, i) => i > index && !handled(k, nextSaved));
-    const behind = order.findIndex((k, i) => i < index && !handled(k, nextSaved));
+  // The next question still waiting: ahead first, then behind; none left opens the gate. Not now
+  // (pass) leaves the current one for the next agent; a locked question's Next just browses on.
+  const moveOn = (nextSaved: Set<string>, nextPassed: Set<string>, browse: boolean) => {
+    const waiting = (k: string) => !handled(k, nextSaved) && !nextPassed.has(k);
+    const ahead = order.findIndex((k, i) => i > index && waiting(k));
+    const behind = order.findIndex((k, i) => i < index && waiting(k));
     if (ahead >= 0) setIndex(ahead);
     else if (behind >= 0) setIndex(behind);
-    else if (index < order.length - 1) setIndex(index + 1);
+    else if (browse && index < order.length - 1) setIndex(index + 1);
     else setFinished(true);
   };
+  const advance = (nextSaved: Set<string>, pass = false) => {
+    const nextPassed = pass && key ? new Set(passed).add(key) : passed;
+    if (nextPassed !== passed) setPassed(nextPassed);
+    moveOn(nextSaved, nextPassed, !pass);
+  };
 
-  const save = useCallback(async () => {
+  // An answer given with the save (Enter on a focused option) is the one saved.
+  const save = useCallback(async (answer?: string) => {
     if (!q || !item || !draft || !key || busy || lock) return;
+    const draft_ = answer ? { ...draft, answer } : draft;
+    if (answer) setDraft(draft_);
     // Let's discuss says what to talk through, or the next agent has nothing to start from.
-    if (draft.answer === DISCUSS && !draft.note.trim()) {
+    if (draft_.answer === DISCUSS && !draft_.note.trim()) {
       setMessage("Let's discuss needs a note: what is unclear, or what you want to talk through.");
       setShowNote(true);
       setFocusNote(true);
       // The error makes the footer taller: bring the note above it and into focus.
-      setTimeout(() => {
+      // Kept with the other pending note focus, so Esc cancels it too.
+      clearTimeout(noteFocus.current);
+      noteFocus.current = setTimeout(() => {
         noteRef.current?.focus({ preventScroll: true });
         noteRef.current?.scrollIntoView({ block: 'center' });
       }, 0);
@@ -135,7 +163,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     setBusy(true);
     setMessage(null);
     try {
-      const detail = await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft.answer, note: draft.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
+      const detail = await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft_.answer, note: draft_.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
       onSaved(detail);
       const nextSaved = new Set(savedKeys).add(key);
       setSavedKeys(nextSaved);
@@ -143,11 +171,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         const { [key]: _, ...rest } = all;
         return rest;
       });
-      const ahead = order.findIndex((k, i) => i > index && !handled(k, nextSaved));
-      const behind = order.findIndex((k, i) => i < index && !handled(k, nextSaved));
-      if (ahead >= 0) setIndex(ahead);
-      else if (behind >= 0) setIndex(behind);
-      else setFinished(true);
+      moveOn(nextSaved, passed, false);
     } catch (error) {
       const reloaded = error instanceof ApiError && error.status === 409 ? await onConflict(item.detail.repo.id, item.detail.night.night) : true;
       setMessage(reloaded ? (error as Error).message : 'This night changed, and the new version could not be loaded. Reload the Viewer and try again.');
@@ -155,7 +179,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       setBusy(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, item, draft, key, busy, savedKeys, order, index]);
+  }, [q, item, draft, key, busy, savedKeys, passed, order, index]);
 
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const qRef = useRef(q);
@@ -163,8 +187,13 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (zoom) return;
+      if (e.key === 'Tab') clicked.current = false;
+      const letter = e.code.startsWith('Key') ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const typing = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
-      if (e.key === 'Escape' && typing) return (e.target as HTMLElement).blur();
+      if (e.key === 'Escape' && typing) {
+        clearTimeout(noteFocus.current);
+        return (e.target as HTMLElement).blur();
+      }
       if (e.key === 'Escape') return onClose();
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
@@ -174,7 +203,35 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           e.preventDefault();
           if (gateState(deckNights).clear) onClose();
         }
+        if (letter === 's' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          document.querySelector<HTMLButtonElement>('[data-gate-save]:not(:disabled)')?.click();
+        }
         return;
+      }
+      // Enter on a control the keyboard reached does that control's job: an answer option saves that
+      // option, a thumbnail opens, a link or button presses itself. A button that holds the focus only
+      // because it was clicked leaves Enter to Save.
+      const t = e.target instanceof HTMLElement && e.target !== scroller.current && scroller.current?.contains(e.target) ? e.target : null;
+      if (e.key === 'Enter' && !e.ctrlKey && t) {
+        if (t.matches('[role=button]:not(button)') && !clicked.current) {
+          e.preventDefault();
+          return t.click();
+        }
+        const option = t.getAttribute('data-option');
+        if (option === DISCUSS && !draft?.note.trim()) {
+          // Nothing to talk through yet: pick it and write the note first, as D does.
+          e.preventDefault();
+          if (draft) setDraft({ ...draft, answer: DISCUSS });
+          setShowNote(true);
+          setFocusNote(true);
+          return focusNoteSoon();
+        }
+        if (option) {
+          e.preventDefault();
+          return void save(option);
+        }
+        if ((t instanceof HTMLButtonElement || t.matches('a[href]')) && !clicked.current) return;
       }
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
         e.preventDefault();
@@ -185,17 +242,25 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       if (typing || !qRef.current || !draft) return;
       if (e.key === 'ArrowRight') return go(index + 1);
       if (e.key === 'ArrowLeft') return go(index - 1);
-      if (e.key.toLowerCase() === 'd') return advance(savedKeys);
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (letter === 'n') return advance(savedKeys, !lock);
       if (lock) return;
       const n = Number(e.key);
       const pick = qRef.current.options[n - 1];
-      if (n >= 1 && pick) setDraft({ ...draft, answer: pick.id });
-      if (e.key === '0') {
+      if (n >= 1 && pick) {
+        setDraft({ ...draft, answer: pick.id });
+        // The picked option takes the focus, so Enter saves what the screen shows as chosen.
+        clicked.current = false;
+        scroller.current?.querySelector<HTMLElement>(`[data-option="${CSS.escape(pick.id)}"]`)?.focus();
+      }
+      if (letter === 'd') {
         // The key picks the choice; it must not also land in the note that opens focused.
         e.preventDefault();
         setDraft({ ...draft, answer: DISCUSS });
         setShowNote(true);
         setFocusNote(true);
+        // An open note takes the cursor now, before the next key; a new one once it is drawn.
+        focusNoteSoon();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -208,7 +273,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const rec = q?.options.find((o) => o.id === q.recommended);
 
   return (
-    <div ref={scroller} tabIndex={-1} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
+    <div ref={scroller} tabIndex={-1} onPointerDown={() => (clicked.current = true)} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">
@@ -263,6 +328,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                 return (
                   <button
                     key={o.id}
+                    data-option={o.id}
                     onClick={() => setDraft({ ...draft, answer: o.id })}
                     disabled={!!lock}
                     className={`flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition ${lock ? 'cursor-not-allowed' : 'hover:bg-white/5'}`}
@@ -302,6 +368,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               if (lock && !on) return null;
               return (
                 <button
+                  data-option={DISCUSS}
                   onClick={() => {
                     setDraft({ ...draft, answer: DISCUSS });
                     setShowNote(true);
@@ -319,7 +386,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                     <span className="block text-sm text-white/55">Say what is unclear in a note; the next agent talks it through with you before any work on it.</span>
                   </span>
                   {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
-                  {!lock && <kbd className="hidden text-white/40 sm:inline">0</kbd>}
+                  {!lock && <kbd className="hidden text-white/40 sm:inline">D</kbd>}
                 </button>
               );
             })()}
@@ -339,7 +406,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               {lock ? (
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
-                <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
+                <>
+                <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => { setInNote(true); e.currentTarget.scrollIntoView({ block: 'nearest' }); }} onBlur={() => setInNote(false)} />
+                  <p className="mt-1 hidden text-xs text-white/40 sm:block"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> saves · <kbd>Esc</kbd> leaves the note</p>
+                </>
               ) : (
                 <button onClick={() => { setShowNote(true); setFocusNote(true); }} className="text-sm text-white/50 hover:text-white">+ add a note</button>
               )}
@@ -351,14 +421,14 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{answerLabel({ ...q, answer: draft.answer })}</span></div>}
               <div className="flex items-center gap-2">
               <div className="hidden gap-2 sm:flex">
-                <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
-                <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
+                <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous" title="Previous question (←)"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
+                <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next" title="Next question (→)"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
               </div>
               <div className="flex-1" />
-              <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">D</kbd>}</button>
+              <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys, !lock))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">N</kbd>}</button>
               {!lock && (
                 <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-5 py-2.5 font-semibold whitespace-nowrap text-white sm:px-6 shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
-                  {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">Enter</kbd>
+                  {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">{inNote ? 'Ctrl+Enter' : 'Enter'}</kbd>
                 </button>
               )}
               </div>
