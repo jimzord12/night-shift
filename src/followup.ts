@@ -2,7 +2,7 @@
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
 import type { FollowUp, FollowUpItem, Night, Question } from './types.ts';
-import { handedItem } from './types.ts';
+import { DISCUSS, FOLLOW_UP_SCHEMA, handedItem, refsOf } from './types.ts';
 import { StoreError, followUpFile, listFollowUpIds, listNightIds, loadNight, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
 
@@ -13,20 +13,25 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
   const items: FollowUpItem[] = [];
   const used = new Set<string>();
   const add = (item: Omit<FollowUpItem, 'id' | 'status'>) => items.push({ id: `A${items.length + 1}`, status: 'open', ...item });
+  // An answer as an item: a decision, or a point the developer wants to talk through.
+  const answered = (q: Question): Pick<FollowUpItem, 'kind' | 'question' | 'decision' | 'decision_label' | 'owner_note'> =>
+    q.answer === DISCUSS
+      ? { kind: 'discuss', question: q.ask, ...(q.note ? { owner_note: q.note } : {}) }
+      : { kind: 'decision', question: q.ask, decision: q.answer!, decision_label: q.options.find((o) => o.id === q.answer)?.label ?? q.answer!, ...(q.note ? { owner_note: q.note } : {}) };
   for (const t of n.tasks) {
     if (t.outcome === 'done' || t.outcome === 'skipped') continue;
     // Never reached: the item it took on is still open in its own follow-up.
-    if (t.follow_up && t.outcome === 'not_started') continue;
+    if (refsOf(t).length && t.outcome === 'not_started') continue;
     const q = n.questions.find((x) => x.id === t.blocked_by) ?? n.questions.find((x) => x.task === t.id);
     if (q) used.add(q.id);
     const base = { task: t.id, title: t.title, done_when: t.done_when };
     if (q && q.answer !== null) {
-      const opt = q.options.find((o) => o.id === q.answer);
-      add({ ...base, kind: 'decision', question: q.ask, decision: q.answer, decision_label: opt?.label ?? q.answer, ...(q.note ? { owner_note: q.note } : {}) });
+      add({ ...base, ...answered(q) });
     } else if (q) {
       add({ ...base, kind: 'waiting', question: q.ask });
     } else {
-      const prior = t.follow_up ? earlier(t.follow_up) : undefined;
+      // A decision the task carried keeps the developer's answer (the first, when it carried several).
+      const prior = refsOf(t).map((r) => earlier(r)).find((i) => i?.kind === 'decision');
       const left = t.checks.filter((c) => !c.met).map((c) => (c.note ? `${c.done_when}: ${c.note}` : c.done_when));
       if (t.outcome === 'failed' && t.why) left.unshift(`failed: ${t.why}`);
       if (t.outcome === 'not_started' || (!left.length && t.outcome !== 'partial')) left.push('not started');
@@ -37,12 +42,10 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
   for (const q of n.questions) {
     if (used.has(q.id)) continue;
     const base = { task: q.task, title: q.ask, done_when: [] as string[] };
-    if (q.answer !== null) {
-      const opt = q.options.find((o) => o.id === q.answer);
-      add({ ...base, kind: 'decision', question: q.ask, decision: q.answer, decision_label: opt?.label ?? q.answer, ...(q.note ? { owner_note: q.note } : {}) });
-    } else add({ ...base, kind: 'waiting', question: q.ask });
+    if (q.answer !== null) add({ ...base, ...answered(q) });
+    else add({ ...base, kind: 'waiting', question: q.ask });
   }
-  return { schema: 'night-shift/follow-up@1', id: n.night, from_night: n.night, created_at: localIso(now), items };
+  return { schema: FOLLOW_UP_SCHEMA, id: n.night, from_night: n.night, created_at: localIso(now), items };
 }
 
 export function createFollowUp(repo: string, n: Night, now = new Date()): FollowUp {
@@ -78,7 +81,7 @@ export function followAnswer(repo: string, night: string, q: Question): FollowUp
     } catch {
       continue;
     }
-    if (n.status === 'open' && (n.tasks.some((t) => t.follow_up === ref) || n.skipped_follow_ups.some((s) => s.follow_up === ref))) {
+    if (n.status === 'open' && (n.tasks.some((t) => refsOf(t).includes(ref)) || n.skipped_follow_ups.some((s) => s.follow_up === ref))) {
       throw new StoreError(`night ${id} is working on this right now (${ref}); change the answer after it closes`, 409);
     }
   }
@@ -94,7 +97,10 @@ export function followAnswer(repo: string, night: string, q: Question): FollowUp
   delete item.decision_label;
   delete item.owner_note;
   if (q.answer === null) item.kind = 'waiting';
-  else {
+  else if (q.answer === DISCUSS) {
+    item.kind = 'discuss';
+    if (q.note) item.owner_note = q.note;
+  } else {
     item.kind = 'decision';
     item.decision = q.answer;
     item.decision_label = q.options.find((o) => o.id === q.answer)?.label ?? q.answer;
@@ -148,13 +154,15 @@ export function checkRef(repo: string, ref: string): OpenItem {
 // What a closing night did to the follow-up items it planned for.
 export function applyNightToFollowUps(repo: string, n: Night, now = new Date()): void {
   for (const t of n.tasks) {
-    if (!t.follow_up || t.outcome === 'not_started') continue;
+    if (t.outcome === 'not_started') continue;
     const status = t.outcome === 'done' ? 'done' : t.outcome === 'skipped' ? 'skipped' : 'carried';
     const reason = t.outcome === 'done' ? undefined : t.outcome === 'skipped' ? t.reason : `${t.id} ended ${t.outcome ?? 'without an outcome'} in ${n.night}`;
-    try {
-      resolveItem(repo, t.follow_up, status, n.night, reason, now);
-    } catch {
-      // the follow-up was removed or edited by hand: nothing to update
+    for (const ref of refsOf(t)) {
+      try {
+        resolveItem(repo, ref, status, n.night, reason, now);
+      } catch {
+        // the follow-up was removed or edited by hand: nothing to update
+      }
     }
   }
   for (const s of n.skipped_follow_ups) {

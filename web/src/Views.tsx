@@ -5,11 +5,14 @@ import { Icon, NightBadge, STATUS, StoppedEarly, dollars, minutes, nightTitle } 
 // ---------------------------------------------------------------- next night
 
 // Each item's kind, coloured by whose turn it is: a decision or unfinished work is the agent's
-// (blue); a question still without an answer is asked again, so it is yours (amber).
+// (blue); a question still without an answer is asked again, and a point to discuss waits for a day
+// session with you, so both are yours (amber).
 export const KIND: Record<FollowUpItem['kind'], { label: string; color: string }> = {
   decision: { label: 'Your decision', color: 'var(--color-agent)' },
   unfinished: { label: 'Unfinished', color: 'var(--color-agent)' },
   waiting: { label: 'Needs your answer', color: 'var(--color-eyes)' },
+  // Only a day session with you works on it, so it is yours too.
+  discuss: { label: "Let's discuss", color: 'var(--color-eyes)' },
 };
 
 // What the next night in each repository will pick up: every open follow-up item, per repository,

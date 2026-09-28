@@ -18,13 +18,27 @@ export type Block =
   | { type: 'command'; command: string; exit_code: number; excerpt: string }
   | { type: 'note'; text: string };
 
+// Version 2 of the three shapes (D24, TASK-29): a `discuss` answer and follow-up item, file
+// references on questions, and a task that follows several follow-up items. Version 1 files stay
+// valid and are read as they are; new files are written as version 2.
+export const PLAN_SCHEMA = 'night-shift/plan@2';
+export const NIGHT_SCHEMA = 'night-shift/night@2';
+export const FOLLOW_UP_SCHEMA = 'night-shift/follow-up@2';
+
+// "<follow-up id>/<item id>", or a list of them when one task carries several items forward.
+export type FollowUpRefs = string | string[];
+export const refsOf = (t: { follow_up?: FollowUpRefs }): string[] => (t.follow_up === undefined ? [] : Array.isArray(t.follow_up) ? t.follow_up : [t.follow_up]);
+
+// The answer that says "I'm not sure, let's discuss": it needs a note, and it becomes a `discuss`
+// follow-up item that no unattended night acts on.
+export const DISCUSS = 'discuss';
+
 export interface PlanTask {
   id: string;
   title: string;
   source: string;
   done_when: string[];
-  // "<follow-up id>/<item id>" when the task carries a follow-up item forward.
-  follow_up?: string;
+  follow_up?: FollowUpRefs;
 }
 
 export interface SkippedFollowUp {
@@ -34,7 +48,7 @@ export interface SkippedFollowUp {
 
 // What the agent hands to `night-shift start`.
 export interface PlanInput {
-  schema: 'night-shift/plan@1';
+  schema: 'night-shift/plan@1' | 'night-shift/plan@2';
   tasks: PlanTask[];
   skipped_follow_ups?: SkippedFollowUp[];
 }
@@ -55,7 +69,7 @@ export interface Task {
   id: string;
   title: string;
   source?: string;
-  follow_up?: string;
+  follow_up?: FollowUpRefs;
   unplanned?: true;
   done_when: string[];
   outcome: Outcome | null;
@@ -81,10 +95,18 @@ export interface Question {
   why?: string;
   options: Option[];
   recommended: string;
-  // Written by the Viewer only.
+  // Files in the repository the question is about, shown to the developer with Show in folder.
+  files?: QuestionFile[];
+  // Written by the Viewer only: an option id, DISCUSS (with a note), or null.
   answer: string | null;
   note: string | null;
   answered_at?: string;
+}
+
+export interface QuestionFile {
+  // Relative to the repository root, inside it.
+  path: string;
+  caption?: string;
 }
 
 export interface FeedbackSent {
@@ -132,7 +154,7 @@ export interface Session {
 export type NightStatus = 'open' | 'complete' | 'interrupted';
 
 export interface Night {
-  schema: 'night-shift/night@1';
+  schema: 'night-shift/night@1' | 'night-shift/night@2';
   night: string;
   status: NightStatus;
   started_at: string;
@@ -148,7 +170,8 @@ export interface Night {
 
 // carried: a night took the item on as a task; that task's outcome is the item's fate now.
 export type ItemStatus = 'open' | 'done' | 'skipped' | 'carried';
-export type ItemKind = 'decision' | 'unfinished' | 'waiting';
+// discuss: the developer wants to talk it through; only a day session with them works on it.
+export type ItemKind = 'decision' | 'unfinished' | 'waiting' | 'discuss';
 
 export interface FollowUpItem {
   id: string;
@@ -166,7 +189,7 @@ export interface FollowUpItem {
 }
 
 export interface FollowUp {
-  schema: 'night-shift/follow-up@1';
+  schema: 'night-shift/follow-up@1' | 'night-shift/follow-up@2';
   id: string;
   from_night: string;
   created_at: string;
@@ -199,6 +222,8 @@ export interface NightSummary {
   follow_up: boolean;
   // Open items in the follow-up, and when it was created; null without one, or when it cannot be read.
   follow_up_open: number | null;
+  // Open items of kind discuss: when every open item is one, it is the developer's turn.
+  follow_up_discuss: number | null;
   follow_up_at: string | null;
   // Closed with work or questions for the next agent, and no follow-up yet.
   hand_over: boolean;
@@ -268,13 +293,17 @@ export const isOpenQuestionIn = (q: Question, f: FollowUp | null | undefined) =>
 
 // Tasks a follow-up would hand over: not done or skipped, leaving out follow-up items the night
 // never reached (they stay open in their own follow-up). Matches buildFollowUp.
-export const unfinishedTasks = (n: Night) => n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped' && !(t.follow_up && t.outcome === 'not_started')).length;
+export const unfinishedTasks = (n: Night) => n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped' && !(refsOf(t).length && t.outcome === 'not_started')).length;
 
 // A closed night with work or questions for the next agent and no follow-up yet: the developer
 // still has to hand it over.
 export const needsHandOver = (n: Night, f: FollowUp | null | undefined) => n.status !== 'open' && !f && (unfinishedTasks(n) > 0 || n.questions.length > 0);
 
 export const followUpOpen = (f: FollowUp) => f.items.filter((i) => i.status === 'open').length;
+export const followUpDiscuss = (f: FollowUp) => f.items.filter((i) => i.status === 'open' && i.kind === 'discuss').length;
+
+// How an answer reads to a person: the option's label, or "Let's discuss".
+export const answerLabel = (q: Question): string | null => (q.answer === null ? null : q.answer === DISCUSS ? "Let's discuss" : (q.options.find((o) => o.id === q.answer)?.label ?? q.answer));
 
 // D24: one state per night, in this order; the first that holds wins. Whose turn it is decides
 // the colour (web/src/ui.tsx), and the same labels show on cards, the report and History.
@@ -287,11 +316,13 @@ export const followUpOpen = (f: FollowUp) => f.items.filter((i) => i.status === 
 // - done: every item done, skipped or carried, or nothing was owed.
 export const OWNER_STATES = ['running', 'new', 'needs_answers', 'ready_to_save', 'waiting', 'done'] as const;
 export type OwnerState = (typeof OWNER_STATES)[number];
-type StateInput = Pick<NightSummary, 'status' | 'started_at' | 'read' | 'questions_open' | 'hand_over' | 'follow_up' | 'follow_up_open'>;
+type StateInput = Pick<NightSummary, 'status' | 'started_at' | 'read' | 'questions_open' | 'hand_over' | 'follow_up' | 'follow_up_open'> & Partial<Pick<NightSummary, 'follow_up_discuss'>>;
+// A follow-up whose open items are all `discuss` waits for the developer, not an agent (D24).
+export const onlyDiscussLeft = (s: StateInput) => !!s.follow_up_open && s.follow_up_discuss === s.follow_up_open;
 export const ownerState = (s: StateInput): OwnerState =>
   s.status === 'open' && s.started_at ? 'running'
     : !s.read ? 'new'
-      : s.questions_open > 0 ? 'needs_answers'
+      : s.questions_open > 0 || onlyDiscussLeft(s) ? 'needs_answers'
         : s.hand_over ? 'ready_to_save'
           : s.follow_up && s.follow_up_open !== 0 ? 'waiting'
             : 'done';

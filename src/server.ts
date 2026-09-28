@@ -5,6 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { Hono } from 'hono';
 import { contentType, insideDir } from './files.ts';
 import { createFollowUp, followAnswer } from './followup.ts';
@@ -12,7 +13,7 @@ import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
-import { countOutcomes, emptyCounts, followUpOpen, isOpenQuestionIn, needsHandOver } from './types.ts';
+import { DISCUSS, countOutcomes, emptyCounts, followUpDiscuss, followUpOpen, isOpenQuestionIn, needsHandOver, refsOf } from './types.ts';
 
 const WEB_DIST = path.join(REPO_ROOT, 'web', 'dist');
 
@@ -21,6 +22,14 @@ export interface AppOptions {
   // The port the server listens on. When set, requests whose Host is not this machine at this
   // port are refused, so a web page elsewhere cannot reach the app through DNS rebinding.
   port?: number;
+  // Opens the file manager on a file (Show in folder); the operating system's by default.
+  reveal?: (file: string) => void;
+}
+
+// Show in folder: Explorer with the file selected on Windows, Finder on macOS, the folder elsewhere.
+function revealInFileManager(file: string): void {
+  const [cmd, args] = process.platform === 'win32' ? ['explorer.exe', [`/select,${file}`]] : process.platform === 'darwin' ? ['open', ['-R', file]] : ['xdg-open', [path.dirname(file)]];
+  spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: false }).on('error', () => {}).unref();
 }
 
 function safeDecode(s: string): string | null {
@@ -88,6 +97,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     read: !!readMarks[`${repo.id}/${id}`],
     follow_up: fs.existsSync(followUpFile(repo.path, id)),
     follow_up_open: null,
+    follow_up_discuss: null,
     follow_up_at: null,
     hand_over: false,
     running: false,
@@ -112,6 +122,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     // A follow-up file that exists but cannot be read still blocks a second one.
     hand_over: !base.follow_up && needsHandOver(n, followUp),
     follow_up_open: followUp ? followUpOpen(followUp) : null,
+    follow_up_discuss: followUp ? followUpDiscuss(followUp) : null,
     follow_up_at: followUp?.created_at ?? null,
     duration_min: n.metrics?.duration_min.total ?? null,
     cost_usd: n.metrics?.cost_usd ?? null,
@@ -119,7 +130,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
   };
 }
 
-export function createApp({ version, port }: AppOptions): Hono {
+export function createApp({ version, port, reveal = revealInFileManager }: AppOptions): Hono {
   const app = new Hono();
 
   if (port !== undefined) {
@@ -175,7 +186,7 @@ export function createApp({ version, port }: AppOptions): Hono {
       for (const nid of listNightIds(repo.path)) {
         const n = readNight(repo.path, nid).night;
         if (n?.status !== 'open') continue;
-        for (const t of n.tasks) if (t.follow_up) taken.add(t.follow_up);
+        for (const t of n.tasks) for (const ref of refsOf(t)) taken.add(ref);
         for (const s of n.skipped_follow_ups) taken.add(s.follow_up);
       }
       for (const id of listFollowUpIds(repo.path)) {
@@ -206,7 +217,9 @@ export function createApp({ version, port }: AppOptions): Hono {
     if (r.hash !== b.baseHash) throw new StoreError('the night changed since you opened it; showing the new version', 409);
     const q = r.night.questions.find((x) => x.id === b.question);
     if (!q) throw new StoreError(`no question ${String(b.question)}`, 404);
-    if (b.answer !== null && b.answer !== undefined && !q.options.some((o) => o.id === b.answer)) throw new StoreError(`"${b.answer}" is not an option of ${q.id}`);
+    if (b.answer !== null && b.answer !== undefined && b.answer !== DISCUSS && !q.options.some((o) => o.id === b.answer)) throw new StoreError(`"${b.answer}" is not an option of ${q.id}`);
+    // "Let's discuss" says what is unclear, so the day session can start from it.
+    if (b.answer === DISCUSS && !b.note?.trim()) throw new StoreError("let's discuss needs a note: what is unclear, or what you want to talk through");
     q.answer = b.answer ?? null;
     q.note = b.note?.trim() ? b.note.trim() : null;
     if (q.answer) q.answered_at = localIso(new Date());
@@ -280,6 +293,25 @@ export function createApp({ version, port }: AppOptions): Hono {
     const file = rel === null ? '' : path.resolve(dir, rel);
     if (rel === null || !/^\d{4}-\d{2}-\d{2}-[a-z]+$/.test(night) || !insideDir(path.join(dir, 'evidence'), file) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return c.json({ error: 'no such file' }, 404);
     return fileResponse(fs.readFileSync(file), contentType(file));
+  });
+
+  // A file a question points at (TASK-30): only one the question lists, and only inside its repository.
+  const questionFile = (repoId: string, night: string, qid: string, index: string): string => {
+    const repo = findRepo(repoId);
+    const r = readNight(repo.path, night);
+    const f = r.night?.questions.find((q) => q.id === qid)?.files?.[Number(index)];
+    const root = fs.realpathSync.native(repo.path);
+    const full = f ? path.resolve(root, f.path) : '';
+    if (!f || !/^\d+$/.test(index) || !insideDir(root, full) || !fs.existsSync(full) || !fs.statSync(full).isFile()) throw new StoreError('no such file', 404);
+    return full;
+  };
+  app.get('/api/nights/:repo/:night/questions/:q/files/:i', (c) => {
+    const full = questionFile(c.req.param('repo'), c.req.param('night'), c.req.param('q'), c.req.param('i'));
+    return fileResponse(fs.readFileSync(full), contentType(full));
+  });
+  app.post('/api/nights/:repo/:night/questions/:q/files/:i/reveal', (c) => {
+    reveal(questionFile(c.req.param('repo'), c.req.param('night'), c.req.param('q'), c.req.param('i')));
+    return c.json({ ok: true });
   });
 
   app.all('/api/*', (c) => c.json({ error: 'no such endpoint' }, 404));

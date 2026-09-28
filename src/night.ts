@@ -5,8 +5,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import type { Block, Check, Feedback, Night, Option, PlanInput, Question, Session, Task } from './types.ts';
-import { BLOCK_TYPES, OUTCOMES, countOutcomes } from './types.ts';
+import type { Block, Check, Feedback, Night, Option, PlanInput, Question, QuestionFile, Session, Task } from './types.ts';
+import { BLOCK_TYPES, NIGHT_SCHEMA, OUTCOMES, countOutcomes, refsOf } from './types.ts';
 import {
   StoreError,
   evidenceDir,
@@ -134,17 +134,19 @@ export function start(repo: string, planText: string, session: Session | null = 
   if (!ids.length && !plan.skipped_follow_ups?.length) throw new StoreError('the plan has no tasks');
   if (new Set(ids).size !== ids.length) throw new StoreError('task ids repeat in the plan');
 
-  // Every open follow-up item is either taken on as a task or skipped with a reason.
-  const refs = [...plan.tasks.flatMap((t) => (t.follow_up ? [t.follow_up] : [])), ...(plan.skipped_follow_ups ?? []).map((s) => s.follow_up)];
+  // Every open follow-up item is either taken on as a task (one task may take several) or skipped
+  // with a reason, except the items the developer wants to discuss: no night works on those.
+  const refs = [...plan.tasks.flatMap((t) => refsOf(t)), ...(plan.skipped_follow_ups ?? []).map((s) => s.follow_up)];
   if (new Set(refs).size !== refs.length) throw new StoreError('a follow-up item appears twice in the plan');
   for (const ref of refs) {
     const { item } = checkRef(repo, ref);
     if (item.status !== 'open') throw new StoreError(`follow-up item ${ref} is ${item.status}, not open`);
+    if (item.kind === 'discuss') throw new StoreError(`follow-up item ${ref} is one the developer wants to discuss ("${item.title}"); no night works on it or skips it. Leave it out of the plan: a day session raises it with the developer.`);
   }
-  const missing = openItems(repo).filter((o) => !refs.includes(o.ref));
+  const missing = openItems(repo).filter((o) => !refs.includes(o.ref) && o.item.kind !== 'discuss');
   if (missing.length) {
     throw new StoreError(
-      `open follow-up items are not in the plan: ${missing.map((o) => `${o.ref} "${o.item.title}"`).join('; ')}. Check each against the code, then either plan it as a task with "follow_up": "<ref>" or list it under "skipped_follow_ups" with a reason (for example, already fixed).`,
+      `open follow-up items are not in the plan: ${missing.map((o) => `${o.ref} "${o.item.title}"`).join('; ')}. Check each against the code, then either plan it as a task with "follow_up": "<ref>" (or a list of refs for one task) or list it under "skipped_follow_ups" with a reason (for example, already fixed).`,
     );
   }
 
@@ -152,7 +154,7 @@ export function start(repo: string, planText: string, session: Session | null = 
   const startedAt = localIso(now);
   writeJson(planFile(repo, id), { ...plan, night: id, started_at: startedAt });
   const night: Night = {
-    schema: 'night-shift/night@1',
+    schema: NIGHT_SCHEMA,
     night: id,
     status: 'open',
     started_at: startedAt,
@@ -173,11 +175,14 @@ export function start(repo: string, planText: string, session: Session | null = 
   if (h) messages.push(h);
   // The decisions as they stand now: the developer may have changed an answer while the plan was written.
   for (const t of night.tasks) {
-    if (!t.follow_up) continue;
-    const item = checkRef(repo, t.follow_up).item;
-    if (item.kind === 'decision') messages.push(`${t.id} follows ${t.follow_up}: the developer chose "${item.decision_label}"${item.owner_note ? ` (note: ${item.owner_note})` : ''}.`);
-    else if (item.kind === 'waiting') messages.push(`${t.id} follows ${t.follow_up}: no answer yet; ask again before working on it.`);
+    for (const ref of refsOf(t)) {
+      const item = checkRef(repo, ref).item;
+      if (item.kind === 'decision') messages.push(`${t.id} follows ${ref}: the developer chose "${item.decision_label}"${item.owner_note ? ` (note: ${item.owner_note})` : ''}.`);
+      else if (item.kind === 'waiting') messages.push(`${t.id} follows ${ref}: no answer yet; ask again before working on it.`);
+    }
   }
+  const talk = openItems(repo).filter((o) => o.item.kind === 'discuss');
+  if (talk.length) messages.push(`Left for a day session with the developer (they want to discuss): ${talk.map((o) => `${o.ref} "${o.item.title}"`).join('; ')}.`);
   messages.push(`Night ${id} is open with ${night.tasks.length} task(s)${session ? '' : ' (no Claude Code session found: metrics will be unknown)'}.`);
   messages.push(`Evidence goes in ${path.relative(repo, evidenceDir(repo, id)).split(path.sep).join('/')}/ and is referenced as evidence/<file>.`);
   messages.push(nextStep(night));
@@ -258,6 +263,24 @@ export interface AskInput {
   why?: string;
   options: (Partial<Option> & { label: string })[];
   recommended: string;
+  files?: (string | QuestionFile)[];
+}
+
+// Files a question points at: inside the repository and present, stored relative to its root.
+function questionFiles(repo: string, raw: unknown): QuestionFile[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) throw new StoreError('"files" is a list: ["docs/concepts/a.png", { "path": "…", "caption": "…" }]');
+  const root = fs.realpathSync.native(repo);
+  return raw.map((f) => {
+    const given = typeof f === 'string' ? f : isObject(f) && typeof f.path === 'string' ? f.path : '';
+    if (!given.trim()) throw new StoreError('each file is a path, or { "path": "…", "caption": "…" }');
+    const full = path.resolve(root, given.trim());
+    const rel = path.relative(root, full);
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) throw new StoreError(`file "${given}" is outside the repository; a question can point only at files inside it`);
+    if (!fs.existsSync(full) || !fs.statSync(full).isFile()) throw new StoreError(`file "${given}" does not exist in the repository`);
+    const caption = isObject(f) && typeof f.caption === 'string' && f.caption.trim() ? f.caption.trim() : undefined;
+    return { path: rel.split(path.sep).join('/'), ...(caption ? { caption } : {}) };
+  });
 }
 
 export function ask(repo: string, input: AskInput): { night: Night; question: Question; message: string } {
@@ -272,6 +295,7 @@ export function ask(repo: string, input: AskInput): { night: Night; question: Qu
     ...(o.detail ? { detail: o.detail } : {}),
     ...(typeof o.image === 'string' && o.image ? { image: relEvidence(repo, n.night, o.image) } : {}),
   }));
+  const files = questionFiles(repo, input.files);
   const rec = String(input.recommended ?? '');
   const recommended = options.find((o) => o.id === rec)?.id ?? options.find((o) => o.label === rec)?.id ?? rec;
   const q: Question = {
@@ -281,6 +305,7 @@ export function ask(repo: string, input: AskInput): { night: Night; question: Qu
     ...(text(input.why) ? { why: text(input.why) } : {}),
     options,
     recommended,
+    ...(files.length ? { files } : {}),
     answer: null,
     note: null,
   };
@@ -367,9 +392,16 @@ function finish(repo: string, n: Night, as: 'complete' | 'interrupted', now: Dat
   return n;
 }
 
+export const SUMMARY_MAX = 200;
+
 export function close(repo: string, summary: string, now = new Date()): { night: Night; message: string } {
   const n = openNight(repo);
-  if (!text(summary)) throw new StoreError('closing needs a summary: one or two sentences the developer reads first in the morning');
+  if (!text(summary)) throw new StoreError('closing needs a summary: one sentence the developer reads first in the morning');
+  // The summary is the headline on the Inbox card and the report (D24): one sentence; the detail
+  // belongs in the tasks. Older night files keep longer ones.
+  if (text(summary).length > SUMMARY_MAX || /\n/.test(text(summary))) {
+    throw new StoreError(`the summary is the headline the developer reads first: one sentence of at most ${SUMMARY_MAX} characters, on one line (this one has ${text(summary).length}${/\n/.test(text(summary)) ? ' and line breaks' : ''}). Put the detail in the tasks' outcomes.`);
+  }
   n.summary = text(summary);
   const trial = structuredClone(n);
   for (const t of trial.tasks) if (t.outcome === null) t.outcome = 'not_started';
