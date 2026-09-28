@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
 import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
-import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
+import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import { Saved } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
@@ -12,7 +12,7 @@ import { Icon, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, n
 
 // The Night Report page (D24): back to the Inbox, a header strip, what needs the developer, then
 // what happened as one row per task. Sections that have nothing to say are left out.
-export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDeck, onDetail }: {
+export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDeck, onDetail, onReload }: {
   detail: NightDetail | null;
   summary: NightSummary | null;
   // The detail is on the way, or could not be loaded (the banner above says why).
@@ -21,6 +21,7 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
   onBack: () => void;
   onOpenDeck: (startKey?: string) => void;
   onDetail: (d: NightDetail) => void;
+  onReload: () => void;
 }) {
   return (
     <div className="space-y-5">
@@ -28,7 +29,7 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
         <Icon name="left" className="size-4" strokeWidth={2.4} /> Inbox
       </button>
       {detail && summary ? (
-        <NightView detail={detail} summary={summary} onOpenDeck={onOpenDeck} onDetail={onDetail} />
+        <NightView detail={detail} summary={summary} onOpenDeck={onOpenDeck} onDetail={onDetail} onReload={onReload} />
       ) : failed ? (
         <div className="py-24 text-center text-white/50">This night could not be opened; the message above says why.</div>
       ) : picking ? (
@@ -40,7 +41,7 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
   );
 }
 
-function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void }) {
+function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
   const [open, setOpen] = useState<Task | null>(null);
   const n = detail.night;
   const counts = countOutcomes(n.tasks);
@@ -74,7 +75,7 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
       </header>
 
       <Section title="What needs you">
-        <NeedsYou detail={detail} onOpenDeck={onOpenDeck} onDetail={onDetail} />
+        <NeedsYou detail={detail} onOpenDeck={onOpenDeck} onDetail={onDetail} onReload={onReload} />
       </Section>
 
       {detail.follow_up && (
@@ -123,7 +124,7 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
 }
 
 // The questions as one compact row, and the save for the next agent; what is left when neither applies.
-function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void }) {
+function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDetail; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Saved from this row just now: say what happens next, as the deck's gate does.
@@ -142,6 +143,8 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
       setJustSaved(true);
     } catch (e) {
       setError((e as Error).message);
+      // Saved elsewhere meanwhile (another tab): show the night as it is now.
+      if (e instanceof ApiError && e.status === 409) onReload();
     } finally {
       setBusy(false);
     }
@@ -169,7 +172,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="forward" className="size-5" strokeWidth={2.4} /></span>
         <div className="min-w-[14rem] flex-1">
           <div className="font-semibold">Save for the next agent</div>
-          <div className="text-sm text-white/55">{pending} unfinished task{pending === 1 ? '' : 's'} and {n.questions.length} question{n.questions.length === 1 ? '' : 's'}. {openQ ? 'Answer what you can first; nothing' : 'Nothing'} runs until you start an agent.</div>
+          <div className="text-sm text-white/55">{[pending ? `${pending} unfinished task${pending === 1 ? '' : 's'}` : '', n.questions.length ? `${n.questions.length} question${n.questions.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. {openQ ? 'Answer what you can first; nothing' : 'Nothing'} runs until you start an agent.</div>
         </div>
         <button onClick={() => void create()} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
           {busy ? 'Saving…' : 'Save'}
@@ -177,7 +180,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
       </div>,
     );
   }
-  if (justSaved && f) rows.push(<div key="saved" className="p-2"><Saved detail={detail} /></div>);
+  if (justSaved && f) rows.push(<Saved key="saved" detail={detail} flat />);
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
       {rows.length ? <div className="divide-y divide-white/8">{rows}</div> : (

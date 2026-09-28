@@ -406,7 +406,8 @@ from any folder. Screens:
    work with one **Save for the next agent**; once saved, a confirmation
    that nothing runs until the developer starts an agent, with the
    phrases to copy ("start night shift", "work on the follow-up") and the
-   folder to say them in. An answer can change until an agent takes its
+   folder to say them in; a night still running is named instead, and is
+   saved once it ends. An answer can change until an agent takes its
    item on: the deck locks it, naming the night working on it or the one
    that settled it (the server refuses the change too).
 4. **Next night** (`#/next`): every open follow-up item across

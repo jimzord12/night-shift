@@ -54,6 +54,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
   const [savedNow, setSavedNow] = useState<ReadonlySet<string>>(new Set());
+  const [celebrated, setCelebrated] = useState(false);
 
   const key = order[index];
   const item = key ? byKey.get(key) : undefined;
@@ -87,7 +88,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
       ? 'Locked: a later night asked this again. Answer it there.'
       : `Locked: an agent already worked on this (${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in the ${nightOf(handed.resolved?.by ?? '')}`}), so the answer can no longer change.`
     : running
-      ? `Locked: the ${nightOf(running)} is working on this. You can change it once that night ends.`
+      ? `Locked: the ${nightOf(running)} has taken this on. You can change it once that night ends.`
       : null;
 
   useEffect(() => {
@@ -97,6 +98,11 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
     scroller.current?.scrollTo({ top: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
+
+  // The deck takes the focus from whatever opened it, so keys act on the deck, not the page behind.
+  useEffect(() => {
+    scroller.current?.focus({ preventScroll: true });
+  }, []);
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(order.length - 1, i))), [order.length]);
 
@@ -146,7 +152,12 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
       if (e.key === 'Escape') return onClose();
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
-        if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement) && gateState(deckNights).clear) onClose();
+        const ownButton = e.target instanceof HTMLButtonElement && !!scroller.current?.contains(e.target);
+        if (e.key === 'Enter' && !ownButton) {
+          // A button behind the deck (the one that opened it) must not take the key.
+          e.preventDefault();
+          if (gateState(deckNights).clear) onClose();
+        }
         return;
       }
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
@@ -174,7 +185,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const rec = q?.options.find((o) => o.id === q.recommended);
 
   return (
-    <div ref={scroller} className="sky fixed inset-0 z-40 overflow-y-auto">
+    <div ref={scroller} tabIndex={-1} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">
@@ -202,7 +213,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
         </header>
 
         {finished ? (
-          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={onClose} />
+          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={onClose} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (

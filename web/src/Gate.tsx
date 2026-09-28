@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
+import { followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
 import type { NightDetail } from '../../src/types.ts';
 import { ApiError, createFollowUp } from './api.ts';
 import { Icon, nightTitle } from './ui.tsx';
@@ -24,13 +24,18 @@ interface Props {
   onSaved: (d: NightDetail) => void;
   onConflict: (repo: string, night: string) => Promise<boolean>;
   onClose: () => void;
+  // The deck's scroller: a new state of the gate opens at its top.
+  onTop: () => void;
+  // Confetti once per deck, even when the gate is left and entered again.
+  celebrated: boolean;
+  onCelebrated: () => void;
 }
 
 // The end of the question deck (D24's explicit gate): for every closed night in the deck that is not
 // saved yet, what the next agent gets and one Save for the next agent; once saved, a confirmation
 // that nothing runs until the developer starts an agent, with the phrase to say. A night still
 // running is named: its answers are kept, and it is saved once it ends.
-export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClose }: Props) {
+export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClose, onTop, celebrated, onCelebrated }: Props) {
   const { running, toSave, clear } = gateState(nights);
   const justSaved = nights.filter((d) => savedNow.has(nightKey(d)) && d.follow_up);
   const earlier = nights.filter((d) => d.night.status !== 'open' && !savedNow.has(nightKey(d)) && d.follow_up);
@@ -44,16 +49,24 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
         : 'Nothing new to save here.';
 
   // Celebrate only what this deck saved, and only once nothing is left.
-  const celebrate = clear && justSaved.length > 0;
+  const celebrate = clear && justSaved.length > 0 && !celebrated;
   useEffect(() => {
     if (!celebrate) return;
+    onCelebrated();
     // One short burst from the bottom corners that falls away within a second, so it never sits
     // over the text the developer has to read.
     const colors = ['#f5d76e', '#7c5cff', '#34d399', '#ffffff'];
     const burst = { particleCount: 24, spread: 55, startVelocity: 45, ticks: 90, scalar: 0.8, colors };
     confetti({ ...burst, angle: 60, origin: { x: 0, y: 1 } });
     confetti({ ...burst, angle: 120, origin: { x: 1, y: 1 } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [celebrate]);
+  // Each new state opens at the top, and Enter keeps working: the next Save takes the focus.
+  useEffect(() => {
+    onTop();
+    document.querySelector<HTMLButtonElement>('[data-gate-save]')?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heading, toSave.length]);
 
   return (
     <div className="pop-in my-auto py-8">
@@ -67,7 +80,7 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
 
       <div className="mt-8 space-y-4">
         {toSave.map((d, i) => (
-          <SaveCard key={nightKey(d)} detail={d} autoFocus={i === 0} onConflict={onConflict} onSaved={(nd) => {
+          <SaveCard key={nightKey(d)} detail={d} first={i === 0} onConflict={onConflict} onSaved={(nd) => {
             onSavedNow(nightKey(nd));
             onSaved(nd);
           }} />
@@ -77,7 +90,10 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
           <p className="text-center text-sm text-white/55">Still running: {names(running)}. Save it once it ends; your answers stay.</p>
         )}
         {earlier.filter((d) => !Object.keys(d.taken).length).length > 0 && (
-          <p className="text-center text-sm text-white/50">Already saved earlier: {names(earlier.filter((d) => !Object.keys(d.taken).length))}. Your answers there reach the next agent.</p>
+          <p className="text-center text-sm text-white/50">
+            Already saved earlier: {names(earlier.filter((d) => !Object.keys(d.taken).length))}.
+            {earlier.some((d) => !Object.keys(d.taken).length && d.follow_up && followUpOpen(d.follow_up) > 0) ? ' Your answers there reach the next agent.' : ' Agents have already worked on what it carried.'}
+          </p>
         )}
         {earlier.filter((d) => Object.keys(d.taken).length).length > 0 && (
           <p className="text-center text-sm text-white/50">An agent is working on {names(earlier.filter((d) => Object.keys(d.taken).length))} now; what it took on is locked until that night ends.</p>
@@ -88,15 +104,16 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
         <button onClick={onClose} className={`rounded-full px-6 py-2.5 font-semibold ${clear ? 'bg-[var(--accent)] text-white shadow-lg' : 'glass text-white/80'}`}>
           {toSave.length ? 'Not now, back to the Inbox' : 'Back to the Inbox'}
         </button>
+        {!clear && !toSave.length && <p className="mt-2 hidden text-xs text-white/40 sm:block">Esc closes</p>}
       </div>
     </div>
   );
 }
 
-// "blog (Sat 26 Sept), docs (Sun 27 Sept)": two nights of one repository stay apart.
-const names = (ds: NightDetail[]) => ds.map((d) => `${d.repo.name} (${nightTitle(d.night.night, true)})`).join(', ');
+// "blog (night of Sat 26 Sept)": the same form everywhere, and two nights of one repository stay apart.
+const names = (ds: NightDetail[]) => ds.map((d) => `${d.repo.name} (${nightTitle(d.night.night).replace(/^Night/, 'night')})`).join(', ');
 
-function SaveCard({ detail: d, autoFocus, onSaved, onConflict }: { detail: NightDetail; autoFocus: boolean; onSaved: (d: NightDetail) => void; onConflict: (repo: string, night: string) => Promise<boolean> }) {
+function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDetail; first: boolean; onSaved: (d: NightDetail) => void; onConflict: (repo: string, night: string) => Promise<boolean> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const tasks = unfinishedList(d.night);
@@ -106,8 +123,9 @@ function SaveCard({ detail: d, autoFocus, onSaved, onConflict }: { detail: Night
     try {
       onSaved(await createFollowUp(d.repo.id, d.night.night));
     } catch (e) {
-      // Saved elsewhere meanwhile (another tab): show the night as it is now.
-      if (e instanceof ApiError && e.status === 409 && (await onConflict(d.repo.id, d.night.night))) return;
+      // Saved elsewhere meanwhile (another tab): show the night as it is now. If it really was saved
+      // the card goes away; if not (a follow-up file that cannot be read), the reason stays.
+      if (e instanceof ApiError && e.status === 409) await onConflict(d.repo.id, d.night.night);
       setError((e as Error).message);
       setBusy(false);
     }
@@ -145,7 +163,7 @@ function SaveCard({ detail: d, autoFocus, onSaved, onConflict }: { detail: Night
         </div>
       )}
       {error && <div className="mt-3 rounded-xl bg-broken/15 px-3 py-2 text-sm text-broken">{error}</div>}
-      <button onClick={() => void save()} disabled={busy} autoFocus={autoFocus} className="cta mt-4 inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:w-auto">
+      <button onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta mt-4 inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:w-auto">
         <Icon name="forward" className="size-4" strokeWidth={2.6} /> {busy ? 'Saving…' : 'Save for the next agent'}
       </button>
     </section>
@@ -154,9 +172,9 @@ function SaveCard({ detail: d, autoFocus, onSaved, onConflict }: { detail: Night
 
 // What happens next, in plain words: nothing runs by itself; the phrase to say, and where. Also shown
 // on the Night Report after its own Save.
-export function Saved({ detail: d }: { detail: NightDetail }) {
+export function Saved({ detail: d, flat = false }: { detail: NightDetail; flat?: boolean }) {
   return (
-    <section className="pop-in rounded-2xl border border-shipped/30 bg-shipped/10 p-4 sm:p-5">
+    <section className={`pop-in bg-shipped/10 p-4 sm:p-5 ${flat ? '' : 'rounded-2xl border border-shipped/30'}`}>
       <div className="flex items-center gap-2 font-semibold text-shipped">
         <Icon name="check" className="size-5 shrink-0" strokeWidth={2.8} /> Saved for the next agent: {d.repo.name}
       </div>
@@ -186,7 +204,8 @@ function Phrase({ text, hint, path = false }: { text: string; hint: string; path
   return (
     <button onClick={() => void copy()} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-night-950/60 px-3 py-2 text-left transition hover:border-white/25" title={`Copy ${hint === 'the folder' ? 'the folder' : 'the phrase'}`}>
       <span className="min-w-0 flex-1">
-        <span className={`block font-mono text-white ${path ? 'text-xs break-all' : 'text-sm whitespace-nowrap'}`}>{text}</span>
+        {/* A phrase wraps between words only: a non-breaking hyphen keeps "follow-up" whole. */}
+        <span className={`block font-mono text-white ${path ? 'text-xs break-all' : 'text-sm'}`}>{path ? text : text.replace(/-/g, '\u2011')}</span>
         <span className="block text-xs text-white/50">{hint}</span>
       </span>
       <span className="shrink-0 text-xs font-semibold text-white/70">{copied ? 'Copied' : 'Copy'}</span>

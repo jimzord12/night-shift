@@ -4,7 +4,7 @@ title: Viewer polish left from the Inbox review
 status: Queued
 assignee: []
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-28 11:33'
+updated_date: '2026-09-28 11:57'
 labels:
   - viewer
 dependencies: []
@@ -30,4 +30,6 @@ Notes deferred from TASK-25's review rounds 2 and 3 (docs/work/TASK-25/reviews/)
 
 <!-- SECTION:NOTES:BEGIN -->
 From TASK-28 visual review round 1, V4: a night whose follow-up items a running night took on still reads 'Waiting for an agent' in the Inbox and the report, and the saved list shows them as open without naming the running night.
+
+From TASK-28 design review round 2: D3 three date styles on one gate screen (pick one); D5 the Report's save confirmation is a card inside a card.
 <!-- SECTION:NOTES:END -->

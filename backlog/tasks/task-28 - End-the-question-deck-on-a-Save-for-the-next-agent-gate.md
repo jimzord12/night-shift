@@ -5,7 +5,7 @@ status: Review
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 11:33'
+updated_date: '2026-09-28 11:57'
 labels:
   - viewer
 dependencies:
@@ -48,4 +48,6 @@ Review round 1 (docs/work/TASK-28/reviews/01-*.md): code FINDINGS (M1, M2), desi
 - visual V2 (Enter on a locked question): moves on. V3: confetti only when this deck saved something; a night an agent is working on is named plainly. V6: the lock line uses the date; the report's save row drops 'Answer what you can first' when all are answered.
 - visual V4 (outside): added to TASK-40. V5 (a 409 on the first answer after the Meter writes metrics): filed as a bug task.
 Evidence: .local/evidence/2026-09-28-save-gate/r5 (keys.mjs: Enter-only walk, the running night; lock-390.png).
+
+Review round 2 (docs/work/TASK-28/reviews/02-*): code PASS; design FINDINGS; visual FINDINGS. Dispositions: m1 fixed (a failed Save shows its error instead of hanging); m2 fixed (a 409 on the Report's Save reloads the night); m3 fixed (says 'reach the next agent' only while follow-up items are open); m4 fixed (focus moves to the next Save card). D1/V1 Blocking fixed: the phrase wraps with non-breaking hyphens beside Copy; checked at 360 (.local/evidence/2026-09-28-save-gate/r6/360). D2 fixed (the gate scrolls to top when its heading changes). D3 and D5 deferred to TASK-40 (polish). D4 fixed (zero counts dropped). V2 fixed: the deck takes focus on open and Enter ignores buttons behind it. V3 fixed in the same change as the celebrated state. V4 fixed: 'Esc closes' hint on Answers kept. V5 fixed: lock text says 'has taken this on'.
 <!-- SECTION:NOTES:END -->
