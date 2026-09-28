@@ -144,6 +144,20 @@ export function createApp({ version, port }: AppOptions): Hono {
     });
   }
 
+  // Anything that writes or acts (every non-GET) comes from the Viewer's own page: a browser marks
+  // a request another site makes (Sec-Fetch-Site, else Origin), and such a request is refused. The
+  // Host check above stops DNS rebinding; this stops a page elsewhere posting to this machine.
+  // Requests without these headers (the tool, tests, curl) are not a browser on another site.
+  app.use('*', async (c, next) => {
+    if (c.req.method !== 'GET' && c.req.method !== 'HEAD') {
+      const site = c.req.header('Sec-Fetch-Site');
+      const origin = c.req.header('Origin');
+      const foreign = site ? site !== 'same-origin' && site !== 'none' : !!origin && origin !== new URL(c.req.url).origin;
+      if (foreign) return c.json({ error: 'night-shift only accepts changes from its own page' }, 403);
+    }
+    await next();
+  });
+
   app.onError((error, c) => {
     if (error instanceof StoreError) return c.json({ error: error.message }, error.status as 400);
     console.error(error);

@@ -334,6 +334,22 @@ test('issue text: an open code block is closed; a long entry is cut to fit a Git
   assert.ok(long.length <= 8000, `${long.length} characters`);
   assert.match(decodeURIComponent(long.replace(/\+/g, ' ')), /Cut to fit a GitHub link; the full text is in the night file \(2026-09-26-a\)/);
 });
+test("a change from another site is refused; the Viewer's own page and the tool are not", async () => {
+  const { ref, id, repo } = closedNight('origin');
+  const app = createApp({ version: 'test' });
+  const post = (headers: Record<string, string>) =>
+    app.request(`http://127.0.0.1:4747/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: { ...json, ...headers }, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: loadNight(repo, id).hash }) });
+  assert.equal((await post({ 'Sec-Fetch-Site': 'cross-site', Origin: 'https://evil.example' })).status, 403);
+  assert.equal((await post({ Origin: 'https://evil.example' })).status, 403);
+  assert.equal((await post({ 'Sec-Fetch-Site': 'same-site' })).status, 403);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+  assert.equal((await post({ 'Sec-Fetch-Site': 'same-origin', Origin: 'http://127.0.0.1:4747' })).status, 200);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, 'b');
+  // Reading stays open to the page's own links and images; a request with no browser headers is the tool.
+  assert.equal((await app.request('http://127.0.0.1:4747/api/overview', { headers: { 'Sec-Fetch-Site': 'cross-site' } })).status, 200);
+  assert.equal((await app.request(`http://127.0.0.1:4747/api/nights/${ref.id}/${id}/read`, { method: 'POST' })).status, 200);
+});
+
 test('a foreign Host is refused when the port is known', async () => {
   const app = createApp({ version: 'test', port: 4747 });
   assert.equal((await app.request('http://evil.example/api/overview')).status, 403);
