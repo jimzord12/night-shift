@@ -3,6 +3,25 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v17 (a88f16c), 2026-09-28
+
+- File shapes version 3 (`night-shift/night@3`, `follow-up@3`; the plan
+  stays at version 2; older files are still read). A release before v17
+  refuses a version 3 file: after switching, run `night-shift install .`
+  in each repository and restart a running `night-shift view` before the
+  first night on v17.
+- Agent decisions (TASK-46, D31): an agent records each choice it takes
+  on the developer's behalf with `night-shift decide`; it asks only when
+  the task cannot go on without the choice or a wrong one would be costly
+  to undo. The developer reviews them in Start my morning, as cards after
+  the questions (Enter keeps one, D disagrees with a note), on the Night
+  Report (their own section, a pill per task) and the Inbox counts them.
+  Unreviewed decisions keep the night in Needs answers. A disagreement
+  reaches the next agent as a `disagreed` follow-up item, and keeps its
+  note when a night carries it unfinished.
+- The night skill no longer says "never guess": it asks or records; the
+  day follow-up skill asks the developer, who is there.
+
 ## v16 (a601390), 2026-09-28
 
 - File shapes version 2 (`night-shift/plan@2`, `night@2`, `follow-up@2`;
