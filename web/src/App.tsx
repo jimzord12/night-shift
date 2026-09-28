@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { inMorning, isOpenQuestionIn, needsHandOver } from '../../src/types.ts';
-import type { NightDetail, Overview } from '../../src/types.ts';
-import { getNight, getOverview, markRead } from './api.ts';
+import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, ownerState, ownersTurn, readable } from '../../src/types.ts';
+import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
+import { getNextNight, getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
 import { Starfield } from './Starfield.tsx';
 import { QuestionDeck, deckKey } from './QuestionDeck.tsx';
 import type { DeckItem } from './QuestionDeck.tsx';
-import { HistoryView, QuestionsView, TrendsView } from './Views.tsx';
+import { HistoryView, NextNightView, QuestionsView, TrendsView } from './Views.tsx';
 import { Icon } from './ui.tsx';
 
-type View = 'morning' | 'questions' | 'history' | 'trends';
-const VIEWS: { id: View; label: string }[] = [
+type View = 'morning' | 'next' | 'questions' | 'history' | 'trends';
+// `short` is the label on a phone, where the tabs must fit in 360 pixels; the empty Trends tab
+// (to be removed, D24) is left off a phone.
+const VIEWS: { id: View; label: string; short?: string; wide?: true }[] = [
   { id: 'morning', label: 'Morning' },
+  { id: 'next', label: 'Next night', short: 'Next' },
   { id: 'questions', label: 'Questions' },
   { id: 'history', label: 'History' },
-  { id: 'trends', label: 'Trends' },
+  { id: 'trends', label: 'Trends', wide: true },
 ];
 
 const keyOf = (repo: string, night: string) => `${repo}/${night}`;
@@ -41,6 +44,8 @@ export function App() {
             // A follow-up file the server found but could not read still counts as handed over.
             follow_up: n.follow_up || !!d.follow_up,
             hand_over: !n.follow_up && needsHandOver(d.night, d.follow_up),
+            follow_up_open: d.follow_up ? followUpOpen(d.follow_up) : n.follow_up_open,
+            follow_up_at: d.follow_up?.created_at ?? n.follow_up_at,
           }
         : live;
     });
@@ -55,13 +60,26 @@ export function App() {
   const [view, setView] = useState<View>('morning');
   const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string } | null>(null);
 
-  const putDetail = useCallback((d: NightDetail) => setDetails((all) => ({ ...all, [keyOf(d.repo.id, d.night.night)]: d })), []);
+  // What the next night in each repository will pick up; fetched with the overview and whenever the
+  // tab opens.
+  const [next, setNext] = useState<NextNight | null>(null);
+  const loadNext = useCallback(() => {
+    getNextNight().then(setNext, (e: Error) => setError(e.message));
+  }, []);
+  // A saved answer or a new follow-up changes what the next night picks up.
+  const putDetail = useCallback((d: NightDetail) => {
+    setDetails((all) => ({ ...all, [keyOf(d.repo.id, d.night.night)]: d }));
+    if (d.follow_up) loadNext();
+  }, [loadNext]);
 
+  // The night whose detail could not be loaded; its error shows until another night is picked.
+  const [failedKey, setFailedKey] = useState<string | null>(null);
   const loadNight = useCallback(async (repo: string, night: string) => {
     try {
       putDetail(await getNight(repo, night));
     } catch (e) {
-      setError((e as Error).message);
+      setFailedKey(keyOf(repo, night));
+      setError(`${repo}: ${(e as Error).message}`);
     }
   }, [putDetail]);
 
@@ -70,14 +88,19 @@ export function App() {
     try {
       const o = await getOverview();
       setOverview(o);
+      loadNext();
       setDetails({});
       setSeen(new Set());
       setError(null);
+      setFailedKey(null);
       document.title = 'Night Shift';
       setSelected((current) => {
-        if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current)) return current;
-        // Morning opens on the newest night that still needs the developer; none means all caught up.
-        const first = o.nights.find(inMorning);
+        if (current && o.nights.some((n) => keyOf(n.repo, n.id) === current && readable(n))) return current;
+        // Morning opens on the newest night that is the developer's turn, else the newest running one;
+        // none means all caught up.
+        // A night file that cannot be read has nothing to open.
+        const openable = o.nights.filter(readable);
+        const first = openable.find((n) => ownersTurn(ownerState(n))) ?? openable.find((n) => ownerState(n) === 'running');
         return first ? keyOf(first.repo, first.id) : null;
       });
     } catch (e) {
@@ -85,7 +108,7 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadNext]);
 
   useEffect(() => {
     void load();
@@ -114,12 +137,24 @@ export function App() {
     () => Object.values(details).flatMap((d) => d.night.questions.map((q) => ({ key: deckKey(d, q), detail: d, question: q }))),
     [details],
   );
+  useEffect(() => {
+    if (view === 'next') loadNext();
+  }, [view, loadNext]);
+  const nextCount = next?.repos.reduce((sum, r) => sum + r.items.length, 0) ?? 0;
+  // Amber when an item still needs the developer's answer: their turn (D24).
+  const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.item.kind === 'waiting'));
   const openCount = overview?.nights.reduce((sum, n) => sum + n.questions_open, 0) ?? 0;
   const detail = selected ? (details[selected] ?? null) : null;
 
+  // A night opens at the top of its report, wherever the list was scrolled.
   const pick = (repo: string, night: string) => {
+    if (keyOf(repo, night) !== failedKey) {
+      setError(null);
+      setFailedKey(null);
+    }
     setSelected(keyOf(repo, night));
     setView('morning');
+    window.scrollTo(0, 0);
   };
   const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey });
   const nightItems = (d: NightDetail | null) => (d ? allItems.filter((i) => i.detail.repo.id === d.repo.id && i.detail.night.night === d.night.night) : []);
@@ -140,10 +175,12 @@ export function App() {
               <div className="hidden text-xs text-white/50 sm:block">{overview ? `${overview.repos.filter((r) => !r.missing).length} repositor${overview.repos.length === 1 ? 'y' : 'ies'}` : '…'}</div>
             </div>
           </div>
-          <nav className="glass order-last flex w-full justify-between rounded-full p-1 sm:order-none sm:w-auto sm:justify-start">
+          <nav className="glass order-last flex w-full justify-between overflow-x-auto rounded-full p-1 [scrollbar-width:none] sm:order-none sm:w-auto sm:justify-start">
             {VIEWS.map((v) => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`relative flex-auto rounded-full px-2 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
-                {v.label}
+              <button key={v.id} onClick={() => setView(v.id)} className={`relative shrink-0 flex-auto rounded-full px-1.5 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${v.wide ? 'hidden sm:block' : ''} ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
+                <span className="sm:hidden">{v.short ?? v.label}</span>
+                <span className="hidden sm:inline">{v.label}</span>
+                {v.id === 'next' && nextCount > 0 && <span className={`ml-1 rounded-full px-1.5 text-[13px] font-bold text-night-950 sm:ml-1.5 ${nextWaits ? 'bg-eyes' : 'bg-agent'}`}>{nextCount}</span>}
                 {v.id === 'questions' && openCount > 0 && <span className="ml-1 rounded-full bg-eyes px-1.5 sm:ml-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
               </button>
             ))}
@@ -160,8 +197,9 @@ export function App() {
 
         {overview && (
           <main className="mt-4">
-            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
+            {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} selected={selected} picking={!!selected && !detail} failed={!!selected && selected === failedKey} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
             {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
+            {view === 'next' && <NextNightView next={next} onPick={pick} />}
             {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
             {view === 'trends' && <TrendsView />}
           </main>
@@ -182,5 +220,5 @@ export function App() {
 }
 
 function Banner({ children }: { children: ReactNode }) {
-  return <div className="mb-4 rounded-2xl bg-blocked/15 px-4 py-3 text-sm text-blocked">{children}</div>;
+  return <div className="mb-4 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">{children}</div>;
 }

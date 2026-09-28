@@ -209,7 +209,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="rounded-full bg-white/10 px-2.5 py-1 font-semibold tracking-wide uppercase">{item.detail.repo.name}</span>
               <span className="rounded-full bg-white/5 px-2.5 py-1 text-white/60">{nightTitle(item.detail.night.night)}</span>
-              {q.task && <span className="rounded-full bg-blocked/20 px-2.5 py-1 font-mono font-semibold text-blocked">{q.task}</span>}
+              {q.task && <span className="rounded-full bg-eyes/20 px-2.5 py-1 font-mono font-semibold text-eyes">{q.task}</span>}
               {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
               {lock && <span className="rounded-full bg-white/10 px-2.5 py-1 text-white/70">{q.answer === null ? 'not answerable here' : 'answered'} · locked: the {lock}</span>}
             </div>
@@ -277,7 +277,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
             </div>
 
             <footer className="sticky bottom-0 z-10 -mx-4 mt-auto border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
-              {message && <div className="mb-2 rounded-xl bg-blocked/15 px-4 py-2 text-sm text-blocked">{message}</div>}
+              {message && <div className="mb-2 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{message}</div>}
               {/* On a phone the options may be above the fold: name the answer Save would keep. */}
               {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{q.options.find((o) => o.id === draft.answer)?.label}</span></div>}
               <div className="flex items-center gap-2">

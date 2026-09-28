@@ -89,6 +89,7 @@ npm run check                           # typecheck + tests + web build: the gat
 node src/cli.ts --help                  # every night-shift command
 NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts install <copy>  # a git-initialised copy of examples/sample-repo
 NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts view --port 4799   # the Viewer on sample data, never your real install
+npm run view                            # this checkout's Viewer on your real nights, port 4748 (the installed one stays on 4747)
 npm run dev                             # the Viewer with hot reload beside a running view
 npm run release v<N>                    # from a clean, pushed main; then `npm run release switch v<N>`
 backlog task list --plain               # the work (Backlog.md 1.52.0, installed globally)

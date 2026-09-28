@@ -9,9 +9,9 @@
   --color-moon: #f5d76e;
   --color-shipped: #34d399;
   --color-eyes: #fbbf24;
-  --color-blocked: #fb7185;
+  --color-broken: #fb7185;
   --color-skipped: #94a3b8;
-  --color-failed: #f97316;
+  --color-agent: #60a5fa;
   --color-idle: #64748b;
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;

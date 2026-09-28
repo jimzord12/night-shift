@@ -197,6 +197,9 @@ export interface NightSummary {
   cost_usd: number | null;
   read: boolean;
   follow_up: boolean;
+  // Open items in the follow-up, and when it was created; null without one, or when it cannot be read.
+  follow_up_open: number | null;
+  follow_up_at: string | null;
   // Closed with work or questions for the next agent, and no follow-up yet.
   hand_over: boolean;
   running: boolean;
@@ -208,6 +211,25 @@ export interface Overview {
   repos: RepoRef[];
   nights: NightSummary[];
   loadedAt: string;
+}
+
+// What the next night in each repository will pick up: the open items of its follow-up files,
+// oldest follow-up first. A follow-up file that cannot be read is a problem, not an item.
+export interface NextNightItem {
+  ref: string;
+  from_night: string;
+  created_at: string;
+  item: FollowUpItem;
+}
+
+export interface NextNightRepo {
+  repo: RepoRef;
+  items: NextNightItem[];
+  problems: string[];
+}
+
+export interface NextNight {
+  repos: NextNightRepo[];
 }
 
 export interface NightDetail {
@@ -252,10 +274,57 @@ export const unfinishedTasks = (n: Night) => n.tasks.filter((t) => t.outcome !==
 // still has to hand it over.
 export const needsHandOver = (n: Night, f: FollowUp | null | undefined) => n.status !== 'open' && !f && (unfinishedTasks(n) > 0 || n.questions.length > 0);
 
-// The developer's side of a night, apart from how the night itself ended.
-export type OwnerSide = 'needs_you' | 'handed_over' | 'nothing';
-export const ownerSide = (s: Pick<NightSummary, 'questions_open' | 'hand_over' | 'follow_up'>): OwnerSide =>
-  s.questions_open > 0 || s.hand_over ? 'needs_you' : s.follow_up ? 'handed_over' : 'nothing';
+export const followUpOpen = (f: FollowUp) => f.items.filter((i) => i.status === 'open').length;
 
-// Morning is an inbox: a night stays there while it is unread or still needs the developer.
-export const inMorning = (s: Pick<NightSummary, 'read' | 'questions_open' | 'hand_over' | 'follow_up'>) => !s.read || ownerSide(s) === 'needs_you';
+// D24: one state per night, in this order; the first that holds wins. Whose turn it is decides
+// the colour (web/src/ui.tsx), and the same labels show on cards, the report and History.
+// - running: still open, including a night whose session is gone until recovery closes it (a
+//   night file that cannot be read has no start and is never running);
+// - new: closed and not opened since it ended;
+// - needs_answers: a question still waits for the developer;
+// - ready_to_save: work or answers the developer has not saved for the next agent yet;
+// - waiting: saved, and the follow-up still has open items (one that cannot be read counts);
+// - done: every item done, skipped or carried, or nothing was owed.
+export const OWNER_STATES = ['running', 'new', 'needs_answers', 'ready_to_save', 'waiting', 'done'] as const;
+export type OwnerState = (typeof OWNER_STATES)[number];
+type StateInput = Pick<NightSummary, 'status' | 'started_at' | 'read' | 'questions_open' | 'hand_over' | 'follow_up' | 'follow_up_open'>;
+export const ownerState = (s: StateInput): OwnerState =>
+  s.status === 'open' && s.started_at ? 'running'
+    : !s.read ? 'new'
+      : s.questions_open > 0 ? 'needs_answers'
+        : s.hand_over ? 'ready_to_save'
+          : s.follow_up && s.follow_up_open !== 0 ? 'waiting'
+            : 'done';
+
+// Each state's one label and colour (a theme colour of the web app), for cards, the report and
+// History alike: purple new, amber the developer's turn, blue an agent's, green with a tick only
+// when nothing is left.
+export const OWNER_STATE: Record<OwnerState, { label: string; color: string; hint: string }> = {
+  running: { label: 'Running', color: 'var(--color-agent)', hint: 'An agent is working through this night' },
+  new: { label: 'New', color: 'var(--accent)', hint: 'Ended since you last looked' },
+  needs_answers: { label: 'Needs answers', color: 'var(--color-eyes)', hint: 'A question waits for your answer' },
+  ready_to_save: { label: 'Ready to save', color: 'var(--color-eyes)', hint: 'Unfinished work or answers to save for the next agent' },
+  waiting: { label: 'Waiting for an agent', color: 'var(--color-agent)', hint: 'Saved; the next agent has not finished it yet' },
+  done: { label: 'Done', color: 'var(--color-shipped)', hint: 'Nothing is left for anyone' },
+};
+
+// The developer's turn: new, or something only they can do.
+export const ownersTurn = (st: OwnerState) => st === 'new' || st === 'needs_answers' || st === 'ready_to_save';
+
+// A night file that cannot be read has no start, so no state to judge; the Viewer shows it red.
+export const readable = (s: Pick<NightSummary, 'started_at'>) => !!s.started_at;
+
+// Morning lists every night that is not done: the running ones, the developer's turn, and those
+// waiting for an agent (D24). A night file that cannot be read stays only until it is opened once;
+// History keeps it.
+export const inMorning = (s: StateInput) => (readable(s) ? ownerState(s) !== 'done' : !s.read);
+
+// How a night ended matters only when it cost work: the tasks a night stopped early never started.
+export const neverStarted = (s: Pick<NightSummary, 'status' | 'counts'>) => (s.status === 'interrupted' ? s.counts.not_started : 0);
+
+// Whole days a follow-up has waited for an agent, from two days on; null before that.
+export function waitedDays(since: string | null, now: number): number | null {
+  if (!since) return null;
+  const days = Math.floor((now - Date.parse(since)) / 86_400_000);
+  return days >= 2 ? days : null;
+}

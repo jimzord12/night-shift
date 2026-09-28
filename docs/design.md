@@ -375,28 +375,35 @@ nothing beyond the tool; what else a night needs stays the developer's call.
 One local web app for every registered repository, opened with one command
 from any folder. Screens:
 
-1. **Morning:** an inbox (D22). Every night still unread or needing the
-   developer (an open question, or unfinished work and answers not yet
-   handed over) is a chip, newest first; none left reads "All caught up",
-   with the last night and History one click away. Below, the chosen night
-   in full: header (how it ended: Closed, Stopped early or Running now; the
-   developer's side: Needs you, Handed over or Nothing left; duration, cost,
-   sub-agents), summary, the six outcome counts, tasks (open one for its
-   checks, questions and proof), the questions as a deck (one per screen,
-   the recommendation preselected, a free note), **Create follow-up**, and
-   feedback with tick boxes and **Send to GitHub**. Opening a night marks
-   it read; a night opened while it ran is unread again once it ends. The
-   list is fixed when the Viewer loads; a settled chip shows a tick until
-   the next reload.
-2. **Questions:** every open question across nights.
-3. **History:** one row per night: date, repository, outcome counts,
-   duration, cost, how it ended and the developer's side; a row opens that
-   night.
-4. **Trends:** empty until measurement is designed.
+1. **Morning:** an inbox (D22, D24). Every night whose `Owner state` is
+   not Done (Running, New, Needs answers, Ready to save, Waiting for an
+   agent) is a chip with that one state as its badge, newest first; when
+   none is the developer's turn it reads "All caught up", with the last
+   night and History one click away. Below, the chosen night in full:
+   header (its state; "Stopped early: N tasks never started" in grey only
+   when stopping early cost work; duration, cost, sub-agents), summary, the
+   six outcome counts, tasks (open one for its checks, questions and
+   proof), the questions as a deck (one per screen, the recommendation
+   preselected, a free note), **Create follow-up**, and feedback with tick
+   boxes and **Send to GitHub**. Opening a night marks it read; a night
+   opened while it ran is unread again once it ends. The list is fixed
+   when the Viewer loads; a chip that settles shows its new state until
+   the next reload. A night file that cannot be read shows a red "Cannot
+   be read" badge, is not counted as the developer's turn, and stays in
+   Morning until it has been opened once; History keeps it.
+2. **Next night:** every open follow-up item across repositories, per
+   repository and grouped by the night it came from, with its kind, the
+   decision, the owner's note and what was left; the tab shows the count
+   (D26).
+3. **Questions:** every open question across nights.
+4. **History:** one row per night: date, repository, its state, outcome
+   counts, duration, cost and the grey stopped-early line; a row opens
+   that night.
+5. **Trends:** empty until measurement is designed.
 
-Agreed on 2026-09-28 and not built yet (D24): Morning becomes the
-`Inbox` of `Night Report` cards with one `Owner state` per night coloured
-by whose turn it is, a step track, an explicit **Save for the next agent**
+Agreed on 2026-09-28 (D24); the one `Owner state` per night, coloured by
+whose turn it is, is built (TASK-24), the rest is not yet: Morning becomes
+the `Inbox` of `Night Report` cards, a step track, an explicit **Save for the next agent**
 gate, a "let's discuss" answer, and a navigation of Inbox and History. The
 screens above stay the truth until the D24 tasks land.
 

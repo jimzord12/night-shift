@@ -1,4 +1,4 @@
-import type { NightDetail, Overview } from '../../src/types.ts';
+import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -24,6 +24,7 @@ const post = <T,>(url: string, body?: object) => call<T>(url, { method: 'POST', 
 const nightUrl = (repo: string, night: string) => `/api/nights/${encodeURIComponent(repo)}/${encodeURIComponent(night)}`;
 
 export const getOverview = () => call<Overview>('/api/overview');
+export const getNextNight = () => call<NextNight>('/api/next-night');
 export const getNight = (repo: string, night: string) => call<NightDetail>(nightUrl(repo, night));
 export const markRead = (repo: string, night: string) => post<{ ok: true }>(`${nightUrl(repo, night)}/read`);
 export const createFollowUp = (repo: string, night: string) => post<NightDetail>(`${nightUrl(repo, night)}/follow-up`);

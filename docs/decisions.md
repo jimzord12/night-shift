@@ -360,3 +360,18 @@ owner's answers and notes; the owner accepted that. **Rejected:** leaving
 history out of this repository only (a special case in the tool for one
 `Adopter`); nights committing straight to `main` (the owner wants to see the
 work first).
+
+## D26  A Next night tab lists what the next night will pick up (2026-09-28)
+
+After previewing the first `Owner state`s, the owner asked for a tab that
+shows at once what is scheduled for the next night in each repository.
+**Why:** the `Viewer` showed which `Night`s were Waiting for an agent, but
+not the open `Follow-up file` items themselves; the owner had to open each
+night to find them. **Chosen:** a **Next night** tab beside `Morning`, with
+a count of open items: per repository, every open item grouped by the night
+it came from (a link back to that night), with its kind (your decision,
+unfinished, or needs your answer), the decision, the owner's note and what
+was left. It reads the follow-up files only; no file shape changes. This
+amends D24's navigation of `Inbox` and History to three tabs. **Rejected:**
+a "Next night" section at the top of the `Inbox`, which the agent
+recommended to keep two tabs; the owner preferred a tab of its own.
