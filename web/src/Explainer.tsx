@@ -31,11 +31,11 @@ const STEPS: { id: ExplainStep; icon: IconName; short: string; title: string; bo
     icon: 'file',
     short: 'Report',
     title: 'A Night Report waits in the morning',
-    body: 'Every task ends with one of six outcomes. "Stopped early" means the night ended before some tasks started; they carry over to the next one.',
+    body: 'Every task ends with one of six outcomes. \u201cStopped early\u201d means the night ended before some tasks started; they carry over once you save for the next agent.',
   },
   {
     id: 'answer',
-    icon: 'question',
+    icon: 'note',
     short: 'Answer',
     title: 'You answer its questions',
     body: 'Each question comes with options and the agent’s pick. Choose one and add a note if it helps. You can change an answer until an agent takes it on.',
@@ -93,7 +93,26 @@ export function ExplainerOverlay({ step, onClose }: { step: ExplainStep; onClose
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
     panel.current?.focus({ preventScroll: true });
-    return () => opener?.focus?.();
+    // Tab and Shift+Tab wrap inside the dialog: a control behind it (the gate's Save) is never reached.
+    const onTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !panel.current) return;
+      const all = [...panel.current.querySelectorAll<HTMLElement>('button, [href], [tabindex]:not([tabindex="-1"])')];
+      if (!all.length) return;
+      const [first, last] = [all[0], all[all.length - 1]];
+      const inside = panel.current.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first || document.activeElement === panel.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', onTab, true);
+    return () => {
+      window.removeEventListener('keydown', onTab, true);
+      opener?.focus?.();
+    };
   }, []);
   return (
     // Centred when it fits; taller than the screen (a phone), it scrolls from its top instead of
@@ -168,12 +187,12 @@ export function HowItWorks({ start, autoplay = false, onClose }: { start?: Expla
       <Loop at={at} onPick={go} />
       <div key={s.id} className="pop-in mx-auto mt-2 max-w-lg text-center" aria-live="polite">
         <div className="text-xs text-white/45">Step {at + 1} of {STEPS.length}</div>
-        <h2 className="font-display mt-1 text-2xl font-semibold">{s.title}</h2>
+        <h2 className="font-display mt-1 text-xl font-semibold sm:text-2xl">{s.title}</h2>
         <p className="mt-2 text-white/70">{s.body}</p>
         {s.id === 'report' && (
           <ul className="mt-4 grid gap-1.5 text-left text-sm sm:grid-cols-2">
             {(Object.keys(STATUS) as Outcome[]).map((o) => (
-              <li key={o} className="flex items-center gap-2">
+              <li key={o} className="flex items-start gap-2">
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-px text-xs font-semibold" style={{ color: `color-mix(in srgb, ${STATUS[o].color} 80%, white)`, background: `color-mix(in srgb, ${STATUS[o].color} 18%, transparent)` }}>
                   <Icon name={STATUS[o].icon} className="size-3" strokeWidth={2.6} /> {STATUS[o].label}
                 </span>
@@ -202,8 +221,9 @@ export function HowItWorks({ start, autoplay = false, onClose }: { start?: Expla
 
 // Five steps on a circle, read clockwise from the top, with a moon that travels to the current one.
 function Loop({ at, onPick }: { at: number; onPick: (i: number) => void }) {
-  const size = 260;
-  const r = 90;
+  const phone = typeof window !== 'undefined' && window.innerWidth < 640;
+  const size = phone ? 190 : 260;
+  const r = phone ? 66 : 90;
   const c = size / 2;
   const pos = (i: number) => {
     const a = (i / STEPS.length) * 2 * Math.PI - Math.PI / 2;
@@ -240,7 +260,7 @@ function Loop({ at, onPick }: { at: number; onPick: (i: number) => void }) {
             aria-current={now ? 'step' : undefined}
           >
             <span
-              className="grid size-11 place-items-center rounded-full border-2 transition-all duration-500"
+              className="grid size-9 place-items-center rounded-full border-2 transition-all duration-500 sm:size-11"
               style={{
                 borderColor: now ? 'var(--color-moon)' : i < at ? 'var(--accent)' : '#ffffff26',
                 background: now ? 'color-mix(in srgb, var(--accent) 35%, var(--color-night-900))' : 'var(--color-night-900)',
@@ -253,7 +273,7 @@ function Loop({ at, onPick }: { at: number; onPick: (i: number) => void }) {
           </button>
         );
       })}
-      <div className="absolute inset-0 grid place-items-center text-center">
+      <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
         <div className="font-display text-lg font-semibold text-white/85">{STEPS[at].short}</div>
       </div>
     </div>

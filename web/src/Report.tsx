@@ -60,11 +60,12 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
         </div>
         <h1 className="font-display mt-1 text-2xl font-semibold sm:text-3xl">{nightTitle(n.night)}</h1>
         {n.summary ? <p className="mt-2 leading-snug text-white/85 sm:text-lg">{n.summary}</p> : <p className="mt-2 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
-        {neverStarted(summary) > 0 && <div className="mt-2 flex min-w-0 items-center gap-2"><StoppedEarly count={neverStarted(summary)} /><HelpDot step="report" term="stopped early" /></div>}
+        {neverStarted(summary) > 0 && <div className="mt-2 flex min-w-0"><StoppedEarly count={neverStarted(summary)} after={<HelpDot step="report" term="stopped early" />} /></div>}
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-white/10 pt-3 text-sm">
-          {nonZero.map((o) => (
+          {nonZero.map((o, i) => (
             <span key={o} className="inline-flex items-center gap-1.5 font-semibold" style={{ color: STATUS[o].color }}>
               <Icon name={STATUS[o].icon} className="size-4" strokeWidth={2.4} /> {counts[o]} {STATUS[o].label.toLowerCase()}
+              {i === nonZero.length - 1 && <HelpDot step="report" term="the six outcomes" />}
             </span>
           ))}
           {/* Only what was measured: an unknown duration or cost, or no sub-agent, says nothing (D24). */}
@@ -72,7 +73,6 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
           {m?.cost_usd != null && <span className="inline-flex items-center gap-1.5 text-white/60"><Icon name="coin" /> {dollars(m.cost_usd)}</span>}
           {m && m.sub_agents.length > 0 && <span className="inline-flex items-center gap-1.5 text-white/60"><Icon name="bot" /> {m.sub_agents.length} sub-agent{m.sub_agents.length === 1 ? '' : 's'}</span>}
           {!m && n.status !== 'open' && <span className="text-white/45">not measured yet</span>}
-          {nonZero.length > 0 && <HelpDot step="report" term="the six outcomes" />}
         </div>
       </header>
 
