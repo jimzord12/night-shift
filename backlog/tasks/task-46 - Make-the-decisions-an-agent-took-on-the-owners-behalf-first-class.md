@@ -4,7 +4,7 @@ title: Make the decisions an agent took on the owner's behalf first-class
 status: Active
 assignee: []
 created_date: '2026-09-28 13:47'
-updated_date: '2026-09-28 19:12'
+updated_date: '2026-09-28 19:42'
 labels:
   - viewer
 dependencies: []
@@ -38,3 +38,9 @@ Needs a design decision (D<n>) before building: where the owner marks seen or di
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Review round 1 (dfb222a): design FINDINGS, code FINDINGS, visual FINDINGS (docs/work/TASK-46/reviews/01-*). Fixed in 07d4736: D1 ("N decisions to review"), D2 (no-break counts), D3/V4 (save row names review; gate shows the note), D4/V1 (saved disagreement shows decision and note), D6, D7, V2 (withdrawn label), V3 (decision rows open only decisions), M1 (exact locator), M2 (carried disagreements keep the note; test, mutant killed), M3 (all-done + disagreement test), m1 (NIGHT_SCHEMA; test), m2, m3, History counts decisions. D5: no change (order is the owner's choice, D31). D8: no action. V5 (gate Enter can save the next night) predates this task: filed separately.
+<!-- SECTION:NOTES:END -->
