@@ -4,7 +4,7 @@ title: Viewer polish left from the Inbox review
 status: Queued
 assignee: []
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-28 12:59'
+updated_date: '2026-09-28 13:04'
 labels:
   - viewer
 dependencies: []
@@ -34,4 +34,6 @@ From TASK-28 visual review round 1, V4: a night whose follow-up items a running 
 From TASK-28 design review round 2: D3 three date styles on one gate screen (pick one); D5 the Report's save confirmation is a card inside a card.
 
 From TASK-28 round 4: the deck counter and progress bar count questions held by a running night as done ('2 / 2' on the first screen); the Report's 'N open' above follow-up items that are all 'Taken by a running night'; a night whose items a running night holds still reads 'Waiting for an agent' (consider 'An agent is on it', an owner-state change per D24).
+
+From TASK-28 round 5: the Report subtitle names only 'N held by a running night' when held and settled questions mix; name both.
 <!-- SECTION:NOTES:END -->

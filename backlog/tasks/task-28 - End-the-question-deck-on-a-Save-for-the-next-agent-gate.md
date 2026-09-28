@@ -1,11 +1,11 @@
 ---
 id: TASK-28
 title: End the question deck on a Save for the next agent gate
-status: Review
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 12:59'
+updated_date: '2026-09-28 13:04'
 labels:
   - viewer
 dependencies:
@@ -23,17 +23,17 @@ D24. After the last answer nothing happens; Create follow-up sits in a side card
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Answering the last question lands on the gate; pressing it creates the follow-up and shows the confirmation with a working copy button (video)
-- [ ] #2 Editing an answer after saving, before any agent picked it up, updates the follow-up file (test on real files)
-- [ ] #3 Once an agent has picked an item up, its answer is locked with a line saying why (test on real files, screenshot)
+- [x] #1 Answering the last question lands on the gate; pressing it creates the follow-up and shows the confirmation with a working copy button (video)
+- [x] #2 Editing an answer after saving, before any agent picked it up, updates the follow-up file (test on real files)
+- [x] #3 Once an agent has picked an item up, its answer is locked with a line saying why (test on real files, screenshot)
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -54,4 +54,6 @@ Review round 2 (docs/work/TASK-28/reviews/02-*): code PASS; design FINDINGS; vis
 Review round 3 (03-*): code FINDINGS (M1 evidence only), design PASS, visual FINDINGS. Dispositions: code M1 closed by the design reviewer's report-confirmation shots at 360/390 (.local/evidence/2026-09-28-design-gate-r3/rep/). m1 fixed (a failed Save refocuses its button). m2 fixed (the report's error hides once the night shows saved). m3 fixed (test: a skipped item is taken, locked, refused, and not counted open). N1 fixed (design.md wording; gate line for a night that took work on). Visual V1 Blocking fixed: isOpenQuestionIn takes the night's taken items, so a question held by a running night is not counted in the Inbox, cards, Report or deck, shows no recommendation as its answer, and the Report says 'Nothing waiting for you' with the follow-up items marked 'Taken by a running night'. V2 Blocking fixed: the gate's button says 'Back to the report' when the deck was opened from a report (it returns there). V3 resolved by V1. V4 nits: the two-line Save button at 390 left as is (reads fine per design r3 D4); U+2011 hand-selection kept (Copy gives '-'). Evidence: .local/evidence/2026-09-28-save-gate/r7/.
 
 Review round 4 (04-*): code FINDINGS (M1 evidence only), design PASS, visual PASS. Dispositions: code M1 closed: the locked, unanswered Q2 with no option ticked is seen in .local/evidence/2026-09-28-design-gate-r4/deck2-360.png and the visual round-4 walk (j4-*). m1 fixed in f02fe39 (the running night's own question still counts). N1 and design D2 ('3 open' above taken items), design D4 / visual V1 (the deck counter counts held questions as done) and visual V2 ('Waiting for an agent' while an agent holds the items) deferred to TASK-40. Design D3 fixed in f02fe39 (the subtitle names 'N held by a running night').
+
+Review round 5 (05-code-reviewer.md): PASS. N1 (subtitle names only held, not settled, when both mix) to TASK-40; N2 (held rule in two places) no action; N3 done: main merged in without conflicts, npm run check 42 pass and npm run test:ui 1 pass on the integrated revision. Final: the deck ends on the gate with Save for the next agent; locked answers while a running night holds their item; evidence in .local/evidence/2026-09-28-save-gate/ and the reviewers' folders. Unverified: nothing beyond Windows locally; CI runs on Ubuntu after push.
 <!-- SECTION:NOTES:END -->
