@@ -147,5 +147,94 @@
       "sent": null
     }
   ],
-  "metrics": null
+  "metrics": {
+    "source": "claude-code",
+    "harness_version": "2.1.283",
+    "session_id": "d05d2575-8528-4b86-9570-aeb70eeb87b4",
+    "measured_at": "2026-09-28T09:29:59+03:00",
+    "duration_min": {
+      "total": 76.99,
+      "model": null,
+      "tools": null
+    },
+    "models": {
+      "claude-opus-5-5": {
+        "tokens": {
+          "input": 958,
+          "output": 144015,
+          "reasoning": 28153,
+          "cache_read": 49214662,
+          "cache_write": 1132293
+        },
+        "cost_usd": 19.31
+      }
+    },
+    "cost_usd": 19.31,
+    "sub_agents": [
+      {
+        "type": "code-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Code review TASK-24 round 2"
+      },
+      {
+        "type": "design-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Design review TASK-24 round 1"
+      },
+      {
+        "type": "visual-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Visual review TASK-24 round 1"
+      },
+      {
+        "type": "visual-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Visual review TASK-24 round 4"
+      },
+      {
+        "type": "code-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Code review TASK-24 round 4"
+      },
+      {
+        "type": "visual-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Visual review TASK-24 round 3"
+      },
+      {
+        "type": "design-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Design review TASK-24 round 4"
+      },
+      {
+        "type": "code-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Code review TASK-24 round 3"
+      },
+      {
+        "type": "design-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Design review TASK-24 round 3"
+      },
+      {
+        "type": "code-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Code review TASK-24 round 1"
+      },
+      {
+        "type": "visual-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Visual review TASK-24 round 2"
+      },
+      {
+        "type": "design-reviewer",
+        "model": "claude-opus-5-5",
+        "purpose": "Design review TASK-24 round 2"
+      }
+    ],
+    "lines": {
+      "added": null,
+      "removed": null
+    }
+  }
 }
