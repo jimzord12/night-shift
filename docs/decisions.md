@@ -396,3 +396,17 @@ Inbox, Next night and History. **Rejected:** more numbers on the home
 page (cost and duration totals stay in History, so the next step is not
 lost in a wall of figures).
 
+## D28  GitHub issues become tasks; the issue closes with the work (2026-09-28)
+
+Issues #4, #5 and #6 (feedback that `Adopter`s sent from the `Viewer`)
+sat open with no task, and a session reported feedback as awaiting the
+owner when the owner had already sent it as #5. **Why:** sessions read
+only the board, so nothing ever looked at the issues. **Chosen:** every
+day session, after the briefing and before new work, turns each open
+issue without the `tracked` label into a task, comments "Tracked as
+TASK-<id>" and adds the label; the commit that brings the work to
+`main` says `Closes #<n>`. Intake and closing are routine; the owner
+still decides priority. A `Night` skips intake: it works only its
+`Plan`, and the next day session takes the issues in. **Rejected:**
+issue statuses or labels such as "pending" or "read" (they drift from
+the board, which already shows progress).

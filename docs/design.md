@@ -176,7 +176,9 @@ machine that ran the night. A merge conflict inside `history/` is resolved
 by taking either side; the next start rewrites the file from local state.
 Every history commit is `git commit --only -- .night-shift/history`, so the
 developer's staged or unfinished work is never swept into it; git hooks run
-as usual.
+as usual. When a hook refuses it, the close message keeps the last lines of
+what the hook printed, and the full output is saved beside the night as
+`history-commit.log`.
 
 ### plan.json
 
