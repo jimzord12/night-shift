@@ -75,6 +75,7 @@ GitHub issue without the `tracked` label into a task
 | `src/store.ts` | The files on disk and their validation; the install folder (registry, Viewer state) |
 | `src/repo.ts` | Git and `.gitignore`: the only places Night Shift touches outside `.night-shift/` |
 | `src/install.ts`, `src/github.ts` | `night-shift install`; feedback to GitHub issues |
+| `src/notify.ts` | A desktop notification when a night ends (off until `night-shift notify on`) |
 | `src/files.ts`, `src/version.ts` | Media types for evidence files; the version string (release tag or dev commit) |
 | `src/server.ts` | The `Viewer`'s JSON API plus the built web app; Host check, media rules |
 | `src/types.ts` | Shapes shared by the tool and the web app |
@@ -82,7 +83,7 @@ GitHub issue without the `tracked` label into a task
 | `examples/sample-repo/` | Sample night files from a real trial, for the `Viewer` and reviewers; serve a copy |
 | `.night-shift/` | This repository's own nights (it is its own `Adopter`, D25); only `history/` is committed |
 | `.claude/skills/`, `.claude/settings.json` | Installed by `night-shift install .` from a release: the skills' copies and the `Meter` hook. Edit `skills/`, never these copies |
-| `tests/` | `node --test` suites against real files, git and the server |
+| `tests/` | `node --test` suites against real files, git and the server; `tests/ui/` drives the built Viewer in Chromium |
 | `scripts/release.ts` | Tag releases and the `night-shift` launcher |
 
 ## Commands
@@ -90,6 +91,7 @@ GitHub issue without the `tracked` label into a task
 ```sh
 npm ci                                  # once
 npm run check                           # typecheck + tests + web build: the gate for every commit and release
+npm run test:ui                         # the Viewer in a real browser (Playwright; npx playwright install chromium once)
 node src/cli.ts --help                  # every night-shift command
 NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts install <copy>  # a git-initialised copy of examples/sample-repo
 NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts view --port 4799   # the Viewer on sample data, never your real install

@@ -12,6 +12,8 @@ import { openItems, resolveItem } from './followup.ts';
 import { allow, install } from './install.ts';
 import { repoRoot } from './repo.ts';
 import { versionString } from './version.ts';
+import { notifyNightEnded, raise, readNotify, writeNotify } from './notify.ts';
+import type { Night } from './types.ts';
 import type { AskInput, RecordInput } from './night.ts';
 
 const USAGE = `night-shift — unattended agent work, read in the morning
@@ -32,6 +34,8 @@ For the developer:
   night-shift view [--port 4747] [--open]     the Viewer: every registered repository's nights
   night-shift forget <repo id or path>        take a repository off the Viewer (its files stay)
   night-shift check [repo]                    validate a repository's night and follow-up files
+  night-shift notify [on|off|test] [--port N] [--command "<cmd>"]
+                                              a desktop notification when a night ends (off until turned on)
   night-shift --version
 
 For the harness:
@@ -47,7 +51,7 @@ interface Parsed {
   flags: Record<string, string | true>;
 }
 
-const VALUED = new Set(['port', 'file', 'json', 'summary', 'status', 'reason']);
+const VALUED = new Set(['port', 'file', 'json', 'summary', 'status', 'reason', 'command']);
 
 function parse(argv: string[]): Parsed {
   const args: string[] = [];
@@ -165,7 +169,7 @@ function commandFollowUp(p: Parsed, repo: string): number {
 }
 
 // The session-end hook must never disturb the harness: it reports problems to a log and exits 0.
-function commandMeter(): number {
+async function commandMeter(): Promise<number> {
   let hook: { session_id?: string; transcript_path?: string; cwd?: string } = {};
   try {
     if (!process.stdin.isTTY) hook = parseJson(fs.readFileSync(0, 'utf8') || '{}') as typeof hook;
@@ -174,7 +178,12 @@ function commandMeter(): number {
   }
   try {
     const repo = repoRoot(hook.cwd ?? '.');
-    const done = hook.session_id ? onSessionEnd(repo, hook.session_id, hook.transcript_path ?? null) : recover(repo);
+    const closed: Night[] = [];
+    const done = hook.session_id ? onSessionEnd(repo, hook.session_id, hook.transcript_path ?? null, new Date(), (n) => closed.push(n)) : recover(repo);
+    for (const n of closed) {
+      const note = await notifyNightEnded(repo, n).catch((e: Error) => `the notification failed: ${e.message}`);
+      if (note) done.push(note);
+    }
     if (done.length) console.log(`night-shift: ${done.join('; ')}`);
   } catch (error) {
     console.error(`night-shift meter: ${(error as Error).message}`);
@@ -218,13 +227,18 @@ async function main(argv: string[]): Promise<number> {
     case 'close': {
       const summary = typeof p.flags.summary === 'string' ? p.flags.summary : undefined;
       if (summary === undefined) throw new UsageError('night-shift close --summary "<one or two sentences>"');
-      console.log(close(repo(), summary).message);
+      const r = close(repo(), summary);
+      console.log(r.message);
+      const note = await notifyNightEnded(repo(), r.night).catch((e: Error) => `The notification failed: ${e.message}`);
+      if (note) console.log(note);
       return 0;
     }
     case 'follow-up':
       return commandFollowUp(p, repo());
     case 'meter':
       return commandMeter();
+    case 'notify':
+      return commandNotify(p);
     case 'install': {
       const target = repoRoot(p.args[0] ?? '.');
       console.log(install(target).join('\n'));
@@ -244,6 +258,30 @@ async function main(argv: string[]): Promise<number> {
     default:
       throw new UsageError(`unknown command "${p.command}"; run night-shift --help`);
   }
+}
+
+// Desktop notifications are the developer's choice per machine: on, off, or a test one now.
+async function commandNotify(p: Parsed): Promise<number> {
+  const s = readNotify();
+  const sub = p.args[0];
+  if (p.flags.port !== undefined) {
+    const port = Number(p.flags.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new UsageError(`--port must be a number from 1 to 65535, got ${String(p.flags.port)}`);
+    s.port = port;
+  }
+  if (typeof p.flags.command === 'string') {
+    if (p.flags.command.trim()) s.command = p.flags.command;
+    else delete s.command;
+  }
+  if (sub === 'on' || sub === 'off') s.enabled = sub === 'on';
+  else if (sub === 'test') {
+    const result = await raise(s, 'Night Shift: a test notification', 'A click opens the Viewer', `http://127.0.0.1:${s.port}/`);
+    console.log(result);
+    return result.startsWith('Notified') ? 0 : 1;
+  } else if (sub !== undefined) throw new UsageError(`unknown notify command "${sub}"; use on, off or test`);
+  if (sub !== undefined || p.flags.port !== undefined || p.flags.command !== undefined) writeNotify(s);
+  console.log(`Notifications are ${s.enabled ? 'on' : 'off'}: when a night ends, ${s.enabled ? 'a notification links to its report' : 'nothing is raised'} (Viewer port ${s.port}${s.command ? `, command: ${s.command}` : ''}).`);
+  return 0;
 }
 
 // Kept for `night-shift check`: a follow-up file's own schema problems.

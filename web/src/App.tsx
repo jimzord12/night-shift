@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
-import { getNextNight, getNight, getOverview, markRead } from './api.ts';
+import { getNextNight, getNight, getOverview, getProposals, markRead } from './api.ts';
 import { Inbox } from './Inbox.tsx';
 import { ReportPage } from './Report.tsx';
 import { Starfield } from './Starfield.tsx';
@@ -128,6 +128,8 @@ export function App() {
     }
   }, [putDetail]);
 
+  // Reload also asks GitHub again for the proposals count.
+  const [reloads, setReloads] = useState(0);
   const load = useCallback(async () => {
     setLoading(true);
     // Loads started before this point are dropped, and details and failures are forgotten now, so a
@@ -209,8 +211,8 @@ export function App() {
     <div className="sky min-h-screen">
       <Starfield />
       <div className="relative mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-        <header className="flex flex-wrap items-center gap-3 py-4 sm:gap-4 sm:py-5">
-          <div className="flex items-center gap-3">
+        <header className="flex flex-wrap items-center gap-x-2 gap-y-3 py-4 sm:gap-4 sm:py-5">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="grid size-10 place-items-center rounded-full bg-moon/15 text-moon shadow-[0_0_24px_#f5d76e55]">
               <Icon name="moon" className="size-5" strokeWidth={2.2} />
             </span>
@@ -228,12 +230,13 @@ export function App() {
               </a>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
+          <div className="ml-auto flex items-center gap-1.5 text-xs text-white/40 sm:gap-3">
             <span className="hidden sm:inline">{overview?.version}</span>
+            <Proposals reloads={reloads} />
             <button onClick={() => explain()} className="glass grid size-8 place-items-center rounded-full text-sm font-bold text-white/70 hover:text-white" title="How Night Shift works" aria-label="How Night Shift works">
               ?
             </button>
-            <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
+            <button onClick={() => { setReloads((r) => r + 1); void load(); }} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -289,4 +292,32 @@ export function App() {
 
 function Banner({ children }: { children: ReactNode }) {
   return <div className="mb-4 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">{children}</div>;
+}
+
+// Open proposals on the Night Shift Repo (TASK-35): feedback sent from any repository that nobody
+// has closed yet. Shows only when gh answered and at least one is open; links to the list.
+function Proposals({ reloads }: { reloads: number }) {
+  const [p, setP] = useState<{ open: number; url: string } | null>(null);
+  useEffect(() => {
+    getProposals(reloads > 0).then(setP, () => setP(null));
+  }, [reloads]);
+  if (!p?.open) return null;
+  const what = `${p.open} open proposal${p.open === 1 ? '' : 's'} on GitHub (the Night Shift Repo)`;
+  // The GitHub mark says where it goes at every width; the word and an outward arrow join from sm up.
+  return (
+    <a href={p.url} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-white/75 hover:text-white sm:px-3" title={what} aria-label={what}>
+      <GitHubMark />
+      <span className="font-semibold">{p.open}</span>
+      <span className="hidden sm:inline">proposal{p.open === 1 ? '' : 's'}</span>
+      <Icon name="external" className="hidden size-3.5 text-white/50 sm:block" />
+    </a>
+  );
+}
+
+function GitHubMark() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className="size-4" aria-hidden>
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  );
 }
