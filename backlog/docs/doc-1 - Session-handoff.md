@@ -3,7 +3,7 @@ id: doc-1
 title: Session handoff
 type: other
 created_date: '2026-09-25 18:18'
-updated_date: '2026-09-28 22:30'
+updated_date: '2026-09-28 23:59'
 ---
 # session-handoff
 
@@ -11,34 +11,33 @@ Read this first on every fresh session, then derive the state from the tasks
 (`backlog task list --plain`), Git and evidence; they win when they disagree
 with this document. Rewritten in place at the end of every session.
 
-**Written:** 2026-09-28, end of the long day session: v16 released and current
+**Written:** 2026-09-28, end of the long day session: v18 released and current
 
 ## Where things stand
-- v16 current (a601390) and switched to; `night-shift install .` re-run
-  (from the `ci` worktree, which was then taken off the Viewer with
-  `night-shift forget`). A running `night-shift view` shows v16 after a
-  restart. CHANGELOG.md lists what v16 carries (file shapes @2, let's
-  discuss, the save gate, step track, keyboard morning, D29, D30).
-- Done this session: TASK-11, 27, 28, 29, 30, 31, 32, 34, 35, 39, 41, 44,
-  45, 47. Review reports in docs/work/TASK-<n>/reviews. TASK-34 took six
-  rounds (the owner extended the cap to 8).
+- v18 current (4fb504d) and switched to; `night-shift install .` re-run
+  from the `ci` worktree (then `night-shift forget`). A running
+  `night-shift view` needs a restart. v17 (a88f16c) brought file shapes
+  @3 and agent decisions (TASK-46, D31); v16 cannot read @3 files, so
+  every other repository needs `night-shift install .` before its first
+  night on v17+.
+- Done this session: TASK-11, 27-32, 34, 35, 39, 41, 44-48. Review
+  reports in docs/work/TASK-<n>/reviews. TASK-46 took six context
+  rounds (the owner allowed one past the cap); TASK-48 two.
+- D31: an agent records each decision taken on the owner's behalf with
+  `night-shift decide`; it asks only when the task cannot go on without
+  it or a wrong choice would be costly to undo. The day skill asks.
 - TASK-33 (desktop notification) is Ready: it waits for the owner to run
   `night-shift notify test` and click the toast.
-- TASK-46 (the decisions an agent took on the owner's behalf, first-class)
-  needs a design decision first: where the owner marks a decision seen or
-  disagrees, and whether unseen decisions keep a night in the owner's
-  turn. Bring the owner the choices.
-- TASK-40 collects the deferred Viewer polish from every review this
-  session (focus leaving the deck, Esc twice drops a note, the focus ring
-  on cream buttons, and more).
+- TASK-40 collects deferred Viewer polish (now also: the gate's Saved
+  line below the fold with long cards).
 - Open GitHub issue #3 (multi-select) is tracked as TASK-36.
 
 ## Next, in order
-1. The owner's look at v16 on real nights; fix what they find first.
+1. The owner's look at v18 on real nights (the decision cards, the gate);
+   fix what they find first.
 2. TASK-33: the owner's notification test.
-3. TASK-46: bring the owner the design choices.
-4. The owner decides TASK-15, TASK-21, TASK-22, TASK-36.
-5. TASK-40 polish, in small batches.
+3. The owner decides TASK-15, TASK-21, TASK-22, TASK-36.
+4. TASK-40 polish, in small batches.
 
 ## Watch out
 - The public repository names no real project: check notes and reports
