@@ -106,6 +106,7 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
       <div className="mt-8 text-center">
         <button onClick={onClose} className={`rounded-full px-6 py-2.5 font-semibold ${clear ? 'bg-[var(--accent)] text-white shadow-lg' : 'glass text-white/80'}`}>
           {toSave.length ? `Not now, back to the ${back}` : `Back to the ${back}`}
+          {clear && <kbd className="ml-2 hidden !border-white/40 sm:inline">Enter</kbd>}
         </button>
         {!clear && !toSave.length && <p className="mt-2 hidden text-xs text-white/40 sm:block">Esc closes</p>}
       </div>
@@ -172,6 +173,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
       <div className="mt-4 flex items-center gap-3">
         <button ref={button} onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta inline-flex flex-1 items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:flex-none">
           <Icon name="forward" className="size-4" strokeWidth={2.6} /> {busy ? 'Saving…' : 'Save for the next agent'}
+          {first && <kbd className="ml-1 hidden !border-white/40 sm:inline">S</kbd>}
         </button>
         <HelpDot step="save" term="Save for the next agent" />
       </div>

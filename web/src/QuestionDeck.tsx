@@ -174,6 +174,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           e.preventDefault();
           if (gateState(deckNights).clear) onClose();
         }
+        if (e.key.toLowerCase() === 's' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          document.querySelector<HTMLButtonElement>('[data-gate-save]:not(:disabled)')?.click();
+        }
         return;
       }
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
@@ -185,12 +189,13 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       if (typing || !qRef.current || !draft) return;
       if (e.key === 'ArrowRight') return go(index + 1);
       if (e.key === 'ArrowLeft') return go(index - 1);
-      if (e.key.toLowerCase() === 'd') return advance(savedKeys);
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.toLowerCase() === 'n') return advance(savedKeys);
       if (lock) return;
       const n = Number(e.key);
       const pick = qRef.current.options[n - 1];
       if (n >= 1 && pick) setDraft({ ...draft, answer: pick.id });
-      if (e.key === '0') {
+      if (e.key.toLowerCase() === 'd') {
         // The key picks the choice; it must not also land in the note that opens focused.
         e.preventDefault();
         setDraft({ ...draft, answer: DISCUSS });
@@ -319,7 +324,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                     <span className="block text-sm text-white/55">Say what is unclear in a note; the next agent talks it through with you before any work on it.</span>
                   </span>
                   {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
-                  {!lock && <kbd className="hidden text-white/40 sm:inline">0</kbd>}
+                  {!lock && <kbd className="hidden text-white/40 sm:inline">D</kbd>}
                 </button>
               );
             })()}
@@ -339,7 +344,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               {lock ? (
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
+                <>
                 <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
+                  <p className="mt-1 hidden text-xs text-white/40 sm:block"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> saves · <kbd>Esc</kbd> leaves the note</p>
+                </>
               ) : (
                 <button onClick={() => { setShowNote(true); setFocusNote(true); }} className="text-sm text-white/50 hover:text-white">+ add a note</button>
               )}
@@ -351,11 +359,11 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{answerLabel({ ...q, answer: draft.answer })}</span></div>}
               <div className="flex items-center gap-2">
               <div className="hidden gap-2 sm:flex">
-                <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
-                <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
+                <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous" title="Previous question (←)"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
+                <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next" title="Next question (→)"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
               </div>
               <div className="flex-1" />
-              <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">D</kbd>}</button>
+              <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">N</kbd>}</button>
               {!lock && (
                 <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-5 py-2.5 font-semibold whitespace-nowrap text-white sm:px-6 shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
                   {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">Enter</kbd>
