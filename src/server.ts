@@ -240,14 +240,21 @@ export function createApp({ version, port }: AppOptions): Hono {
   // so the Inbox never waits for GitHub.
   let proposals: { at: number; value: Proposals | null } | null = null;
   let asking: Promise<Proposals | null> | null = null;
+  // Bumped when a proposal is sent: an ask started before it does not keep the old count.
+  let generation = 0;
   app.get('/api/proposals', async (c) => {
     const stale = !proposals || Date.now() - proposals.at > 5 * 60_000 || c.req.query('fresh') !== undefined;
     if (stale && !asking) {
-      asking = openProposals().then((value) => {
-        proposals = { at: Date.now(), value };
-        asking = null;
-        return value;
-      });
+      const gen = generation;
+      asking = openProposals()
+        .catch(() => null)
+        .then((value) => {
+          if (gen === generation) proposals = { at: Date.now(), value };
+          return value;
+        })
+        .finally(() => {
+          asking = null;
+        });
     }
     return c.json(asking ? await asking : (proposals?.value ?? null));
   });
@@ -279,7 +286,10 @@ export function createApp({ version, port }: AppOptions): Hono {
         errors.push(`${f.id}: ${(error as Error).message}`);
       }
     }
-    if (entries.some((f) => f.sent?.via === 'gh')) proposals = null;
+    if (entries.some((f) => f.sent?.via === 'gh')) {
+      proposals = null;
+      generation += 1;
+    }
     const fresh = loadNight(repo.path, n.night).night;
     for (const f of entries) {
       const target = fresh.feedback.find((x) => x.id === f.id);

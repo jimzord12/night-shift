@@ -319,13 +319,14 @@ test('a foreign Host is refused when the port is known', async () => {
 
 // A stand-in for the GitHub CLI: a real process that answers only the exact query for open
 // proposals on the Night Shift Repo, and fails like gh does when logged out.
-function fakeGh(issues: number | 'logged-out'): string {
+function fakeGh(issues: number | 'logged-out', delayMs = 0): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-gh-'));
   const script = path.join(dir, 'gh.mjs');
   const want = ['issue', 'list', '--repo', 'jimzord12/night-shift', '--label', 'proposal', '--state', 'open'];
   fs.writeFileSync(
     script,
     `const a = process.argv.slice(2);\n` +
+      `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${delayMs});\n` +
       `if (${issues === 'logged-out'}) process.exit(4);\n` +
       `const want = ${JSON.stringify(want)};\n` +
       `if (want.every((w, i) => a[i] === w) && a.includes('--json')) { console.log(JSON.stringify(Array.from({ length: ${issues === 'logged-out' ? 0 : issues} }, (_, i) => ({ number: i + 1 })))); process.exit(0); }\n` +
@@ -333,6 +334,29 @@ function fakeGh(issues: number | 'logged-out'): string {
   );
   return script;
 }
+
+test('proposals: GitHub never holds the Inbox; the count is kept five minutes, and Reload asks again', async () => {
+  const before = process.env.NIGHT_SHIFT_GH;
+  try {
+    process.env.NIGHT_SHIFT_GH = fakeGh(2, 800);
+    const app = createApp({ version: 'test' });
+    const order: string[] = [];
+    const count = Promise.resolve(app.request('/api/proposals')).then(async (r) => {
+      order.push('proposals');
+      return ((await r.json()) as { open: number }).open;
+    });
+    await Promise.resolve(app.request('/api/overview')).then(() => order.push('overview'));
+    assert.equal(await count, 2);
+    assert.deepEqual(order, ['overview', 'proposals']);
+    // One more proposal on GitHub: the plain ask keeps the cached count, Reload's fresh ask sees it.
+    process.env.NIGHT_SHIFT_GH = fakeGh(3);
+    assert.equal(((await (await app.request('/api/proposals')).json()) as { open: number }).open, 2);
+    assert.equal(((await (await app.request('/api/proposals?fresh')).json()) as { open: number }).open, 3);
+  } finally {
+    if (before === undefined) delete process.env.NIGHT_SHIFT_GH;
+    else process.env.NIGHT_SHIFT_GH = before;
+  }
+});
 
 test('proposals: the count of open proposal issues with a link, and nothing when gh is missing or logged out', async () => {
   const before = process.env.NIGHT_SHIFT_GH;

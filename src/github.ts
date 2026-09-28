@@ -23,7 +23,12 @@ function gh(args: string[]) {
 function ghAsync(args: string[]): Promise<string | null> {
   const [bin, all] = ghCommand(args);
   return new Promise((resolve) => {
-    execFile(bin, all, { encoding: 'utf8', windowsHide: true, timeout: 30_000 }, (error, stdout) => resolve(error ? null : stdout));
+    try {
+      execFile(bin, all, { encoding: 'utf8', windowsHide: true, timeout: 30_000 }, (error, stdout) => resolve(error ? null : stdout));
+    } catch {
+      // Some commands cannot be spawned at all (a .cmd wrapper on Windows): the same as no gh.
+      resolve(null);
+    }
   });
 }
 
