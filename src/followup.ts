@@ -30,13 +30,14 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
     } else if (q) {
       add({ ...base, kind: 'waiting', question: q.ask });
     } else {
-      // A decision the task carried keeps the developer's answer (the first, when it carried several).
-      const prior = refsOf(t).map((r) => earlier(r)).find((i) => i?.kind === 'decision');
+      // Every decision the task carried keeps the developer's answer: one item each, the work left on
+      // the first.
+      const priors = refsOf(t).map((r) => earlier(r)).filter((i): i is FollowUpItem => i?.kind === 'decision');
       const left = t.checks.filter((c) => !c.met).map((c) => (c.note ? `${c.done_when}: ${c.note}` : c.done_when));
       if (t.outcome === 'failed' && t.why) left.unshift(`failed: ${t.why}`);
       if (t.outcome === 'not_started' || (!left.length && t.outcome !== 'partial')) left.push('not started');
-      if (prior?.kind === 'decision') add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), left });
-      else add({ ...base, kind: 'unfinished', left });
+      if (!priors.length) add({ ...base, kind: 'unfinished', left });
+      priors.forEach((prior, i) => add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...(i === 0 ? { left } : {}) }));
     }
   }
   for (const q of n.questions) {
@@ -96,6 +97,8 @@ export function followAnswer(repo: string, night: string, q: Question): FollowUp
   delete item.decision;
   delete item.decision_label;
   delete item.owner_note;
+  // The item may now hold a version 2 kind: an older release refuses the file rather than misread it.
+  f.schema = FOLLOW_UP_SCHEMA;
   if (q.answer === null) item.kind = 'waiting';
   else if (q.answer === DISCUSS) {
     item.kind = 'discuss';

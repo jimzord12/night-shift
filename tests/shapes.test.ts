@@ -117,6 +117,38 @@ test("let's discuss: needs a note, becomes a discuss item no night acts on, and 
   assert.equal(ownerState(n), 'needs_answers');
   const d = (await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail;
   assert.equal(d.night.schema, 'night-shift/night@2');
+  // A discuss answer is a valid night file.
+  assert.deepEqual(readNight(repo, id).problems, []);
+});
+
+test("let's discuss on a night still running: the file stays valid and the agent can close it", async () => {
+  const repo = gitRepo('live-discuss');
+  const id = start(repo, plan(TASKS.slice(0, 1)), session('live', process.pid), new Date('2026-09-26T23:10:00')).night.night;
+  ask(repo, { task: 'T1', ask: 'Which layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  const ref = registerRepo(repo);
+  const res = await createApp({ version: 'test' }).request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'discuss', note: 'Which one did the client see?', baseHash: loadNight(repo, id).hash }) });
+  assert.equal(res.status, 200);
+  assert.deepEqual(readNight(repo, id).problems, []);
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  assert.equal(close(repo, 'The layout waits for a talk.').night.status, 'complete');
+});
+
+test('a partial task that followed two decisions carries both to the next agent', async () => {
+  const { repo, id, ref } = withFollowUp('carry');
+  const app = createApp({ version: 'test' });
+  for (const [q, a] of [['Q1', 'b'], ['Q2', 'a']]) {
+    await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: q, answer: a, baseHash: loadNight(repo, id).hash }) });
+  }
+  createFollowUp(repo, loadNight(repo, id).night);
+  const s = start(repo, plan([{ ...TASKS[0], follow_up: [`${id}/A1`, `${id}/A2`] }]), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
+  assert.equal(fs.readFileSync(path.join(repo, '.night-shift', 'nights', s.night.night, 'plan.json'), 'utf8').includes('"night-shift/plan@2"'), true);
+  record(repo, { task: 'T1', outcome: 'partial', checks: [true, { met: false, note: 'the download is left' }] });
+  close(repo, 'Half the invoices.');
+  const next = createFollowUp(repo, loadNight(repo, s.night.night).night);
+  assert.deepEqual(next.items.map((i) => [i.task, i.kind, i.decision_label, i.left ?? null]), [
+    ['T1', 'decision', 'Detailed', ['Screenshot attached: the download is left']],
+    ['T1', 'decision', 'Cookie', null],
+  ]);
 });
 
 test('version 1 files still read: a night, a plan and a follow-up written before version 2', () => {
@@ -158,6 +190,14 @@ test("a question's files: served from the repository and shown in the file manag
   fs.rmSync(path.join(repo, 'concepts', 'a.svg'));
   assert.equal((await app.request(`${base}/0/reveal`, { method: 'POST' })).status, 404);
   assert.equal(shown.length, 1);
+  // A night file edited by hand to point outside the repository is served nothing and shows nothing.
+  fs.writeFileSync(path.join(path.dirname(repo), 'secret.txt'), 'not yours');
+  const n = loadNight(repo, night).night;
+  n.questions[0].files = [{ path: '../secret.txt' }];
+  saveNight(repo, n);
+  assert.equal((await app.request(`${base}/0`)).status, 404);
+  assert.equal((await app.request(`${base}/0/reveal`, { method: 'POST' })).status, 404);
+  assert.equal(shown.length, 1);
 });
 
 test("the day skill raises discuss items first; the night skill leaves them out and keeps the summary to one sentence", () => {
@@ -188,4 +228,10 @@ test('an answer saves when only other parts of the night changed since it was op
   const stale = await post({ question: 'Q1', answer: 'a', baseHash: seen.hash, was: { answer: null, note: null } });
   assert.equal(stale.status, 409);
   assert.equal(loadNight(repo, id).night.questions[0].answer, 'b');
+  // Same answer seen, but its note changed meanwhile: a conflict too.
+  const noted = loadNight(repo, id);
+  assert.equal((await post({ question: 'Q1', answer: 'b', note: 'from tab one', baseHash: noted.hash, was: { answer: 'b', note: null } })).status, 200);
+  const stillSeen = await post({ question: 'Q1', answer: 'a', baseHash: noted.hash, was: { answer: 'b', note: null } });
+  assert.equal(stillSeen.status, 409);
+  assert.deepEqual([loadNight(repo, id).night.questions[0].answer, loadNight(repo, id).night.questions[0].note], ['b', 'from tab one']);
 });

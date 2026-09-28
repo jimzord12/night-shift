@@ -16,13 +16,13 @@ name what v7 builds.
 | `Lead` | The agent in the `Owner`'s session that runs the work and briefs subagents (`Reviewer`s, idea agents) | docs/practices/review.md, docs/practices/idea-loop.md | 2026-09-25; redefined 2026-09-26 |
 | `Reviewer` | A fresh agent that reviews another agent's change | docs/practices/review.md, `.claude/agents/` | 2026-09-25 |
 | `Night` | One unattended agent session, whenever it runs | a night id such as `2026-09-26-a` | 2026-09-26, owner |
-| `Plan` | The agent's promise at the start of a `Night`: the tasks and what "done" means for each | `.night-shift/nights/<night id>/plan.json`, schema `night-shift/plan@1` | 2026-09-26, owner |
-| `Night file` | The single record of one `Night`: the `Plan`'s tasks with their `Outcome`s, `Question`s, `Feedback`, metrics | `night.json`, schema `night-shift/night@1`; copies in `.night-shift/history/` | 2026-09-26, owner |
+| `Plan` | The agent's promise at the start of a `Night`: the tasks and what "done" means for each | `.night-shift/nights/<night id>/plan.json`, schema `night-shift/plan@2` (`@1` still read) | 2026-09-26, owner |
+| `Night file` | The single record of one `Night`: the `Plan`'s tasks with their `Outcome`s, `Question`s, `Feedback`, metrics | `night.json`, schema `night-shift/night@2` (`@1` still read); copies in `.night-shift/history/` | 2026-09-26, owner |
 | `Outcome` | One of six values a task ends a `Night` with: `done`, `partial`, `blocked`, `failed`, `not_started`, `skipped` | `tasks[].outcome` in the `Night file` | 2026-09-25; redefined 2026-09-26, owner |
 | `Block` | One item of the fixed vocabulary for evidence and notes in a `Night file`: `image`, `compare`, `video`, `pdf`, `link`, `command`, `note` | `type` of an `evidence[]` entry | 2026-09-26, owner |
 | `Question` | An entry in the `Night file` that the `Owner` answers in the `Viewer` | `questions[]` in the `Night file` | 2026-09-25; redefined 2026-09-26, owner |
 | `Feedback` | Friction with Night Shift an agent logs in the `Night file`; the `Owner` may send it to GitHub as an issue labelled `proposal` | `feedback[]` in the `Night file` | 2026-09-26, owner |
-| `Follow-up file` | What the `Owner` hands to the next agent: unfinished tasks plus the `Owner`'s decisions | `.night-shift/follow-ups/<night id>.json`, schema `night-shift/follow-up@1` | 2026-09-26, owner |
+| `Follow-up file` | What the `Owner` hands to the next agent: unfinished tasks plus the `Owner`'s decisions | `.night-shift/follow-ups/<night id>.json`, schema `night-shift/follow-up@2` (`@1` still read) | 2026-09-26, owner |
 | `Viewer` | The local app that shows every `Night` of every registered repository | `web/` | 2026-09-26, owner |
 | `Night Report` | The `Viewer`'s page for one `Night`, and its card in the `Inbox`: what needs the `Owner` first, then what happened; the page's title in the `Viewer`, while `Night` stays the term for the session (D24) | `web/src/Report.tsx`, `NightCard` in `web/src/Inbox.tsx` | 2026-09-28, owner |
 | `Next night` | The `Viewer` tab listing, per repository, every open `Follow-up file` item the next `Night` there will pick up (D26) | `NextNightView` in `web/src/Views.tsx`, `GET /api/next-night` in `src/server.ts` | 2026-09-28, owner |

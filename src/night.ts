@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { Block, Check, Feedback, Night, Option, PlanInput, Question, QuestionFile, Session, Task } from './types.ts';
-import { BLOCK_TYPES, NIGHT_SCHEMA, OUTCOMES, countOutcomes, refsOf } from './types.ts';
+import { BLOCK_TYPES, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, refsOf } from './types.ts';
 import {
   StoreError,
   evidenceDir,
@@ -152,7 +152,7 @@ export function start(repo: string, planText: string, session: Session | null = 
 
   const id = nextNightId(repo, now);
   const startedAt = localIso(now);
-  writeJson(planFile(repo, id), { ...plan, night: id, started_at: startedAt });
+  writeJson(planFile(repo, id), { ...plan, schema: PLAN_SCHEMA, night: id, started_at: startedAt });
   const night: Night = {
     schema: NIGHT_SCHEMA,
     night: id,

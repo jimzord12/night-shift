@@ -5,7 +5,7 @@ status: Review
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 13:20'
+updated_date: '2026-09-28 13:28'
 labels:
   - viewer
   - skills
@@ -46,4 +46,6 @@ D24: the three file-shape changes (TASK-26 summary headline, TASK-29 discuss kin
 tests/ui/deck.test.ts (TASK-8) clicks through the deck; update it if this changes what it clicks.
 
 Built on feat/file-shapes with TASK-30, 39, 41, 44 (one versioned change: schemas @2, writers emit @2, @1 still read). Web: the deck offers I'm not sure, let's discuss (key 0), a note is required client and server side; the answer flows into a discuss follow-up item; a card whose follow-up only waits on a talk reads Needs answers with 'Discuss: work on the follow-up'. Evidence: .local/evidence/2026-09-28-shapes/{1440,390,r2-1440,r2-390} (log.txt: no note refused with the message, with a note saved as discuss; the plans card Needs answers after read).
+
+Review round 1 (docs/work/TASK-29/reviews/01-code-reviewer.md, covering TASK-29, 30, 39, 41, 44): code FINDINGS. Dispositions: B1 fixed (a discuss answer is valid in nightProblems; tests: no problems after the answer, and a running night with a discuss answer closes). M1 fixed (a carried task keeps one decision item per followed decision, the work left on the first; test with a partial outcome). m1 fixed: plan.json is stamped plan@2, and a follow-up takes @2 when an answer flows into it (a night@1 with a discuss answer is refused by an older release as a problem, not misread). m2 fixed: tests for a hand-edited path outside the repository (404, nothing shown) and for a note changed meanwhile (409). m3 fixed (cli, glossary, AGENTS.md name @2). N2 filed as a spike (cross-site POSTs). N1, N3, N4 no action.
 <!-- SECTION:NOTES:END -->
