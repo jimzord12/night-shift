@@ -128,16 +128,18 @@ export function App() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    // Loads started before this point are dropped, and failures are forgotten now, so a night that
+    // fails while the overview is on its way is not fetched again when it lands.
+    generation.current += 1;
+    inFlight.current = new Set();
+    setFailures(new Map());
     try {
       const o = await getOverview();
       setOverview(o);
       loadNext();
-      generation.current += 1;
-      inFlight.current = new Set();
       setDetails({});
       setSeen(new Set());
       setError(null);
-      setFailures(new Map());
       document.title = 'Night Shift';
     } catch (e) {
       setError((e as Error).message);
