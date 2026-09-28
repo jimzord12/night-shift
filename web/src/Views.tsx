@@ -71,8 +71,8 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
             <div className="space-y-3">
               {[...groups.entries()].map(([night, list]) => (
                 <div key={night} className="glass rounded-2xl p-4">
-                  <button onClick={() => onPick(repo.id, night)} className="mb-2 inline-flex items-center gap-1 text-left text-sm text-[color-mix(in_srgb,var(--accent)_70%,white)] hover:underline">
-                    From the {nightTitle(night)} <Icon name="right" className="size-3.5" />
+                  <button onClick={() => onPick(repo.id, night)} className="mb-2 block text-left text-sm text-[color-mix(in_srgb,var(--accent)_70%,white)] hover:underline">
+                    From the {nightTitle(night)} <Icon name="right" className="inline size-3.5 align-[-0.15em]" />
                   </button>
                   <ul className="space-y-3">
                     {list.map(({ ref, item }) => {

@@ -11,13 +11,14 @@ import { HistoryView, NextNightView, QuestionsView, TrendsView } from './Views.t
 import { Icon } from './ui.tsx';
 
 type View = 'morning' | 'next' | 'questions' | 'history' | 'trends';
-// `short` is the label on a phone, where five tabs must fit in 360 pixels.
-const VIEWS: { id: View; label: string; short?: string }[] = [
+// `short` is the label on a phone, where the tabs must fit in 360 pixels; the empty Trends tab
+// (to be removed, D24) is left off a phone.
+const VIEWS: { id: View; label: string; short?: string; wide?: true }[] = [
   { id: 'morning', label: 'Morning' },
   { id: 'next', label: 'Next night', short: 'Next' },
   { id: 'questions', label: 'Questions' },
   { id: 'history', label: 'History' },
-  { id: 'trends', label: 'Trends' },
+  { id: 'trends', label: 'Trends', wide: true },
 ];
 
 const keyOf = (repo: string, night: string) => `${repo}/${night}`;
@@ -176,7 +177,7 @@ export function App() {
           </div>
           <nav className="glass order-last flex w-full justify-between overflow-x-auto rounded-full p-1 [scrollbar-width:none] sm:order-none sm:w-auto sm:justify-start">
             {VIEWS.map((v) => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`relative shrink-0 flex-auto rounded-full px-1.5 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
+              <button key={v.id} onClick={() => setView(v.id)} className={`relative shrink-0 flex-auto rounded-full px-1.5 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${v.wide ? 'hidden sm:block' : ''} ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
                 <span className="sm:hidden">{v.short ?? v.label}</span>
                 <span className="hidden sm:inline">{v.label}</span>
                 {v.id === 'next' && nextCount > 0 && <span className={`ml-1 rounded-full px-1.5 text-[13px] font-bold text-night-950 sm:ml-1.5 ${nextWaits ? 'bg-eyes' : 'bg-agent'}`}>{nextCount}</span>}
