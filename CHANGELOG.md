@@ -3,6 +3,47 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v16 (a601390), 2026-09-28
+
+- File shapes version 2 (`night-shift/plan@2`, `night@2`, `follow-up@2`;
+  version 1 files are still read). An older release refuses a version 2
+  file rather than misread it; run one release against a repository's
+  nights at a time (docs/design.md).
+- Viewer: a question can be answered "I'm not sure, let's discuss" with a
+  note (TASK-29). The follow-up carries it as a `discuss` item; no night
+  plans or skips it, nor the other open items of its task, until a day
+  session talks it through. The night is the developer's turn while only
+  such items are open, and the Report, Next night and the save
+  confirmation say so.
+- Questions can point at files in the repository: the deck lists them
+  with View, Open and Show in folder (TASK-30).
+- `night-shift close` refuses a summary longer than one headline
+  (200 characters) and says why (TASK-39).
+- A plan task may follow several follow-up items: `"follow_up"` takes a
+  list, and closing the night resolves each (TASK-41, GitHub #4).
+- The first answer after the Viewer opens no longer fails with a conflict
+  while the Meter measures the night (TASK-44).
+- Viewer: the question deck ends on "Save for the next agent", which
+  hands the answers and the unfinished work over in one step (TASK-28).
+- Viewer: every Night Report and card shows a six-step track and one Next
+  line (TASK-27); Start my morning says how long it takes (TASK-31); a
+  How it works view and small ? marks explain the loop (TASK-32); the
+  header shows open proposals on GitHub (TASK-35).
+- Viewer: a whole morning works from the keyboard: Enter keeps the
+  recommended answer, 1-9 pick, D picks let's discuss with the cursor in
+  the note (Ctrl+Enter saves), N leaves a question for now, arrows move,
+  S on the last screen saves for the next agent, Enter leaves; D, N and S
+  work in any keyboard layout (TASK-34).
+- A desktop notification when a night ends, off until
+  `night-shift notify on` (TASK-33).
+- The Viewer refuses changes that another site's page sends to it (D29,
+  TASK-45).
+- A question the developer has not answered stays open where it was
+  asked when a night works on its task without asking it again, word for
+  word; before, it was locked and heard by no one (D30, TASK-47). The
+  start-night-shift skill says so.
+- `npm run release` no longer prints Node's DEP0190 warning (TASK-11).
+
 ## v15 (25798b7), 2026-09-28
 
 - `night-shift close`: when a repository's pre-commit hook refuses the

@@ -6,7 +6,7 @@ title: >-
 status: Done
 assignee: []
 created_date: '2026-09-28 14:04'
-updated_date: '2026-09-28 18:56'
+updated_date: '2026-09-28 19:00'
 labels:
   - bug
 dependencies: []
@@ -30,7 +30,7 @@ Found in TASK-29 review round 3 (N1), present before that change. A follow-up it
 - [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
 - [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
 - [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes

@@ -37,11 +37,19 @@ which still awaits the developer.
 
 For each open follow-up item (`night-shift follow-up list`), check the real
 code: the developer may have fixed it by other means since. Then either
-plan it as a task (with `"follow_up": "<ref>"`) or list it under
+plan it as a task (with `"follow_up": "<ref>"`, or a list of refs when
+several items belong to one piece of work) or list it under
 `skipped_follow_ups` with a one-line reason. The tool refuses a plan that
 leaves an open item out. A `decision` item carries the developer's answer:
 follow it. A `waiting` item has no answer yet: plan it, and if it still
-needs the answer, ask again (step 4) and record the task `blocked`.
+needs the answer, ask it again word for word (step 4; the tool matches the
+wording) and record the task `blocked`; not asked again, it stays open
+where it was asked. Skip a `waiting` item only when the question no
+longer matters: a skipped question is closed. A
+`discuss` item is one the developer wants to talk through: leave it out
+of the plan entirely, together with the other open items of the same task
+(the tool refuses planning or skipping them); a day session raises them
+with the developer.
 
 ## 3. The plan: your promise
 
@@ -53,7 +61,7 @@ Write to `.night-shift/input.json`:
 
 ```json
 {
-  "schema": "night-shift/plan@1",
+  "schema": "night-shift/plan@2",
   "tasks": [
     { "id": "T1", "title": "Add PDF invoices to the checkout", "source": "backlog TASK-42",
       "done_when": ["Checkout offers an invoice download", "Invoice matches the order", "Screenshot attached"] },
@@ -137,7 +145,8 @@ Write to `.night-shift/input.json`:
     { "label": "Relax the cookie setting", "detail": "Quick; needs HTTPS everywhere" },
     { "label": "Route login through our own domain", "detail": "Safer; about half a day" }
   ],
-  "recommended": "a"
+  "recommended": "a",
+  "files": [{ "path": "docs/login-flow.png", "caption": "Where the loop starts" }]
 }
 ```
 
@@ -148,7 +157,11 @@ night-shift ask --file .night-shift/input.json
 ```
 
 A question has two to six options; they get ids `a`, `b`, `c`… in order.
-Every question has a recommendation.
+Every question has a recommendation. **A question about files carries
+them** in `files` (paths inside the repository), so the developer sees
+them instead of hunting for them; the Viewer offers Show in folder. The
+developer may also answer "let's discuss" with a note: that becomes a
+`discuss` item for a day session, never for a night.
 
 ## 5. Friction with Night Shift itself
 
@@ -175,11 +188,12 @@ public issue.
 
 ## 6. Close
 
-When every task has an outcome (or time runs out), close with one or two
-sentences the developer reads first:
+When every task has an outcome (or time runs out), close with **one
+sentence** the developer reads first, on one line, at most 200 characters
+(the tool refuses a longer one). The detail belongs in the tasks:
 
 ```bash
-night-shift close --summary "PDF invoices shipped. Safari login blocked on your decision."
+night-shift close --summary "PDF invoices shipped; Safari login waits for your decision."
 ```
 
 Then commit your own work as you normally would. The tool commits only the

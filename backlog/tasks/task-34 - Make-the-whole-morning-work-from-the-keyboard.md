@@ -4,7 +4,7 @@ title: Make the whole morning work from the keyboard
 status: Done
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 18:37'
+updated_date: '2026-09-28 19:00'
 labels:
   - viewer
 dependencies:
@@ -31,7 +31,7 @@ D24, laptop first. Enter accepts the recommended answer (exists for Save today),
 - [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
 - [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
 - [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes
