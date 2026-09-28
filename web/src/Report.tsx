@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
-import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import { OUTCOMES, countOutcomes, handedItem, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import { Saved } from './Gate.tsx';
@@ -138,6 +138,11 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
   const f = detail.follow_up;
   const openQ = n.questions.filter((q) => isOpenQuestionIn(q, f, detail.taken)).length;
   const answered = n.questions.filter((q) => q.answer !== null).length;
+  // Unanswered, and its item taken on by a night running now.
+  const held = n.questions.filter((q) => {
+    const h = q.answer === null ? handedItem(f, q) : undefined;
+    return !!h && !!detail.taken[`${n.night}/${h.id}`];
+  }).length;
   const save = n.status !== 'open' && needsHandOver(n, f);
   const pending = unfinishedTasks(n);
   const create = async () => {
@@ -163,7 +168,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
         </Ring>
         <div className="min-w-[12rem] flex-1">
           <div className="font-semibold">{openQ ? `${openQ} question${openQ === 1 ? '' : 's'} waiting for you` : answered < n.questions.length ? 'Nothing waiting for you' : 'Every question answered'}</div>
-          <div className="text-sm text-white/55">{answered} of {n.questions.length} answered{openQ && f ? '; your answer still reaches the next agent' : ''}{!openQ && answered < n.questions.length ? '; the rest are held by a running night or settled' : ''}</div>
+          <div className="text-sm text-white/55">{answered} of {n.questions.length} answered{openQ && f ? '; your answer still reaches the next agent' : ''}{!openQ && answered < n.questions.length ? (held ? `; ${held} held by a running night` : '; the rest were settled elsewhere') : ''}</div>
         </div>
         <button onClick={() => onOpenDeck()} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 font-semibold transition hover:brightness-110 ${openQ ? 'bg-[var(--accent)] text-white' : 'glass text-white/85'}`}>
           {openQ ? 'Start answering' : 'Review answers'} <Icon name="right" className="size-4" strokeWidth={2.6} />
