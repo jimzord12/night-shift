@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, ownerState, ownersTurn, readable } from '../../src/types.ts';
-import type { NightDetail, Overview } from '../../src/types.ts';
-import { getNight, getOverview, markRead } from './api.ts';
+import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
+import { getNextNight, getNight, getOverview, markRead } from './api.ts';
 import { Morning } from './Morning.tsx';
 import { Starfield } from './Starfield.tsx';
 import { QuestionDeck, deckKey } from './QuestionDeck.tsx';
 import type { DeckItem } from './QuestionDeck.tsx';
-import { HistoryView, QuestionsView, TrendsView } from './Views.tsx';
+import { HistoryView, NextNightView, QuestionsView, TrendsView } from './Views.tsx';
 import { Icon } from './ui.tsx';
 
-type View = 'morning' | 'questions' | 'history' | 'trends';
+type View = 'morning' | 'next' | 'questions' | 'history' | 'trends';
 const VIEWS: { id: View; label: string }[] = [
   { id: 'morning', label: 'Morning' },
+  { id: 'next', label: 'Next night' },
   { id: 'questions', label: 'Questions' },
   { id: 'history', label: 'History' },
   { id: 'trends', label: 'Trends' },
@@ -57,7 +58,17 @@ export function App() {
   const [view, setView] = useState<View>('morning');
   const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string } | null>(null);
 
-  const putDetail = useCallback((d: NightDetail) => setDetails((all) => ({ ...all, [keyOf(d.repo.id, d.night.night)]: d })), []);
+  // What the next night in each repository will pick up; fetched with the overview and whenever the
+  // tab opens.
+  const [next, setNext] = useState<NextNight | null>(null);
+  const loadNext = useCallback(() => {
+    getNextNight().then(setNext, (e: Error) => setError(e.message));
+  }, []);
+  // A saved answer or a new follow-up changes what the next night picks up.
+  const putDetail = useCallback((d: NightDetail) => {
+    setDetails((all) => ({ ...all, [keyOf(d.repo.id, d.night.night)]: d }));
+    if (d.follow_up) loadNext();
+  }, [loadNext]);
 
   // The night whose detail could not be loaded; its error shows until another night is picked.
   const [failedKey, setFailedKey] = useState<string | null>(null);
@@ -75,6 +86,7 @@ export function App() {
     try {
       const o = await getOverview();
       setOverview(o);
+      loadNext();
       setDetails({});
       setSeen(new Set());
       setError(null);
@@ -94,7 +106,7 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadNext]);
 
   useEffect(() => {
     void load();
@@ -123,6 +135,10 @@ export function App() {
     () => Object.values(details).flatMap((d) => d.night.questions.map((q) => ({ key: deckKey(d, q), detail: d, question: q }))),
     [details],
   );
+  useEffect(() => {
+    if (view === 'next') loadNext();
+  }, [view, loadNext]);
+  const nextCount = next?.repos.reduce((sum, r) => sum + r.items.length, 0) ?? 0;
   const openCount = overview?.nights.reduce((sum, n) => sum + n.questions_open, 0) ?? 0;
   const detail = selected ? (details[selected] ?? null) : null;
 
@@ -159,6 +175,7 @@ export function App() {
             {VIEWS.map((v) => (
               <button key={v.id} onClick={() => setView(v.id)} className={`relative flex-auto rounded-full px-2 py-1.5 text-[13px] whitespace-nowrap transition sm:flex-none sm:px-4 sm:text-sm ${view === v.id ? 'bg-[var(--accent)] font-semibold text-white shadow' : 'text-white/65 hover:text-white'}`}>
                 {v.label}
+                {v.id === 'next' && nextCount > 0 && <span className="ml-1 rounded-full bg-agent px-1.5 text-[13px] font-bold text-night-950 sm:ml-1.5">{nextCount}</span>}
                 {v.id === 'questions' && openCount > 0 && <span className="ml-1 rounded-full bg-eyes px-1.5 sm:ml-1.5 text-[13px] font-bold text-night-950">{openCount}</span>}
               </button>
             ))}
@@ -177,6 +194,7 @@ export function App() {
           <main className="mt-4">
             {view === 'morning' && <Morning overview={overview} inbox={inbox} detail={detail} selected={selected} picking={!!selected && !detail} failed={!!selected && selected === failedKey} onPick={pick} onHistory={() => setView('history')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(detail), startKey)} />}
             {view === 'questions' && <QuestionsView items={allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up) || overview.nights.some((n) => n.questions_open > 0 && keyOf(n.repo, n.id) === keyOf(i.detail.repo.id, i.detail.night.night)))} loading={loading} onOpen={(key) => openDeck(allItems, key)} />}
+            {view === 'next' && <NextNightView next={next} onPick={pick} />}
             {view === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
             {view === 'trends' && <TrendsView />}
           </main>

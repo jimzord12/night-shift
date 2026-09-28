@@ -391,11 +391,15 @@ from any folder. Screens:
    the next reload. A night file that cannot be read shows a red "Cannot
    be read" badge, is not counted as the developer's turn, and stays in
    Morning until it has been opened once; History keeps it.
-2. **Questions:** every open question across nights.
-3. **History:** one row per night: date, repository, its state, outcome
+2. **Next night:** every open follow-up item across repositories, per
+   repository and grouped by the night it came from, with its kind, the
+   decision, the owner's note and what was left; the tab shows the count
+   (D26).
+3. **Questions:** every open question across nights.
+4. **History:** one row per night: date, repository, its state, outcome
    counts, duration, cost and the grey stopped-early line; a row opens
    that night.
-4. **Trends:** empty until measurement is designed.
+5. **Trends:** empty until measurement is designed.
 
 Agreed on 2026-09-28 (D24); the one `Owner state` per night, coloured by
 whose turn it is, is built (TASK-24), the rest is not yet: Morning becomes

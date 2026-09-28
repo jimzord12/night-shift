@@ -9,7 +9,7 @@ import { loadNight, markRead, readFollowUp, registerRepo } from '../src/store.ts
 import { buildFollowUp, resolveItem } from '../src/followup.ts';
 import { issueBody, newIssueUrl } from '../src/github.ts';
 import { OWNER_STATE, OWNER_STATES, inMorning, needsHandOver, neverStarted, ownerState, ownersTurn, waitedDays } from '../src/types.ts';
-import type { NightDetail, Overview, OwnerState } from '../src/types.ts';
+import type { NextNight, NightDetail, Overview, OwnerState } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
 const json = { 'Content-Type': 'application/json' };
@@ -163,6 +163,32 @@ test('owner state: the first state that holds wins, and each state has one label
   assert.deepEqual(coloured('var(--color-agent)'), ['running', 'waiting'], 'blue: an agent must act');
   assert.deepEqual([coloured('var(--accent)'), coloured('var(--color-shipped)')], [['new'], ['done']]);
   assert.deepEqual(OWNER_STATES.filter(ownersTurn), ['new', 'needs_answers', 'ready_to_save']);
+});
+
+test('next night: every open follow-up item, per repository, until an agent settles it', async () => {
+  const { ref, id, repo } = closedNight('nextshop');
+  const app = createApp({ version: 'test' });
+  const mine = async () => ((await (await app.request('/api/next-night')).json()) as NextNight).repos.find((r) => r.repo.id === ref.id);
+  assert.equal(await mine(), undefined, 'nothing is scheduled before the follow-up is saved');
+
+  await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  let r = await mine();
+  assert.ok(r);
+  assert.deepEqual(r.items.map((i) => [i.ref, i.from_night, i.item.kind, i.item.title]), [[`${id}/A1`, id, 'waiting', 'Fix the login redirect loop']]);
+
+  // Answered after saving: the item carries the decision to the next night.
+  await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: loadNight(repo, id).hash }) });
+  r = await mine();
+  assert.deepEqual(r?.items.map((i) => [i.item.kind, i.item.decision_label]), [['decision', 'Own domain']]);
+
+  resolveItem(repo, `${id}/A1`, 'done', 'day', undefined);
+  assert.equal(await mine(), undefined, 'a settled item leaves the list');
+
+  // A follow-up file that cannot be read is reported, not dropped silently.
+  fs.writeFileSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`), '{ broken');
+  r = await mine();
+  assert.deepEqual([r?.items.length, r?.problems.length], [0, 1]);
+  assert.match(r?.problems[0] ?? '', new RegExp(`follow-up ${id}`));
 });
 
 test('answers: round trip, a stale write is refused, an unknown option is refused', async () => {

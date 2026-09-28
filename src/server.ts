@@ -10,8 +10,8 @@ import { contentType, insideDir } from './files.ts';
 import { createFollowUp, followAnswer } from './followup.ts';
 import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
-import { REPO_ROOT, StoreError, findRepo, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
-import type { FollowUp, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
+import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
+import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
 import { countOutcomes, emptyCounts, followUpOpen, isOpenQuestionIn, needsHandOver } from './types.ts';
 
 const WEB_DIST = path.join(REPO_ROOT, 'web', 'dist');
@@ -163,6 +163,25 @@ export function createApp({ version, port }: AppOptions): Hono {
     const followUp = followUpOf(repo.path, id);
     return { repo, night: r.night, hash: r.hash, running: r.night.status === 'open' && sessionRunning(repo.path, r.night), follow_up: followUp, problems: r.problems };
   };
+
+  // Every open follow-up item across the registered repositories: what the next night there plans.
+  app.get('/api/next-night', (c) => {
+    const out: NextNight = { repos: [] };
+    for (const repo of listRepos()) {
+      if (repo.missing) continue;
+      const entry: NextNight['repos'][number] = { repo, items: [], problems: [] };
+      for (const id of listFollowUpIds(repo.path)) {
+        try {
+          const f = readFollowUp(repo.path, id);
+          for (const item of f.items) if (item.status === 'open') entry.items.push({ ref: `${id}/${item.id}`, from_night: f.from_night, created_at: f.created_at, item });
+        } catch (e) {
+          entry.problems.push(`follow-up ${id}: ${(e as Error).message}`);
+        }
+      }
+      if (entry.items.length || entry.problems.length) out.repos.push(entry);
+    }
+    return c.json(out);
+  });
 
   app.get('/api/nights/:repo/:night', (c) => c.json(detail(c.req.param('repo'), c.req.param('night'))));
 

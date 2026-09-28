@@ -213,6 +213,25 @@ export interface Overview {
   loadedAt: string;
 }
 
+// What the next night in each repository will pick up: the open items of its follow-up files,
+// oldest follow-up first. A follow-up file that cannot be read is a problem, not an item.
+export interface NextNightItem {
+  ref: string;
+  from_night: string;
+  created_at: string;
+  item: FollowUpItem;
+}
+
+export interface NextNightRepo {
+  repo: RepoRef;
+  items: NextNightItem[];
+  problems: string[];
+}
+
+export interface NextNight {
+  repos: NextNightRepo[];
+}
+
 export interface NightDetail {
   repo: RepoRef;
   night: Night;
