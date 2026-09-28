@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 07:39'
+updated_date: '2026-09-28 07:51'
 labels:
   - viewer
 dependencies:
@@ -24,8 +24,8 @@ D24. Morning has no hierarchy: nights are a thin chip row and the first night op
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 With nights in three repositories, the Inbox shows three cards, each with its state and one next-step button, and no report opened below (screenshot at laptop and phone width)
-- [ ] #2 The Trends tab is gone from the navigation; the Questions tab stays until TASK-31 replaces it (screenshot)
-- [ ] #3 A night saved for the next agent stays visible in the strip until it reaches Done (test on real files, screenshot)
+- [ ] #2 A night saved for the next agent stays visible in the strip until it reaches Done (test on real files, screenshot)
+- [ ] #3 The navigation is Inbox, Next night and History: Trends and Questions are gone, Start my morning and the numbers replace Questions (D26, D27) (screenshot)
 <!-- AC:END -->
 
 ## Definition of Done

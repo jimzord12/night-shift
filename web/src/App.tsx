@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
@@ -16,7 +16,13 @@ import { Icon } from './ui.tsx';
 type Route = { page: 'inbox' } | { page: 'next' } | { page: 'history' } | { page: 'night'; key: string };
 function parseRoute(hash: string): Route {
   const m = /^#\/night\/([^/]+)\/([^/]+)$/.exec(hash);
-  if (m) return { page: 'night', key: `${decodeURIComponent(m[1])}/${decodeURIComponent(m[2])}` };
+  if (m) {
+    try {
+      return { page: 'night', key: `${decodeURIComponent(m[1])}/${decodeURIComponent(m[2])}` };
+    } catch {
+      return { page: 'inbox' };
+    }
+  }
   return hash === '#/next' ? { page: 'next' } : hash === '#/history' ? { page: 'history' } : { page: 'inbox' };
 }
 const TABS: { page: 'inbox' | 'next' | 'history'; hash: string; label: string; short?: string }[] = [
@@ -88,14 +94,24 @@ export function App() {
     if (d.follow_up) loadNext();
   }, [loadNext]);
 
-  // The night whose detail could not be loaded; its error shows until another night is picked.
+  // The night whose detail could not be loaded; its error shows on its page, until the developer
+  // leaves it. Loads in flight and failed ones are remembered, so a night is not fetched twice.
   const [failedKey, setFailedKey] = useState<string | null>(null);
-  const loadNight = useCallback(async (repo: string, night: string) => {
+  const [failedLoads, setFailedLoads] = useState<ReadonlySet<string>>(new Set());
+  const inFlight = useRef(new Set<string>());
+  const loadNight = useCallback(async (repo: string, night: string, force = false) => {
+    const key = keyOf(repo, night);
+    if (inFlight.current.has(key) && !force) return;
+    inFlight.current.add(key);
     try {
       putDetail(await getNight(repo, night));
+      setFailedLoads((s) => (s.has(key) ? new Set([...s].filter((k) => k !== key)) : s));
     } catch (e) {
-      setFailedKey(keyOf(repo, night));
+      setFailedKey(key);
+      setFailedLoads((s) => new Set(s).add(key));
       setError(`${repo}: ${(e as Error).message}`);
+    } finally {
+      inFlight.current.delete(key);
     }
   }, [putDetail]);
 
@@ -109,6 +125,7 @@ export function App() {
       setSeen(new Set());
       setError(null);
       setFailedKey(null);
+      setFailedLoads(new Set());
       document.title = 'Night Shift';
     } catch (e) {
       setError((e as Error).message);
@@ -123,10 +140,17 @@ export function App() {
 
   // The chosen night: load it once, and mark it read.
   useEffect(() => {
-    if (!selected || details[selected]) return;
+    if (!selected || details[selected] || failedLoads.has(selected)) return;
     const [repo, night] = selected.split('/');
     void loadNight(repo, night);
-  }, [selected, details, loadNight]);
+  }, [selected, details, failedLoads, loadNight]);
+  // Leaving the night that failed takes its error with it.
+  useEffect(() => {
+    if (failedKey && selected !== failedKey) {
+      setError(null);
+      setFailedKey(null);
+    }
+  }, [selected, failedKey]);
   useEffect(() => {
     if (!selected || !overview?.nights.some((n) => keyOf(n.repo, n.id) === selected && !n.read)) return;
     const [repo, night] = selected.split('/');
@@ -137,8 +161,8 @@ export function App() {
   // The Inbox's Start my morning needs every night that still has open questions.
   useEffect(() => {
     if (route.page !== 'inbox' || !overview) return;
-    for (const n of overview.nights) if (n.questions_open > 0 && readable(n) && !details[keyOf(n.repo, n.id)]) void loadNight(n.repo, n.id);
-  }, [route.page, overview, details, loadNight]);
+    for (const n of overview.nights) if (n.questions_open > 0 && readable(n) && !details[keyOf(n.repo, n.id)] && !failedLoads.has(keyOf(n.repo, n.id))) void loadNight(n.repo, n.id);
+  }, [route.page, overview, details, failedLoads, loadNight]);
 
   const allItems = useMemo<DeckItem[]>(
     () => Object.values(details).flatMap((d) => d.night.questions.map((q) => ({ key: deckKey(d, q), detail: d, question: q }))),
@@ -154,7 +178,8 @@ export function App() {
   const summary = selected ? (overview?.nights.find((n) => keyOf(n.repo, n.id) === selected) ?? null) : null;
   // Every open question across nights: what Start my morning walks through.
   const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
-  const questionsReady = !!overview && overview.nights.every((n) => !n.questions_open || !readable(n) || !!details[keyOf(n.repo, n.id)]);
+  // A night whose load failed is left out rather than holding the button back.
+  const questionsReady = !!overview && overview.nights.every((n) => !n.questions_open || !readable(n) || !!details[keyOf(n.repo, n.id)] || failedLoads.has(keyOf(n.repo, n.id)));
 
   // A night opens on its own page, at the top.
   const pick = (repo: string, night: string) => {
@@ -236,7 +261,7 @@ export function App() {
           startKey={deck.startKey}
           onClose={() => setDeck(null)}
           onSaved={putDetail}
-          onConflict={async (repo, night) => loadNight(repo, night)}
+          onConflict={async (repo, night) => loadNight(repo, night, true)}
         />
       )}
     </div>

@@ -38,23 +38,23 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, onOpen, onAn
   return (
     <div className="space-y-6">
       <section aria-label="At a glance" className="grid grid-cols-3 gap-2 sm:gap-3">
-        <Stat value={questions} label={questions === 1 ? 'question for you' : 'questions for you'} color="var(--color-eyes)" onClick={questions ? onStartMorning : undefined} />
+        <Stat value={questions} label={questions === 1 ? 'question for you' : 'questions for you'} color="var(--color-eyes)" onClick={questions && questionsReady ? onStartMorning : undefined} />
         <Stat value={yours} label={yours === 1 ? 'night needs you' : 'nights need you'} color="var(--color-eyes)" />
         <Stat value={scheduled} label="for the next night" color="var(--color-agent)" onClick={onNext} />
       </section>
 
       {questions > 0 && (
-        <button onClick={onStartMorning} disabled={!questionsReady} className="cta flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 px-6 py-4 text-lg disabled:opacity-70">
+        <button onClick={onStartMorning} disabled={!questionsReady} className="cta cta-block flex w-full flex-col items-center justify-center gap-x-3 gap-y-0.5 px-6 py-3.5 text-lg disabled:opacity-70 sm:flex-row sm:py-4">
           <span className="cta-shine" />
           <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
           <span className="font-semibold">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
-          <span className="text-base text-white/80">{questions} question{questions === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}</span>
+          <span className="text-sm text-white/80 sm:text-base">{questions} question{questions === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}</span>
         </button>
       )}
 
       {cards.length > 0 ? (
         <Section title="Nights">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2 xl:grid-cols-3">
             {cards.map((n, i) => (
               <NightCard key={`${n.repo}/${n.id}`} n={n} now={now} name={repoName(overview, n.repo)} delay={i * 50} onOpen={() => onOpen(n.repo, n.id)} onAnswer={() => onAnswer(n.repo, n.id)} />
             ))}
@@ -101,7 +101,7 @@ function Stat({ value, label, color, onClick }: { value: number; label: string; 
   const body = (
     <>
       <span className="block text-3xl leading-none font-bold sm:text-4xl" style={{ color: value ? `color-mix(in srgb, ${color} 80%, white)` : 'rgb(255 255 255 / 0.35)' }}>{value}</span>
-      <span className="mt-1.5 block text-sm leading-snug text-white/65">{label}</span>
+      <span className="mt-1.5 block text-[13px] leading-snug text-white/65 sm:text-sm">{label}</span>
     </>
   );
   const cls = 'glass rounded-2xl px-3 py-3 text-left sm:px-5 sm:py-4';
@@ -118,7 +118,7 @@ function NightCard({ n, now, name, delay, onOpen, onAnswer }: { n: NightSummary;
           : { label: 'Read the report', act: onOpen };
   const counts = OUTCOMES.filter((o) => n.counts[o] > 0);
   return (
-    <article className="glass pop-in flex cursor-pointer flex-col gap-3 rounded-3xl p-5 transition hover:-translate-y-0.5 hover:bg-white/10" style={{ animationDelay: `${delay}ms` }} onClick={onOpen}>
+    <article className="glass pop-in flex min-w-0 cursor-pointer flex-col gap-3 rounded-3xl p-5 transition hover:-translate-y-0.5 hover:bg-white/10" style={{ animationDelay: `${delay}ms` }} onClick={onOpen}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate font-display text-xl font-semibold" title={name}>{name}</div>
@@ -138,7 +138,7 @@ function NightCard({ n, now, name, delay, onOpen, onAnswer }: { n: NightSummary;
           e.stopPropagation();
           step.act();
         }}
-        className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-[var(--accent)] px-4 py-2 font-semibold whitespace-nowrap text-white transition hover:brightness-110"
+        className="mt-auto inline-flex max-w-full items-center justify-center gap-2 self-start rounded-full bg-[var(--accent)] px-4 py-2 text-left font-semibold text-white transition hover:brightness-110"
       >
         {step.label} <Icon name="right" className="size-4" strokeWidth={2.6} />
       </button>

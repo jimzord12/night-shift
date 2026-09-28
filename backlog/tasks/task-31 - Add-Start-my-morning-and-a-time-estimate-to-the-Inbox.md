@@ -4,7 +4,7 @@ title: Add Start my morning and a time estimate to the Inbox
 status: Queued
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 07:39'
+updated_date: '2026-09-28 07:51'
 labels:
   - viewer
 dependencies:
@@ -40,4 +40,6 @@ D24; replaces the Questions tab. On top of the Inbox, an estimate (about 4 minut
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-09-28: Start my morning (one deck across every open question) and the numbers on top of the Inbox shipped with TASK-25 (D27), and the Questions tab is gone. Still here: the time estimate, and ending the run on each repository's save gate (needs TASK-28).
+
+Acceptance #3 is superseded: D26 and D27 make the navigation Inbox, Next night and History.
 <!-- SECTION:NOTES:END -->

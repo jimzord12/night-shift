@@ -64,9 +64,11 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
               <Icon name={STATUS[o].icon} className="size-4" strokeWidth={2.4} /> {counts[o]} {STATUS[o].label.toLowerCase()}
             </span>
           ))}
-          <span className="inline-flex items-center gap-1.5 text-white/60" title="Measured from Claude Code's session log"><Icon name="clock" /> {m ? minutes(m.duration_min.total) : n.status === 'open' ? 'running' : 'not measured yet'}</span>
-          {m && <span className="inline-flex items-center gap-1.5 text-white/60"><Icon name="coin" /> {dollars(m.cost_usd)}</span>}
-          {m && <span className="inline-flex items-center gap-1.5 text-white/60"><Icon name="bot" /> {m.sub_agents.length} sub-agent{m.sub_agents.length === 1 ? '' : 's'}</span>}
+          {/* Only what was measured: an unknown duration or cost, or no sub-agent, says nothing (D24). */}
+          {m?.duration_min.total != null && <span className="inline-flex items-center gap-1.5 text-white/60" title="Measured from Claude Code's session log"><Icon name="clock" /> {minutes(m.duration_min.total)}</span>}
+          {m?.cost_usd != null && <span className="inline-flex items-center gap-1.5 text-white/60"><Icon name="coin" /> {dollars(m.cost_usd)}</span>}
+          {m && m.sub_agents.length > 0 && <span className="inline-flex items-center gap-1.5 text-white/60"><Icon name="bot" /> {m.sub_agents.length} sub-agent{m.sub_agents.length === 1 ? '' : 's'}</span>}
+          {!m && n.status !== 'open' && <span className="text-white/45">not measured yet</span>}
         </div>
       </header>
 
@@ -78,9 +80,9 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
         <Section title="Saved for the next agent" aside={`${detail.follow_up.items.filter((i) => i.status === 'open').length} open`}>
           <ul className="divide-y divide-white/8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
             {detail.follow_up.items.map((i) => (
-              <li key={i.id} className="flex items-start gap-3 px-4 py-2.5">
-                <span className="mt-0.5 shrink-0 rounded bg-white/10 px-1.5 font-mono text-xs leading-6">{i.id}</span>
-                <span className="min-w-0 flex-1 text-white/85">
+              <li key={i.id} className="flex flex-wrap items-start gap-x-3 gap-y-1 px-4 py-2.5">
+                <span className="mt-0.5 shrink-0 self-start rounded bg-white/10 px-1.5 font-mono text-xs leading-6">{i.id}</span>
+                <span className="min-w-[10rem] flex-1 text-white/85">
                   {i.title}
                   {i.decision_label && <span className="font-semibold text-white"> → {i.decision_label}</span>}
                 </span>
@@ -96,9 +98,13 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
       )}
 
       <Section title="What happened" aside={<span className="hidden sm:inline">open a task for its checks and proof</span>}>
-        <ul className="divide-y divide-white/8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-          {n.tasks.map((t) => <TaskRow key={t.id} task={t} onOpen={() => setOpen(t)} />)}
-        </ul>
+        {n.tasks.length ? (
+          <ul className="divide-y divide-white/8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            {n.tasks.map((t) => <TaskRow key={t.id} task={t} onOpen={() => setOpen(t)} />)}
+          </ul>
+        ) : (
+          <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white/60">No task yet.</p>
+        )}
       </Section>
 
       {n.feedback.length > 0 && <FeedbackSection detail={detail} onDetail={onDetail} />}
@@ -139,11 +145,11 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
   const rows: ReactNode[] = [];
   if (n.questions.length) {
     rows.push(
-      <div key="q" className="flex flex-wrap items-center gap-4 px-4 py-3">
+      <div key="q" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
         <Ring done={answered} total={n.questions.length} size={64}>
           <span className="text-lg font-bold">{openQ}</span>
         </Ring>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
           <div className="font-semibold">{openQ ? `${openQ} question${openQ === 1 ? '' : 's'} waiting for you` : 'Every question answered'}</div>
           <div className="text-sm text-white/55">{answered} of {n.questions.length} answered{openQ && f ? '; your answer still reaches the next agent' : ''}</div>
         </div>
@@ -155,9 +161,9 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
   }
   if (save) {
     rows.push(
-      <div key="s" className="flex flex-wrap items-center gap-4 px-4 py-3">
+      <div key="s" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="forward" className="size-5" strokeWidth={2.4} /></span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[14rem] flex-1">
           <div className="font-semibold">Save for the next agent</div>
           <div className="text-sm text-white/55">{pending} unfinished task{pending === 1 ? '' : 's'} and {n.questions.length} question{n.questions.length === 1 ? '' : 's'}. Answer what you can first; nothing runs until you start an agent.</div>
         </div>
@@ -182,6 +188,16 @@ function TaskRow({ task: t, onOpen }: { task: Task; onOpen: () => void }) {
   const s = taskStyle(t.outcome);
   const met = t.checks.filter((c) => c.met).length;
   const line = t.outcome === null ? 'In progress' : t.why ?? t.reason ?? (t.checks.length ? `${met} of ${t.checks.length} checks met` : '');
+  const pills = [
+    t.evidence.length > 0 && (
+      <Pill key="e" title={`${t.evidence.length} piece${t.evidence.length === 1 ? '' : 's'} of evidence`}>
+        <Icon name={t.evidence.some((b) => b.type === 'image' || b.type === 'compare' || b.type === 'video') ? 'image' : 'file'} className="size-3" /> {t.evidence.length}
+      </Pill>
+    ),
+    t.blocked_by && <Pill key="b" className="!bg-eyes/20 !text-eyes"><Icon name="question" className="size-3" /> {t.blocked_by}</Pill>,
+    t.follow_up && <Pill key="f">from {t.follow_up}</Pill>,
+    t.unplanned && <Pill key="u">unplanned</Pill>,
+  ].filter(Boolean);
   return (
     <li>
       <button onClick={onOpen} className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-white/5">
@@ -194,15 +210,10 @@ function TaskRow({ task: t, onOpen }: { task: Task; onOpen: () => void }) {
             <span className="text-white/90">{t.title}</span>
           </span>
           {line && <span className="mt-0.5 block text-sm text-white/55">{s.label} · {line}</span>}
+          {pills.length > 0 && <span className="mt-1.5 flex flex-wrap gap-1.5 sm:hidden">{pills}</span>}
         </span>
-        <span className="mt-1 flex shrink-0 flex-wrap justify-end gap-1.5">
-          {t.evidence.length > 0 && (
-            <Pill title={`${t.evidence.length} piece${t.evidence.length === 1 ? '' : 's'} of evidence`}>
-              <Icon name={t.evidence.some((b) => b.type === 'image' || b.type === 'compare' || b.type === 'video') ? 'image' : 'file'} className="size-3" /> {t.evidence.length}
-            </Pill>
-          )}
-          {t.blocked_by && <Pill className="!bg-eyes/20 !text-eyes"><Icon name="question" className="size-3" /> {t.blocked_by}</Pill>}
-          {t.unplanned && <Pill>unplanned</Pill>}
+        <span className="mt-1 hidden shrink-0 flex-wrap justify-end gap-1.5 sm:flex">
+          {pills}
           <Icon name="right" className="mt-0.5 size-4 text-white/35" />
         </span>
       </button>

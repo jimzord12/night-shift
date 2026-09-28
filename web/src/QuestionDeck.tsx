@@ -199,8 +199,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <Icon name="moon" className="size-14" strokeWidth={1.6} />
             </div>
             <h2 className="font-display mt-6 text-4xl font-semibold">All clear</h2>
-            <p className="mt-2 text-white/60">{order.every((k) => byKey.get(k)?.detail.follow_up) ? 'Every question is settled. The follow-up already handed over carries your answers.' : 'Every question has an answer. Create the follow-up so the next agent picks them up.'}</p>
-            <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the morning</button>
+            <p className="mt-2 text-white/60">{order.every((k) => byKey.get(k)?.detail.follow_up) ? 'Every question is settled. What you saved for the next agent carries your answers.' : 'Every question has an answer. Open the night and save it for the next agent, so your answers reach them.'}</p>
+            <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the Inbox</button>
           </div>
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
