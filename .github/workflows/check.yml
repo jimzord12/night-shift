@@ -18,3 +18,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      # The POSIX launcher (TASK-10): a release folder made from this commit, the launcher written by
+      # the release script, then run by name; an unknown pinned version must fail.
+      - name: POSIX launcher starts the current release
+        run: |
+          R="$RUNNER_TEMP/ns"
+          mkdir -p "$R/releases/v1"
+          git archive --format=tar HEAD | tar -x -C "$R/releases/v1"
+          cp -r node_modules "$R/releases/v1/"
+          printf '{"version":"v1","commit":"%s","date":"ci"}\n' "$GITHUB_SHA" > "$R/releases/v1/version.json"
+          NIGHT_SHIFT_ROOT="$R" node scripts/release.ts switch v1
+          NIGHT_SHIFT_ROOT="$R" node scripts/release.ts install-launchers
+          out=$("$R/bin/night-shift" --version)
+          echo "$out"
+          case "$out" in *"v1 · ${GITHUB_SHA:0:7}"*) ;; *) echo "unexpected version: $out"; exit 1 ;; esac
+          if NIGHT_SHIFT_VERSION=v9 "$R/bin/night-shift" --version; then echo "a missing release must fail"; exit 1; fi
