@@ -58,7 +58,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
           <span className="font-semibold">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
           <span className="text-sm text-white/80 sm:text-base">
             {reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
-            {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`} · about {estimate.minutes} min
+            {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`} · <span className="whitespace-nowrap">about {estimate.minutes} min</span>
           </span>
         </button>
       )}
