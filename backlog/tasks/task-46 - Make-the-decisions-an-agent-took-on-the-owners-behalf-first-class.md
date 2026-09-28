@@ -1,10 +1,10 @@
 ---
 id: TASK-46
 title: Make the decisions an agent took on the owner's behalf first-class
-status: Active
+status: Done
 assignee: []
 created_date: '2026-09-28 13:47'
-updated_date: '2026-09-28 20:24'
+updated_date: '2026-09-28 20:27'
 labels:
   - viewer
 dependencies: []
@@ -26,17 +26,17 @@ Needs a design decision (D<n>) before building: where the owner marks seen or di
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A decision recorded by the tool appears on its task in the Night Report and as a counted item on the Inbox (test on real files, screenshot)
-- [ ] #2 The owner can mark a decision seen or disagree; a disagreement reaches the next agent through the follow-up (test on real files)
-- [ ] #3 The night skill tells the agent to record every decision taken on the owner's behalf, and the day skill how to redo a disagreed one (skill text, test). Amended 2026-09-28: a day session is attended and `decide` needs an open night, so the day skill tells the agent to ask the developer instead (skill text, test).
+- [x] #1 A decision recorded by the tool appears on its task in the Night Report and as a counted item on the Inbox (test on real files, screenshot)
+- [x] #2 The owner can mark a decision seen or disagree; a disagreement reaches the next agent through the follow-up (test on real files)
+- [x] #3 The night skill tells the agent to record every decision taken on the owner's behalf, and the day skill how to redo a disagreed one (skill text, test). Amended 2026-09-28: a day session is attended and `decide` needs an open night, so the day skill tells the agent to ask the developer instead (skill text, test).
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -54,3 +54,9 @@ Review round 5 (af12da5), the attended cap: context FINDINGS, M1 README.md still
 
 Review round 6 (2005f23, one extra round the owner allowed): context PASS. Minor 1 (a short line in the night skill) fixed; note 2 checked: the Explainer at 390 wraps cleanly (.local/evidence/2026-09-28-decisions/r2/390-08-explainer.png). Gate passed: code r4, design r3, visual r2, context r6.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Agents record decisions taken on the owner's behalf with night-shift decide (night@3 agent_decisions). The owner reviews them as cards after the questions in Start my morning, on the Report (own section, task pill, drawer) and the Inbox counts them; unreviewed decisions keep the night Needs answers. A disagreement (note required) becomes a disagreed follow-up item, carried across nights with its note. Checks: npm run check 68/68, test:ui 4/4 on merge 2a12740, CI green; mutants killed for carry, note-on-ok and the deck note. Review: code PASS r4, design PASS r3, visual PASS r2, context PASS r6 (one extra round the owner allowed). Unverified: the owner's own look; installed skill copies refresh at the next release (CHANGELOG must say switch, reinstall, restart view: v16 refuses @3 files).
+<!-- SECTION:FINAL_SUMMARY:END -->
