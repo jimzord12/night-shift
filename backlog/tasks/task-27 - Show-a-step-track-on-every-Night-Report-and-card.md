@@ -5,7 +5,7 @@ status: Review
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 13:24'
+updated_date: '2026-09-28 13:31'
 labels:
   - viewer
 dependencies:
@@ -39,4 +39,6 @@ D24. The owner cannot tell where a night stands or what comes next. A step track
 
 <!-- SECTION:NOTES:BEGIN -->
 Built on feat/step-track: web/src/StepTrack.tsx (StepTrack, nextStep, NextLine). The report shows the track under its summary with one Next: line (a phrase to copy for discuss and waiting); each Inbox card shows the small track. Evidence: .local/evidence/2026-09-28-step-track/r2-{1440,390}/ (log.txt: 6 of 6 cards carry a track; answering docs' last question moves the report from Needs answers to Ready to save without a reload; video in the same folder).
+
+Review round 1 (docs/work/TASK-27/reviews/01-*): code FINDINGS, design PASS. Dispositions: code F1 fixed (a saved night with a question left says 'your answer reaches the next agent'); F2 fixed (Running: 'an agent is on it; reload to see how far it got'); F3 fixed: every state of the sample seen at 1440 and 390 from the committed build, and Copy checked on the clipboard (.local/evidence/2026-09-28-step-track/r3/, log.txt); F4 fixed (Waiting says 'a running night is working on what it carried' when every open item is taken). N1: the discuss branch comes alive with TASK-29 (feat/file-shapes), exercised there. N2 / design D3 (skipped steps ticked) no action: deliberate, the badge names the state. Design D1 fixed (on a phone: 'Step N of 6 · <state>' under the track). D2 closed by r3; D4, D5 no action.
 <!-- SECTION:NOTES:END -->
