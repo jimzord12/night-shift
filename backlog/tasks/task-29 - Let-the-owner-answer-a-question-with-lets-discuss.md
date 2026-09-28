@@ -4,7 +4,7 @@ title: Let the owner answer a question with let's discuss
 status: Queued
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:54'
+updated_date: '2026-09-28 11:58'
 labels:
   - viewer
   - skills
@@ -41,4 +41,6 @@ D24. The owner often does not understand a question or its options (for example:
 
 <!-- SECTION:NOTES:BEGIN -->
 D24: the three file-shape changes (TASK-26 summary headline, TASK-29 discuss kind, TASK-30 file references) land together as one versioned change under the AGENTS.md rule. This task carries the version change (the new discuss kind and TASK-30's file references both break older readers; TASK-30 depends on this task); TASK-26 and TASK-30 ship in the same release. The summary limit applies to new nights only, so older night files stay valid.
+
+tests/ui/deck.test.ts (TASK-8) clicks through the deck; update it if this changes what it clicks.
 <!-- SECTION:NOTES:END -->

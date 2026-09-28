@@ -18,6 +18,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      # The Viewer in a real browser (TASK-8): kept out of `check`, so a release needs no browser.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
       # The POSIX launcher (TASK-10): a release folder made from this commit, the launcher written by
       # the release script, then run by name; an unknown pinned version must fail.
       - name: POSIX launcher starts the current release
