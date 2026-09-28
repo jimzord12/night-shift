@@ -71,7 +71,7 @@ function followUpOf(repo: string, id: string): FollowUp | null {
   }
 }
 
-function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>, now: number): NightSummary {
+function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>, now: number, taken: Record<string, string>): NightSummary {
   const r = readNight(repo.path, id);
   const base: NightSummary = {
     repo: repo.id,
@@ -108,7 +108,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     summary: n.summary,
     counts: countOutcomes(n.tasks),
     tasks: n.tasks.length,
-    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp)).length,
+    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp, taken)).length,
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
     // A follow-up file that exists but cannot be read still blocks a second one.
     hand_over: !base.follow_up && needsHandOver(n, followUp),
@@ -118,6 +118,18 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     cost_usd: n.metrics?.cost_usd ?? null,
     running: n.status === 'open' && sessionRunning(repo.path, n, now),
   };
+}
+
+// Follow-up items that running nights have taken on (planned as a task or skipped), with the night.
+function takenRefs(repo: string): Map<string, string> {
+  const taken = new Map<string, string>();
+  for (const nid of listNightIds(repo)) {
+    const n = readNight(repo, nid).night;
+    if (n?.status !== 'open') continue;
+    for (const t of n.tasks) if (t.follow_up) taken.set(t.follow_up, nid);
+    for (const x of n.skipped_follow_ups) taken.set(x.follow_up, nid);
+  }
+  return taken;
 }
 
 export function createApp({ version, port }: AppOptions): Hono {
@@ -150,7 +162,8 @@ export function createApp({ version, port }: AppOptions): Hono {
       } catch (error) {
         console.error(`recovery in ${repo.path}: ${(error as Error).message}`);
       }
-      for (const id of listNightIds(repo.path)) nights.push(summarise(repo, id, readMarks, now));
+      const taken = Object.fromEntries(takenRefs(repo.path));
+      for (const id of listNightIds(repo.path)) nights.push(summarise(repo, id, readMarks, now, taken));
     }
     nights.sort((a, b) => (b.started_at || b.id).localeCompare(a.started_at || a.id));
     const overview: Overview = { version, repos, nights, loadedAt: localIso(new Date()) };
@@ -162,7 +175,9 @@ export function createApp({ version, port }: AppOptions): Hono {
     const r = readNight(repo.path, id);
     if (!r.night) throw new StoreError(`night ${id} is invalid: ${r.problems.join('; ')}`, 422);
     const followUp = followUpOf(repo.path, id);
-    return { repo, night: r.night, hash: r.hash, running: r.night.status === 'open' && sessionRunning(repo.path, r.night), follow_up: followUp, problems: r.problems };
+    const taken: Record<string, string> = {};
+    if (followUp) for (const [ref, by] of takenRefs(repo.path)) if (ref.startsWith(`${id}/`)) taken[ref] = by;
+    return { repo, night: r.night, hash: r.hash, running: r.night.status === 'open' && sessionRunning(repo.path, r.night), follow_up: followUp, taken, problems: r.problems };
   };
 
   // Every open follow-up item across the registered repositories: what the next night there plans.
@@ -172,13 +187,7 @@ export function createApp({ version, port }: AppOptions): Hono {
       if (repo.missing) continue;
       const entry: NextNight['repos'][number] = { repo, items: [], problems: [] };
       // Items a running night has taken on are that night's work, not the next one's.
-      const taken = new Set<string>();
-      for (const nid of listNightIds(repo.path)) {
-        const n = readNight(repo.path, nid).night;
-        if (n?.status !== 'open') continue;
-        for (const t of n.tasks) if (t.follow_up) taken.add(t.follow_up);
-        for (const s of n.skipped_follow_ups) taken.add(s.follow_up);
-      }
+      const taken = takenRefs(repo.path);
       for (const id of listFollowUpIds(repo.path)) {
         try {
           const f = readFollowUp(repo.path, id);

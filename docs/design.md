@@ -400,18 +400,35 @@ from any folder. Screens:
    (open one for its checks, questions and proof); feedback with tick
    boxes and **Send to GitHub**. Opening a night marks it read; a night
    opened while it ran is unread again once it ends.
-3. **Next night** (`#/next`): every open follow-up item across
+3. **The question deck** (over any page): one question per screen, the
+   recommendation preselected. It ends on the **gate** (TASK-28): for each
+   night it walked that is not saved yet, the answers and the unfinished
+   work with one **Save for the next agent**; once saved, a confirmation
+   that nothing runs until the developer starts an agent, with the
+   phrases to copy ("start night shift", "work on the follow-up") and the
+   folder to say them in; a night still running is named instead, to be
+   saved once it ends. An answer can change until an agent takes its
+   item on: the deck locks it, naming the night working on it or the one
+   that settled it (the server refuses the change too).
+4. **Next night** (`#/next`): every open follow-up item across
    repositories, per repository and grouped by the night it came from,
    with its kind, the decision, the owner's note and what is still to
    do; items a running night has taken on are left out; the tab shows
    the count (D26).
-4. **History** (`#/history`): one row per night: date, repository, its
+5. **History** (`#/history`): one row per night: date, repository, its
    state, outcome counts, duration, cost and the grey stopped-early line;
    a row opens that night.
 
+**How it works** (TASK-32): the whole loop in one animated view of five
+steps (an agent works through the night, the Night Report with the six
+outcomes and "stopped early", answering, **Save for the next agent**,
+starting the next agent). It fills the Inbox while there are no nights,
+opens from the ? in the header, and opens at its step from the small ?
+beside the terms that need it (Save for the next agent, the outcome
+counts, stopped early). Esc closes it and nothing behind it.
+
 Every page has its own address, so the browser's Back works. Still to
-come from D24: a step track, the explicit gate after the deck and its
-confirmation (TASK-28), a "let's discuss" answer (TASK-29), and the
+come from D24: a step track, a "let's discuss" answer (TASK-29), and the
 one-sentence summary rule.
 
 The registry of repositories and the read marks live in the local install

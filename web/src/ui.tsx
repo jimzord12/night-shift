@@ -30,6 +30,7 @@ const PATHS = {
   coin: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM14.5 9.5c-.5-1-1.4-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.9 2.5 2-1 2-2.5 2c-1.2 0-2.1-.6-2.6-1.6M12 6.5V8m0 8v1.5',
   bot: 'M8 9h8a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3zM12 5v4M9.5 13.5v.01M14.5 13.5v.01',
   forward: 'M5 12h13M13 6l6 6-6 6',
+  lock: 'M7.5 11V8a4.5 4.5 0 0 1 9 0v3M5.5 11h13v9.5h-13z',
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
   folder: 'M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.5h8.8A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z',
@@ -80,12 +81,12 @@ export function NightBadge({ n, now, small = false }: { n: NightSummary; now: nu
 }
 
 // How a night ended, only when it cost work: grey, a warning rather than a state.
-export function StoppedEarly({ count, short = false }: { count: number; short?: boolean }) {
+export function StoppedEarly({ count, short = false, after }: { count: number; short?: boolean; after?: ReactNode }) {
   if (!count) return null;
   const text = `${count} task${count === 1 ? '' : 's'} never started`;
   return (
     <span title={`Stopped early: ${text}`} className="flex max-w-full min-w-0 items-start gap-1 text-sm text-white/50">
-      <Icon name="warn" className="mt-[0.2em] size-3.5 shrink-0" /> <span className={short ? 'truncate' : 'min-w-0'}>{short ? `${count} never started` : `Stopped early: ${text}`}</span>
+      <Icon name="warn" className="mt-[0.2em] size-3.5 shrink-0" /> <span className={short ? 'truncate' : 'min-w-0'}>{short ? `${count} never started` : `Stopped early: ${text}`}{after && <span className="ml-1.5 inline-block align-middle">{after}</span>}</span>
     </span>
   );
 }

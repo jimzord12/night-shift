@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import confetti from 'canvas-confetti';
 import { handedItem, isOpenQuestionIn } from '../../src/types.ts';
 import type { NightDetail, Question } from '../../src/types.ts';
 import { ApiError, fileUrl, postAnswer } from './api.ts';
 import { MediaThumb, MediaViewer } from './Evidence.tsx';
+import { Gate, gateState } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
 import { Starfield } from './Starfield.tsx';
 import { Icon, nightTitle } from './ui.tsx';
@@ -23,6 +23,8 @@ interface Draft {
 interface Props {
   items: DeckItem[];
   startKey?: string;
+  // Where closing returns to, named on the gate's button.
+  from: 'Inbox' | 'report';
   onClose: () => void;
   onSaved: (detail: NightDetail) => void;
   onConflict: (repo: string, night: string) => Promise<boolean>;
@@ -33,9 +35,9 @@ export const deckKey = (d: NightDetail, q: Question) => `${d.repo.id}/${d.night.
 // One question per screen, the agent's recommendation preselected. The order is fixed when the
 // deck opens: the question clicked, then the open ones; with nothing open, every question, so
 // answers can be reviewed and changed.
-export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: Props) {
+export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConflict }: Props) {
   const order = useMemo(() => {
-    const open = items.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
+    const open = items.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
     const base = (open.length ? open : items).map((i) => i.key);
     if (startKey) return [startKey, ...base.filter((k) => k !== startKey)];
     return base;
@@ -53,15 +55,23 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const scroller = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
+  const [savedNow, setSavedNow] = useState<ReadonlySet<string>>(new Set());
+  const [celebrated, setCelebrated] = useState(false);
 
   const key = order[index];
   const item = key ? byKey.get(key) : undefined;
   const q = item?.question ?? null;
-  const settledHere = !!q && !!item && (handedItem(item.detail.follow_up, q)?.status ?? 'open') !== 'open';
+  // A night running now that took this item on (planned it or skipped it) holds it until it closes.
+  const takenBy = (i: DeckItem | undefined) => {
+    const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
+    return h && i ? i.detail.taken?.[`${i.detail.night.night}/${h.id}`] : undefined;
+  };
+  // Settled or held elsewhere: no recommendation is shown as if it were the answer.
+  const settledHere = !!q && !!item && ((handedItem(item.detail.follow_up, q)?.status ?? 'open') !== 'open' || !!takenBy(item));
   const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? (settledHere ? '' : q.recommended), note: q.note ?? '' }) : null;
   const locked = (i: DeckItem | undefined) => {
     const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
-    return !!h && h.status !== 'open';
+    return (!!h && h.status !== 'open') || !!takenBy(i);
   };
   const handled = (k: string, saved: Set<string>) => saved.has(k) || (byKey.get(k)?.question.answer ?? null) !== null || locked(byKey.get(k));
   // Editing the answer clears an earlier save error: it no longer describes what is on screen.
@@ -74,7 +84,15 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   // The follow-up item this question was handed over as; once an agent worked on its decision, the
   // answer is locked (the server refuses a change too).
   const handed = q && item ? handedItem(item.detail.follow_up, q) : undefined;
-  const lock = handed && handed.status !== 'open' ? (handed.status === 'carried' && handed.kind === 'waiting' ? 'follow-up item was asked again in a later night' : `follow-up's ${handed.id} is ${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in night ${handed.resolved?.by ?? ''}`}`) : null;
+  const running = takenBy(item);
+  const nightOf = (id: string) => nightTitle(id).replace(/^Night/, 'night');
+  const lock = handed && handed.status !== 'open'
+    ? handed.status === 'carried' && handed.kind === 'waiting'
+      ? 'Locked: a later night asked this again. Answer it there.'
+      : `Locked: an agent already worked on this (${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in the ${nightOf(handed.resolved?.by ?? '')}`}), so the answer can no longer change.`
+    : running
+      ? `Locked: the ${nightOf(running)} has taken this on. You can change it once that night ends.`
+      : null;
 
   useEffect(() => {
     setMessage(null);
@@ -83,6 +101,11 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
     scroller.current?.scrollTo({ top: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
+
+  // The deck takes the focus from whatever opened it, so keys act on the deck, not the page behind.
+  useEffect(() => {
+    scroller.current?.focus({ preventScroll: true });
+  }, []);
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(order.length - 1, i))), [order.length]);
 
@@ -122,17 +145,6 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, item, draft, key, busy, savedKeys, order, index]);
 
-  useEffect(() => {
-    if (!finished) return;
-    const end = Date.now() + 900;
-    const colors = ['#f5d76e', '#7c5cff', '#34d399', '#ffffff'];
-    (function frame() {
-      confetti({ particleCount: 6, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors });
-      confetti({ particleCount: 6, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    })();
-  }, [finished]);
-
   const qRef = useRef(q);
   qRef.current = q;
   useEffect(() => {
@@ -141,12 +153,20 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
       const typing = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
       if (e.key === 'Escape' && typing) return (e.target as HTMLElement).blur();
       if (e.key === 'Escape') return onClose();
+      // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
-        if (e.key === 'Enter') onClose();
+        const ownButton = e.target instanceof HTMLButtonElement && !!scroller.current?.contains(e.target);
+        if (e.key === 'Enter' && !ownButton) {
+          // A button behind the deck (the one that opened it) must not take the key.
+          e.preventDefault();
+          if (gateState(deckNights).clear) onClose();
+        }
         return;
       }
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
         e.preventDefault();
+        // A locked question has nothing to save: Enter moves on, like its Next button.
+        if (lock) return index === order.length - 1 ? setFinished(true) : advance(savedKeys);
         return void save();
       }
       if (typing || !qRef.current || !draft) return;
@@ -163,10 +183,12 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   });
 
   const answeredCount = order.filter((k) => handled(k, savedKeys)).length;
+  // The nights this deck walked, each with its latest detail, in the deck's order.
+  const deckNights = [...new Map(order.map((k) => byKey.get(k)!).filter(Boolean).map((i) => [`${i.detail.repo.id}/${i.detail.night.night}`, i.detail])).values()];
   const rec = q?.options.find((o) => o.id === q.recommended);
 
   return (
-    <div ref={scroller} className="sky fixed inset-0 z-40 overflow-y-auto">
+    <div ref={scroller} tabIndex={-1} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">
@@ -194,14 +216,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
         </header>
 
         {finished ? (
-          <div className="pop-in my-auto text-center">
-            <div className="mx-auto grid size-28 place-items-center rounded-full bg-[var(--accent)]/20 text-moon shadow-[0_0_60px_var(--accent)]">
-              <Icon name="moon" className="size-14" strokeWidth={1.6} />
-            </div>
-            <h2 className="font-display mt-6 text-4xl font-semibold">All clear</h2>
-            <p className="mt-2 text-white/60">{order.every((k) => byKey.get(k)?.detail.follow_up) ? 'Every question is settled. What you saved for the next agent carries your answers.' : 'Every question has an answer. Open the night and save it for the next agent, so your answers reach them.'}</p>
-            <button onClick={onClose} className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 font-semibold text-white shadow-lg">Back to the Inbox</button>
-          </div>
+          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={onClose} back={from} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (
@@ -211,8 +226,13 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <span className="rounded-full bg-white/5 px-2.5 py-1 text-white/60">{nightTitle(item.detail.night.night)}</span>
               {q.task && <span className="rounded-full bg-eyes/20 px-2.5 py-1 font-mono font-semibold text-eyes">{q.task}</span>}
               {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
-              {lock && <span className="rounded-full bg-white/10 px-2.5 py-1 text-white/70">{q.answer === null ? 'not answerable here' : 'answered'} · locked: the {lock}</span>}
             </div>
+            {lock && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/15 bg-white/8 px-3 py-2 text-sm text-white/85">
+                <Icon name="lock" className="mt-0.5 size-4 shrink-0" strokeWidth={2.4} />
+                <span>{lock}</span>
+              </div>
+            )}
             <h2 className="font-display mt-4 text-2xl leading-tight font-semibold sm:text-4xl">{q.ask}</h2>
             {q.why && <p className="mt-2 text-white/60 sm:text-lg">{q.why}</p>}
 
@@ -224,8 +244,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                     key={o.id}
                     onClick={() => setDraft({ ...draft, answer: o.id })}
                     disabled={!!lock}
-                    className="flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition hover:bg-white/5"
-                    style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)' }}
+                    className={`flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition ${lock ? 'cursor-not-allowed' : 'hover:bg-white/5'}`}
+                    style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)', opacity: lock && !on ? 0.4 : 1 }}
                   >
                     <span className="grid size-7 shrink-0 place-items-center rounded-full border-2" style={{ borderColor: on ? 'var(--accent)' : '#ffffff30', background: on ? 'var(--accent)' : undefined }}>
                       {on && <Icon name="check" className="size-4" strokeWidth={3} />}
@@ -249,6 +269,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                       {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                     </span>
                     {o.id === q.recommended && <Icon name="sparkle" className="size-4 text-moon" />}
+                    {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
                     {!lock && <kbd className="hidden text-white/40 sm:inline">{i + 1}</kbd>}
                   </button>
                 );

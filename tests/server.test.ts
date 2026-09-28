@@ -249,15 +249,39 @@ test('answers after the follow-up: a running night on the item blocks a change; 
   assert.equal(busy.status, 409);
   assert.match(((await busy.json()) as { error: string }).error, /working on this right now/);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+  // The detail names the night holding the item, so the deck locks it before a save is tried.
+  const taken = async () => ((await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail).taken;
+  assert.deepEqual(await taken(), { [`${id}/A1`]: live.night.night });
   // That night settles it. The old copy of the question is no longer open, and an answer there,
   // which would reach no agent, is refused with the reason.
   record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
   close(repo, 'Login fixed.');
   const overview = (await (await app.request('/api/overview')).json()) as Overview;
   assert.equal(overview.nights.find((n) => n.repo === ref.id && n.id === id)?.questions_open, 0);
+  assert.deepEqual(await taken(), {});
   const late = await answer('b');
   assert.equal(late.status, 409);
   assert.match(((await late.json()) as { error: string }).error, /handed over unanswered and it was settled in night/);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+});
+
+test('a running night that skips a follow-up item takes it too: locked in the detail, a change refused', async () => {
+  const { ref, id, repo } = closedNight();
+  const app = createApp({ version: 'test' });
+  await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  const open = async () => ((await (await app.request('/api/overview')).json()) as Overview).nights.find((n) => n.repo === ref.id && n.id === id)?.questions_open;
+  assert.equal(await open(), 1);
+  const live = start(repo, plan([TASKS[0]], { skipped_follow_ups: [{ follow_up: `${id}/A1`, reason: 'already fixed on main' }] }), session('live', process.pid), new Date('2026-09-27T23:00:00'));
+  const d = (await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail;
+  assert.deepEqual(d.taken, { [`${id}/A1`]: live.night.night });
+  // Held by the running night, the question is not the developer's turn: it is not counted open.
+  assert.equal(await open(), 0);
+  // A question the running night asks itself is not held by anything: it still counts.
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', why: 'Both fit.', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  const liveOpen = ((await (await app.request('/api/overview')).json()) as Overview).nights.find((n) => n.repo === ref.id && n.id === live.night.night)?.questions_open;
+  assert.deepEqual([await open(), liveOpen], [0, 1]);
+  const res = await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: d.hash }) });
+  assert.equal(res.status, 409);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
 });
 
@@ -399,8 +423,9 @@ test('Start my morning estimate: its questions, the saves its gates ask for, and
   assert.equal(overview.nights.find((n) => n.repo === workRef.id)?.hand_over, true);
   const est = morningEstimate(overview.nights.filter((n) => mine.has(n.repo)));
   assert.deepEqual(est, { questions: 3, saves: 1, minutes: 4 });
-  // Half a minute a save, rounded up: 2 questions and 1 save take 3 minutes, not 2 or 4.
-  const two = morningEstimate(overview.nights.filter((n) => n.repo === unsaved.ref.id || n.repo === saved.ref.id));
-  assert.deepEqual(two, { questions: 2, saves: 1, minutes: 3 });
+  // Half a minute a save: two unsaved nights with a question each take 3 minutes (2 + 2 × ½); a full
+  // minute a save would say 4, and leaving saves out would say 2.
+  const pair = [unsaved.ref.id, unsaved.ref.id].map(() => overview.nights.find((n) => n.repo === unsaved.ref.id)!);
+  assert.deepEqual(morningEstimate(pair), { questions: 2, saves: 2, minutes: 3 });
   assert.deepEqual(morningEstimate([]), { questions: 0, saves: 0, minutes: 0 });
 });

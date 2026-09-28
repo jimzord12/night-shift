@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { NightSummary, Overview } from '../../src/types.ts';
 import { OUTCOMES, morningEstimate, neverStarted, ownerState, ownersTurn, readable } from '../../src/types.ts';
 import { Icon, NightBadge, STATUS, StoppedEarly, nightTitle } from './ui.tsx';
+import { HowItWorks } from './Explainer.tsx';
 
 interface Props {
   overview: Overview;
@@ -55,7 +56,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
         <button onClick={onStartMorning} disabled={!questionsReady} className="cta cta-block flex w-full flex-col items-center justify-center gap-x-3 gap-y-0.5 px-6 py-3.5 text-lg disabled:opacity-70 lg:flex-row lg:py-4">
           <span className="cta-shine" />
           <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
-          <span className="font-semibold whitespace-nowrap">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
+          <span className={`font-semibold ${questionsReady ? 'whitespace-nowrap' : ''}`}>{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
           <span className="text-sm text-white/80 sm:text-base">
             {reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
             {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`}
@@ -183,12 +184,17 @@ function CaughtUp({ onLast, onHistory }: { onLast: () => void; onHistory: () => 
   );
 }
 
+// The first run: how the loop works, then how to start the first night.
 function Empty() {
   return (
-    <div className="grid place-items-center rounded-3xl border border-dashed border-white/10 py-20 text-center text-white/55">
-      <Icon name="moon" className="mb-3 size-10" strokeWidth={1.5} />
-      <div className="font-display text-xl font-semibold text-white/80">No nights yet</div>
-      <p className="mt-2 max-w-md">Run <code className="rounded bg-white/10 px-1.5">night-shift install</code> in a repository, then tell an agent there: “start night shift”. Its nights appear here.</p>
+    <div className="grid gap-6">
+      <section className="glass rounded-3xl p-5 sm:p-8">
+        <HowItWorks autoplay />
+      </section>
+      <div className="grid place-items-center rounded-3xl border border-dashed border-white/10 py-10 text-center text-white/55">
+        <div className="font-display text-xl font-semibold text-white/80">No nights yet</div>
+        <p className="mt-2 max-w-md px-4">Run <code className="rounded bg-white/10 px-1.5">night-shift install</code> in a repository, then tell an agent there: “start night shift”. Its nights appear here.</p>
+      </div>
     </div>
   );
 }
