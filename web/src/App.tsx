@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
-import { getNextNight, getNight, getOverview, markRead } from './api.ts';
+import { getNextNight, getNight, getOverview, getProposals, markRead } from './api.ts';
 import { Inbox } from './Inbox.tsx';
 import { ReportPage } from './Report.tsx';
 import { Starfield } from './Starfield.tsx';
@@ -225,6 +225,7 @@ export function App() {
           </nav>
           <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
             <span className="hidden sm:inline">{overview?.version}</span>
+            <Proposals />
             <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -279,4 +280,22 @@ export function App() {
 
 function Banner({ children }: { children: ReactNode }) {
   return <div className="mb-4 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">{children}</div>;
+}
+
+// Open proposals on the Night Shift Repo (TASK-35): feedback sent from any repository that nobody
+// has closed yet. Shows only when gh answered and at least one is open; links to the list.
+function Proposals() {
+  const [p, setP] = useState<{ open: number; url: string } | null>(null);
+  useEffect(() => {
+    getProposals().then(setP, () => setP(null));
+  }, []);
+  if (!p?.open) return null;
+  const what = `${p.open} open proposal${p.open === 1 ? '' : 's'} on the Night Shift Repo`;
+  return (
+    <a href={p.url} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white/75 hover:text-white" title={what} aria-label={what}>
+      <Icon name="send" className="size-3.5" />
+      <span className="font-semibold">{p.open}</span>
+      <span className="hidden sm:inline">proposal{p.open === 1 ? '' : 's'}</span>
+    </a>
+  );
 }
