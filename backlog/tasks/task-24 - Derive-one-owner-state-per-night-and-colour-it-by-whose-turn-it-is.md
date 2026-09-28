@@ -1,11 +1,11 @@
 ---
 id: TASK-24
 title: Derive one owner state per night and colour it by whose turn it is
-status: Ready
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 23:23'
+updated_date: '2026-09-28 07:09'
 labels:
   - viewer
 dependencies: []

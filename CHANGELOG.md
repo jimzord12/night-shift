@@ -3,6 +3,28 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v13 (df40077), 2026-09-28
+
+- Viewer: every night shows one state, coloured by whose turn it is
+  (D24, TASK-24): Running and Waiting for an agent in blue (with the
+  days waited from two on), New in purple, Needs answers and Ready to
+  save in amber, Done in green with a tick. It replaces the ending dot
+  and the Needs you / Handed over / Nothing left pill on Morning, the
+  report and History. How a night ended shows only as a grey "Stopped
+  early: N tasks never started" when it cost work.
+- Viewer: blocked tasks are amber, partial ones blue, failed ones red;
+  unmet checks are grey.
+- Viewer: Morning lists every night that is not Done and opens on the
+  newest one that is your turn; its heading counts only those.
+- Viewer: a night file that cannot be read shows a red "Cannot be read"
+  badge, is not counted, leaves Morning once opened, and its error names
+  the repository and clears when another night is picked.
+- Viewer: a Next night tab lists every open follow-up item across
+  repositories, grouped by the night it came from (D26, TASK-38); the
+  count turns amber when an item needs your answer. On a phone the tab
+  reads Next and the empty Trends tab is left off.
+- `npm run view` serves the checkout's Viewer on port 4748.
+
 ## v12 (86182b2), 2026-09-27
 
 - History: the timeline dots sit on the line and in front of the cards

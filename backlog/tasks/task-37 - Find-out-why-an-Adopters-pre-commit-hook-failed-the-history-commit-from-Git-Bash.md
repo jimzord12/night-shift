@@ -3,11 +3,11 @@ id: TASK-37
 title: >-
   Find out why an Adopter's pre-commit hook failed the history commit from Git
   Bash
-status: Ready
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:55'
-updated_date: '2026-09-27 22:56'
+updated_date: '2026-09-28 07:09'
 labels:
   - triage
   - cli

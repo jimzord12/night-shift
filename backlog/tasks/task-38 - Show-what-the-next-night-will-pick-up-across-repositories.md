@@ -1,11 +1,11 @@
 ---
 id: TASK-38
 title: 'Show what the next night will pick up, across repositories'
-status: Ready
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-28 06:45'
-updated_date: '2026-09-28 07:08'
+updated_date: '2026-09-28 07:09'
 labels:
   - viewer
 dependencies:
