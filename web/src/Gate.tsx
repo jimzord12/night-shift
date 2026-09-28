@@ -25,6 +25,8 @@ interface Props {
   onSaved: (d: NightDetail) => void;
   onConflict: (repo: string, night: string) => Promise<boolean>;
   onClose: () => void;
+  // Where closing returns to.
+  back: 'Inbox' | 'report';
   // The deck's scroller: a new state of the gate opens at its top.
   onTop: () => void;
   // Confetti once per deck, even when the gate is left and entered again.
@@ -36,7 +38,7 @@ interface Props {
 // saved yet, what the next agent gets and one Save for the next agent; once saved, a confirmation
 // that nothing runs until the developer starts an agent, with the phrase to say. A night still
 // running is named: its answers are kept, and it is saved once it ends.
-export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClose, onTop, celebrated, onCelebrated }: Props) {
+export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClose, back, onTop, celebrated, onCelebrated }: Props) {
   const { running, toSave, clear } = gateState(nights);
   const justSaved = nights.filter((d) => savedNow.has(nightKey(d)) && d.follow_up);
   const earlier = nights.filter((d) => d.night.status !== 'open' && !savedNow.has(nightKey(d)) && d.follow_up);
@@ -103,7 +105,7 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
 
       <div className="mt-8 text-center">
         <button onClick={onClose} className={`rounded-full px-6 py-2.5 font-semibold ${clear ? 'bg-[var(--accent)] text-white shadow-lg' : 'glass text-white/80'}`}>
-          {toSave.length ? 'Not now, back to the Inbox' : 'Back to the Inbox'}
+          {toSave.length ? `Not now, back to the ${back}` : `Back to the ${back}`}
         </button>
         {!clear && !toSave.length && <p className="mt-2 hidden text-xs text-white/40 sm:block">Esc closes</p>}
       </div>
@@ -149,7 +151,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
                 <Icon name={label ? 'check' : 'question'} className={`mt-0.5 size-4 shrink-0 ${label ? 'text-shipped' : 'text-eyes'}`} strokeWidth={2.6} />
                 <span className="min-w-0">
                   <span className="text-white/60">{q.ask}</span>{' '}
-                  {label ? <span className="font-medium text-white">{label}</span> : <span className="text-eyes">{isOpenQuestionIn(q, d.follow_up) ? 'not answered: the next agent asks again' : 'settled elsewhere'}</span>}
+                  {label ? <span className="font-medium text-white">{label}</span> : <span className="text-eyes">{isOpenQuestionIn(q, d.follow_up, d.taken) ? 'not answered: the next agent asks again' : 'settled elsewhere'}</span>}
                 </span>
               </li>
             );

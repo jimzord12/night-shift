@@ -23,6 +23,8 @@ interface Draft {
 interface Props {
   items: DeckItem[];
   startKey?: string;
+  // Where closing returns to, named on the gate's button.
+  from: 'Inbox' | 'report';
   onClose: () => void;
   onSaved: (detail: NightDetail) => void;
   onConflict: (repo: string, night: string) => Promise<boolean>;
@@ -33,9 +35,9 @@ export const deckKey = (d: NightDetail, q: Question) => `${d.repo.id}/${d.night.
 // One question per screen, the agent's recommendation preselected. The order is fixed when the
 // deck opens: the question clicked, then the open ones; with nothing open, every question, so
 // answers can be reviewed and changed.
-export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: Props) {
+export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConflict }: Props) {
   const order = useMemo(() => {
-    const open = items.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
+    const open = items.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
     const base = (open.length ? open : items).map((i) => i.key);
     if (startKey) return [startKey, ...base.filter((k) => k !== startKey)];
     return base;
@@ -59,13 +61,14 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const key = order[index];
   const item = key ? byKey.get(key) : undefined;
   const q = item?.question ?? null;
-  const settledHere = !!q && !!item && (handedItem(item.detail.follow_up, q)?.status ?? 'open') !== 'open';
-  const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? (settledHere ? '' : q.recommended), note: q.note ?? '' }) : null;
   // A night running now that took this item on (planned it or skipped it) holds it until it closes.
   const takenBy = (i: DeckItem | undefined) => {
     const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
     return h && i ? i.detail.taken?.[`${i.detail.night.night}/${h.id}`] : undefined;
   };
+  // Settled or held elsewhere: no recommendation is shown as if it were the answer.
+  const settledHere = !!q && !!item && ((handedItem(item.detail.follow_up, q)?.status ?? 'open') !== 'open' || !!takenBy(item));
+  const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? (settledHere ? '' : q.recommended), note: q.note ?? '' }) : null;
   const locked = (i: DeckItem | undefined) => {
     const h = i ? handedItem(i.detail.follow_up, i.question) : undefined;
     return (!!h && h.status !== 'open') || !!takenBy(i);
@@ -213,7 +216,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
         </header>
 
         {finished ? (
-          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={onClose} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
+          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={onClose} back={from} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (

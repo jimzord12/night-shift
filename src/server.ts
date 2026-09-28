@@ -70,7 +70,7 @@ function followUpOf(repo: string, id: string): FollowUp | null {
   }
 }
 
-function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>, now: number): NightSummary {
+function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>, now: number, taken: Record<string, string>): NightSummary {
   const r = readNight(repo.path, id);
   const base: NightSummary = {
     repo: repo.id,
@@ -107,7 +107,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     summary: n.summary,
     counts: countOutcomes(n.tasks),
     tasks: n.tasks.length,
-    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp)).length,
+    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp, taken)).length,
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
     // A follow-up file that exists but cannot be read still blocks a second one.
     hand_over: !base.follow_up && needsHandOver(n, followUp),
@@ -161,7 +161,8 @@ export function createApp({ version, port }: AppOptions): Hono {
       } catch (error) {
         console.error(`recovery in ${repo.path}: ${(error as Error).message}`);
       }
-      for (const id of listNightIds(repo.path)) nights.push(summarise(repo, id, readMarks, now));
+      const taken = Object.fromEntries(takenRefs(repo.path));
+      for (const id of listNightIds(repo.path)) nights.push(summarise(repo, id, readMarks, now, taken));
     }
     nights.sort((a, b) => (b.started_at || b.id).localeCompare(a.started_at || a.id));
     const overview: Overview = { version, repos, nights, loadedAt: localIso(new Date()) };
