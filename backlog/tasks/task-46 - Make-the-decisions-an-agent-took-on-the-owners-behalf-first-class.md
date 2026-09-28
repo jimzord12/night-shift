@@ -4,7 +4,7 @@ title: Make the decisions an agent took on the owner's behalf first-class
 status: Active
 assignee: []
 created_date: '2026-09-28 13:47'
-updated_date: '2026-09-28 20:00'
+updated_date: '2026-09-28 20:06'
 labels:
   - viewer
 dependencies: []
@@ -47,4 +47,6 @@ Review round 1 (dfb222a): design FINDINGS, code FINDINGS, visual FINDINGS (docs/
 Review round 2 (95ea2e8): design PASS, visual PASS, code FINDINGS (M1 a note kept with Fine reached no agent; M2 AC#3), context FINDINGS (4 Material doc gaps). Fixed: code M1 (deck offers a note only with I disagree; the server drops a note on ok; test, mutant killed), M2 (skill-text test for decide; AC#3 amended: the day session is attended and decide needs a night), m1 (left asserted), m2 (notification counts decisions, tested); context 1-4 (ask-or-decide split in the night skill; disagreed kind, Viewer screens in design.md; Needs answers in the glossary) and minors 5-10; design notes D1 (Review capitalised), D2 (Next night labels the decision); visual V7 (withdrawn note dimmed). V6: no change (the gate honestly lists the open question; saving stays the owner's call). Pre-existing notes (History New pill, phone card navigation) left.
 
 Review round 3 (bdd05d5): design PASS; code FINDINGS (M1 AC#3 day half untested, m1 deck note fix untested); context FINDINGS (M1 ask-or-decide discriminator too narrow; minors 2-5; note 6). Fixed: ask when the task cannot go on or a wrong choice would be costly to undo, else decide and record (skill, D31); design.md overview rows and Inbox buttons; skill description; wraps; day skill tells the agent to ask the developer (text + test); UI test asserts no note under Fine (mutant killed). Code notes (hidden note saved on a quick switch; non-string note 500; file race) left: harmless or older.
+
+Review round 4 (2f17f60): code PASS (notes N1-N3: CLI decide untested like ask/record; v16 refuses @3 files, CHANGELOG to say switch+reinstall+restart; asymmetric early-version check, harmless). Context FINDINGS: M1 docs/practices/task-flow.md still said never guess: fixed with the D31 rule; minors fixed (D31 scoped to a night, day asks; ask example names the costly-to-undo reason; day skill sentence moved to section 2 and phrased as an instruction; wraps; 'if the developer were here' in the skill and glossary).
 <!-- SECTION:NOTES:END -->

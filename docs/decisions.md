@@ -445,11 +445,11 @@ disagrees with a note. A disagreement becomes a `disagreed` follow-up item
 the next agent is told about. Unreviewed decisions keep the night in the
 owner's turn (Needs answers, amending D24), and the Inbox counts them.
 They also show on the Night Report, per task and in their own section. A
-choice that belongs to the owner is never taken silently: the agent asks
-when the task cannot go on without it or a wrong choice would be costly
-to undo, and otherwise decides and records it (before, it asked about
-every such choice). Night and follow-up
-files go to version 3. **Why:** the owner wants to see, reliably and in one
+choice that belongs to the owner is never taken silently: during a night
+the agent asks when the task cannot go on without it or a wrong choice
+would be costly to undo, and otherwise decides and records it (before, it
+asked about every such choice, D1); a day session asks. Night and
+follow-up files go to version 3. **Why:** the owner wants to see, reliably and in one
 place, what an agent chose for them while reviewing work (TASK-46); both
 choices (cards in the morning; the owner's turn until reviewed) are the
 owner's. **Rejected:** reviewing them only on the Report (easy to miss);

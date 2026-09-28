@@ -30,8 +30,8 @@ the repository: Claude Code blocks both.
 If a night is already open in this session, continue it; do not start
 another. The status also lists open follow-up items: decisions,
 disagreements and unfinished work the developer handed back after an
-earlier night, and which feedback of earlier nights was sent to GitHub (with the issue) and
-which still awaits the developer.
+earlier night, and which feedback of earlier nights was sent to GitHub
+(with the issue) and which still awaits the developer.
 
 ## 2. Follow-ups first
 
@@ -142,7 +142,7 @@ with `decide` (below) and carry on. To ask, write to `.night-shift/input.json`:
 {
   "task": "T2",
   "ask": "Which fix for the Safari login loop?",
-  "why": "Both work; they differ in effort and risk.",
+  "why": "Both work; the quick fix loosens a cookie setting on every page, which is costly to get wrong.",
   "options": [
     { "label": "Relax the cookie setting", "detail": "Quick; needs HTTPS everywhere" },
     { "label": "Route login through our own domain", "detail": "Safer; about half a day" }
@@ -167,7 +167,8 @@ developer may also answer "let's discuss" with a note: that becomes a
 
 **Record every decision you take on the developer's behalf**, when you
 take it: a choice between options, a default you filled in where the task
-left it open, a step you would otherwise have asked about. Not routine
+left it open, a step you would have asked about if the developer were
+here. Not routine
 technical choices the developer would never think about. Write to
 `.night-shift/input.json` (`task` may be `null` for a decision about no
 particular task):

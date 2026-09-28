@@ -90,8 +90,8 @@ are in `docs/glossary.md`.
   with the next step, so the agent stays on track even after the harness has
   compressed older context.
 - **Normal end.** The agent adds the summary (questions, decisions and
-  feedback were recorded as they arose); the tool closes the night as `complete`. When the
-  session then ends, the Meter adds the metrics. They cover the whole
+  feedback were recorded as they arose); the tool closes the night as
+  `complete`. When the session then ends, the Meter adds the metrics. They cover the whole
   session, including anything done in it after the close.
 - **The session ends early** (context exhausted, the developer exits, the
   process is killed). The session-end hook closes the night as
@@ -246,8 +246,8 @@ disagreement becomes a `disagreed` follow-up item. Unreviewed decisions
 keep the night in the developer's turn. A metric Claude Code did not
 provide is `null` and shows as "unknown". `summary` is the headline on
 the Inbox card: one sentence on one line, at most 200 characters, checked
-at close (older nights keep longer ones). A question may carry `files` (paths inside the repository,
-with an optional caption); the Viewer shows them and opens the file manager
+at close (older nights keep longer ones). A question may carry `files`
+(paths inside the repository, with an optional caption); the Viewer shows them and opens the file manager
 on one. An answer is an option id, `"discuss"` (with a note), or `null`. An
 abridged example (the schema has every field):
 
@@ -367,8 +367,7 @@ it up, in a night or by day, does the digging for context.
   night is the developer's turn), and `disagreed` (the developer disagrees
   with an agent decision: `question` holds the decision, `owner_note` what
   they want instead, `agent_decision` its id; the next agent redoes that
-  part). Once
-  it is asked again (word for word), or its task ends done or skipped, the
+  part). Once it is asked again (word for word), or its task ends done or skipped, the
   old copy of the question is locked in the Viewer: the answer belongs
   where the question is open now. A night that works on the task without
   asking again leaves it open where it was, still answerable, and the next

@@ -99,5 +99,7 @@ gh issue edit 12 --add-label tracked
 
 The `start-night-shift` skill sits on top of this flow: each task in the
 night's plan is recorded with its outcome and evidence in the night file as
-soon as it ends. A question the task does not answer blocks it (`blocked`
-on a question to the owner); it is never guessed.
+soon as it ends. A choice the task leaves to the owner is never taken
+silently: the task is `blocked` on a question when it cannot go on without
+it or a wrong choice would be costly to undo; otherwise the agent decides
+and records it (`night-shift decide`, D31).

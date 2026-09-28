@@ -41,14 +41,13 @@ Each item has a `kind`:
   (`question`) that they disagree with; `owner_note` says what they want
   instead. Redo that part their way.
 
-A choice that belongs to the developer comes up while you work: ask them
-in the conversation; they are around.
-
 ## 2. Check before you fix
 
 The developer may have fixed an item by other means since the night.
 Look at the real code first. Then do the work the repository's normal way
 (its tests, review and commits), and check the item's `done_when` lines.
+When a choice that belongs to the developer comes up while you work, ask
+them in the conversation; they are around.
 
 ## 3. Mark each item
 

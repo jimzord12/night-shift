@@ -211,7 +211,7 @@ test("a question's files: served from the repository and shown in the file manag
 test("the day skill raises discuss items first; the night skill leaves them out and keeps the summary to one sentence", () => {
   const day = fs.readFileSync('skills/do-night-shift-follow-up/SKILL.md', 'utf8');
   assert.match(day, /Redo that part their way/);
-  assert.match(day, /A choice that belongs to the developer comes up while you work: ask them/);
+  assert.match(day, /When a choice that belongs to the developer comes up while you work, ask\nthem in the conversation/);
   assert.match(day, /Raise every `discuss` item with the developer first, before any other\nwork/);
   const night = fs.readFileSync('skills/start-night-shift/SKILL.md', 'utf8');
   assert.match(night, /A `discuss` item is one the developer wants to talk through:\nleave it out of the plan entirely/);
