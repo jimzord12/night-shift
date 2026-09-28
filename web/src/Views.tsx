@@ -79,7 +79,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                       const k = KIND[item.kind];
                       return (
                         <li key={ref} className="flex min-w-0 gap-3">
-                          <span className="mt-0.5 shrink-0 rounded bg-white/10 px-1.5 font-mono text-xs leading-6">{item.id}</span>
+                          <span className="mt-0.5 shrink-0 self-start rounded bg-white/10 px-1.5 font-mono text-xs leading-6">{item.id}</span>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                               <span className="font-medium">{item.title}</span>
