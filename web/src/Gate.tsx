@@ -64,12 +64,20 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
     confetti({ ...burst, angle: 120, origin: { x: 1, y: 1 } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [celebrate]);
-  // Each new state opens at the top, and Enter keeps working: the next Save takes the focus.
+  // Each new state opens at the top, and Enter keeps working: the next Save takes the focus. Saving
+  // waits a moment first, so a second Enter (or S) meant for the night just saved cannot save the
+  // next one before the developer has seen it (TASK-48).
+  const [armed, setArmed] = useState(false);
   useEffect(() => {
     onTop();
-    document.querySelector<HTMLButtonElement>('[data-gate-save]')?.focus();
+    setArmed(false);
+    const t = setTimeout(() => setArmed(true), ARM_MS);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heading, toSave.length]);
+  useEffect(() => {
+    if (armed) document.querySelector<HTMLButtonElement>('[data-gate-save]')?.focus();
+  }, [armed]);
 
   return (
     <div className="pop-in my-auto py-8">
@@ -83,7 +91,7 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
 
       <div className="mt-8 space-y-4">
         {toSave.map((d, i) => (
-          <SaveCard key={nightKey(d)} detail={d} first={i === 0} onConflict={onConflict} onSaved={(nd) => {
+          <SaveCard key={nightKey(d)} detail={d} first={i === 0} armed={armed} onConflict={onConflict} onSaved={(nd) => {
             onSavedNow(nightKey(nd));
             onSaved(nd);
           }} />
@@ -114,10 +122,13 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
   );
 }
 
+// How long a new state of the gate waits before a Save can be pressed.
+const ARM_MS = 500;
+
 // "blog (night of Sat 26 Sept)": the same form everywhere, and two nights of one repository stay apart.
 const names = (ds: NightDetail[]) => ds.map((d) => `${d.repo.name} (${nightTitle(d.night.night).replace(/^Night/, 'night')})`).join(', ');
 
-function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDetail; first: boolean; onSaved: (d: NightDetail) => void; onConflict: (repo: string, night: string) => Promise<boolean> }) {
+function SaveCard({ detail: d, first, armed, onSaved, onConflict }: { detail: NightDetail; first: boolean; armed: boolean; onSaved: (d: NightDetail) => void; onConflict: (repo: string, night: string) => Promise<boolean> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -184,7 +195,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
       )}
       {error && <div className="mt-3 rounded-xl bg-broken/15 px-3 py-2 text-sm text-broken">{error}</div>}
       <div className="mt-4 flex items-center gap-3">
-        <button ref={button} onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta inline-flex flex-1 items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:flex-none">
+        <button ref={button} onClick={() => void save()} disabled={busy || !armed} {...(first ? { 'data-gate-save': '' } : {})} className="cta inline-flex flex-1 items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:flex-none">
           <Icon name="forward" className="size-4" strokeWidth={2.6} /> {busy ? 'Saving…' : 'Save for the next agent'}
           {first && <kbd className="ml-1 hidden !border-white/40 font-normal sm:inline">S</kbd>}
         </button>
