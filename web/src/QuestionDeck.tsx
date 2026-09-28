@@ -3,7 +3,7 @@ import { handedItem, isOpenQuestionIn } from '../../src/types.ts';
 import type { NightDetail, Question } from '../../src/types.ts';
 import { ApiError, fileUrl, postAnswer } from './api.ts';
 import { MediaThumb, MediaViewer } from './Evidence.tsx';
-import { Gate } from './Gate.tsx';
+import { Gate, gateState } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
 import { Starfield } from './Starfield.tsx';
 import { Icon, nightTitle } from './ui.tsx';
@@ -53,6 +53,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   const scroller = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
+  const [savedNow, setSavedNow] = useState<ReadonlySet<string>>(new Set());
 
   const key = order[index];
   const item = key ? byKey.get(key) : undefined;
@@ -80,7 +81,14 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
   // answer is locked (the server refuses a change too).
   const handed = q && item ? handedItem(item.detail.follow_up, q) : undefined;
   const running = takenBy(item);
-  const lock = handed && handed.status !== 'open' ? (handed.status === 'carried' && handed.kind === 'waiting' ? 'follow-up item was asked again in a later night' : `follow-up's ${handed.id} is ${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in night ${handed.resolved?.by ?? ''}`}`) : running ? `night ${running} is working on it now; change it after that night closes` : null;
+  const nightOf = (id: string) => nightTitle(id).replace(/^Night/, 'night');
+  const lock = handed && handed.status !== 'open'
+    ? handed.status === 'carried' && handed.kind === 'waiting'
+      ? 'Locked: a later night asked this again. Answer it there.'
+      : `Locked: an agent already worked on this (${handed.status} ${handed.resolved?.by === 'day' ? 'by day' : `in the ${nightOf(handed.resolved?.by ?? '')}`}), so the answer can no longer change.`
+    : running
+      ? `Locked: the ${nightOf(running)} is working on this. You can change it once that night ends.`
+      : null;
 
   useEffect(() => {
     setMessage(null);
@@ -136,12 +144,15 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
       const typing = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
       if (e.key === 'Escape' && typing) return (e.target as HTMLElement).blur();
       if (e.key === 'Escape') return onClose();
+      // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
-        if (e.key === 'Enter') onClose();
+        if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement) && gateState(deckNights).clear) onClose();
         return;
       }
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
         e.preventDefault();
+        // A locked question has nothing to save: Enter moves on, like its Next button.
+        if (lock) return index === order.length - 1 ? setFinished(true) : advance(savedKeys);
         return void save();
       }
       if (typing || !qRef.current || !draft) return;
@@ -191,7 +202,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
         </header>
 
         {finished ? (
-          <Gate nights={deckNights} onSaved={onSaved} onClose={onClose} />
+          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={onClose} />
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (
@@ -201,8 +212,13 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
               <span className="rounded-full bg-white/5 px-2.5 py-1 text-white/60">{nightTitle(item.detail.night.night)}</span>
               {q.task && <span className="rounded-full bg-eyes/20 px-2.5 py-1 font-mono font-semibold text-eyes">{q.task}</span>}
               {q.answer !== null && !lock && <span className="rounded-full bg-[var(--accent)]/20 px-2.5 py-1 text-white/80">answered; you can change it</span>}
-              {lock && <span className="rounded-full bg-white/10 px-2.5 py-1 text-white/70">{q.answer === null ? 'not answerable here' : 'answered'} · locked: the {lock}</span>}
             </div>
+            {lock && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/15 bg-white/8 px-3 py-2 text-sm text-white/85">
+                <Icon name="lock" className="mt-0.5 size-4 shrink-0" strokeWidth={2.4} />
+                <span>{lock}</span>
+              </div>
+            )}
             <h2 className="font-display mt-4 text-2xl leading-tight font-semibold sm:text-4xl">{q.ask}</h2>
             {q.why && <p className="mt-2 text-white/60 sm:text-lg">{q.why}</p>}
 
@@ -214,8 +230,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                     key={o.id}
                     onClick={() => setDraft({ ...draft, answer: o.id })}
                     disabled={!!lock}
-                    className="flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition hover:bg-white/5"
-                    style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)' }}
+                    className={`flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition ${lock ? 'cursor-not-allowed' : 'hover:bg-white/5'}`}
+                    style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)', opacity: lock && !on ? 0.4 : 1 }}
                   >
                     <span className="grid size-7 shrink-0 place-items-center rounded-full border-2" style={{ borderColor: on ? 'var(--accent)' : '#ffffff30', background: on ? 'var(--accent)' : undefined }}>
                       {on && <Icon name="check" className="size-4" strokeWidth={3} />}
@@ -239,6 +255,7 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
                       {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                     </span>
                     {o.id === q.recommended && <Icon name="sparkle" className="size-4 text-moon" />}
+                    {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
                     {!lock && <kbd className="hidden text-white/40 sm:inline">{i + 1}</kbd>}
                   </button>
                 );

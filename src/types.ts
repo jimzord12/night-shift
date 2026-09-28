@@ -271,7 +271,8 @@ export const isOpenQuestionIn = (q: Question, f: FollowUp | null | undefined) =>
 
 // Tasks a follow-up would hand over: not done or skipped, leaving out follow-up items the night
 // never reached (they stay open in their own follow-up). Matches buildFollowUp.
-export const unfinishedTasks = (n: Night) => n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped' && !(t.follow_up && t.outcome === 'not_started')).length;
+export const unfinishedList = (n: Night) => n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped' && !(t.follow_up && t.outcome === 'not_started'));
+export const unfinishedTasks = (n: Night) => unfinishedList(n).length;
 
 // A closed night with work or questions for the next agent and no follow-up yet: the developer
 // still has to hand it over.

@@ -4,6 +4,7 @@ import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
 import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
+import { Saved } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
 import { Section } from './Inbox.tsx';
 import { KIND } from './Views.tsx';
@@ -125,6 +126,8 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
 function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Saved from this row just now: say what happens next, as the deck's gate does.
+  const [justSaved, setJustSaved] = useState(false);
   const n = detail.night;
   const f = detail.follow_up;
   const openQ = n.questions.filter((q) => isOpenQuestionIn(q, f)).length;
@@ -136,6 +139,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
     setError(null);
     try {
       onDetail(await createFollowUp(detail.repo.id, n.night));
+      setJustSaved(true);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -165,7 +169,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="forward" className="size-5" strokeWidth={2.4} /></span>
         <div className="min-w-[14rem] flex-1">
           <div className="font-semibold">Save for the next agent</div>
-          <div className="text-sm text-white/55">{pending} unfinished task{pending === 1 ? '' : 's'} and {n.questions.length} question{n.questions.length === 1 ? '' : 's'}. Answer what you can first; nothing runs until you start an agent.</div>
+          <div className="text-sm text-white/55">{pending} unfinished task{pending === 1 ? '' : 's'} and {n.questions.length} question{n.questions.length === 1 ? '' : 's'}. {openQ ? 'Answer what you can first; nothing' : 'Nothing'} runs until you start an agent.</div>
         </div>
         <button onClick={() => void create()} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
           {busy ? 'Saving…' : 'Save'}
@@ -173,6 +177,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
       </div>,
     );
   }
+  if (justSaved && f) rows.push(<div key="saved" className="p-2"><Saved detail={detail} /></div>);
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
       {rows.length ? <div className="divide-y divide-white/8">{rows}</div> : (

@@ -5,7 +5,7 @@ status: Review
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 11:12'
+updated_date: '2026-09-28 11:33'
 labels:
   - viewer
 dependencies:
@@ -35,3 +35,17 @@ D24. After the last answer nothing happens; Create follow-up sits in a side card
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Review round 1 (docs/work/TASK-28/reviews/01-*.md): code FINDINGS (M1, M2), design FINDINGS (D1 Blocking), visual FINDINGS (V1 Blocking). Dispositions:
+- code M1 (All clear while a night in the deck still runs): fixed; the gate names running nights ('Answers kept… Still running: crm') and is never clear while one runs.
+- code M2 / visual V1 (Enter on the gate closes without saving): fixed; the first Save is focused, Enter presses it, and Enter leaves only when nothing is left to save.
+- design D1 (the locked question does not look locked): fixed; a lock box with a sentence and the night's date, unchosen options dimmed with a not-allowed cursor, a lock icon on the chosen one.
+- code m3 (409 leaves a stale card): the gate reloads the night on a 409. m4: one exported unfinishedList. m5: saved-now state kept by the deck. m6: the report's Save shows the same confirmation. N1: night dates next to repository names.
+- design D2: the subtitle says 'Saved. Nothing runs until you start an agent.' D3: the folder has its own Copy button. D4: phrases do not wrap. D6: shorter lead. D5 (two meanings of Save): not changed; TASK-34 (keyboard) revisits the deck's buttons.
+- visual V2 (Enter on a locked question): moves on. V3: confetti only when this deck saved something; a night an agent is working on is named plainly. V6: the lock line uses the date; the report's save row drops 'Answer what you can first' when all are answered.
+- visual V4 (outside): added to TASK-40. V5 (a 409 on the first answer after the Meter writes metrics): filed as a bug task.
+Evidence: .local/evidence/2026-09-28-save-gate/r5 (keys.mjs: Enter-only walk, the running night; lock-390.png).
+<!-- SECTION:NOTES:END -->
