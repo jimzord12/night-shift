@@ -19,8 +19,15 @@ Run the tool as: `{{cli}}`
 {{cli}} follow-up show <follow-up id>
 ```
 
+**Raise every `discuss` item with the developer first, before any other
+work.** They chose "let's discuss" because the question or its options were
+unclear; `owner_note` says what they want to talk through. Talk it through
+in the conversation, then do what you agree, and mark the item.
+
 Each item has a `kind`:
 
+- `discuss`: the developer wants to talk it through (see above). No night
+  works on it, so it waits for a session like this one.
 - `decision`: the developer answered the question; `decision_label` and
   `owner_note` say what they chose and why. Follow it. One carried from an
   earlier night that did not finish it also has `left`.
@@ -43,4 +50,5 @@ Look at the real code first. Then do the work the repository's normal way
 ```
 
 An item left open is picked up by the next night: its plan must either take
-it on or skip it with a reason.
+it on or skip it with a reason. A `discuss` item left open stays for the
+next day session.

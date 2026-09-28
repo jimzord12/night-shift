@@ -159,3 +159,12 @@ test("a question's files: served from the repository and shown in the file manag
   assert.equal((await app.request(`${base}/0/reveal`, { method: 'POST' })).status, 404);
   assert.equal(shown.length, 1);
 });
+
+test("the day skill raises discuss items first; the night skill leaves them out and keeps the summary to one sentence", () => {
+  const day = fs.readFileSync('skills/do-night-shift-follow-up/SKILL.md', 'utf8');
+  assert.match(day, /Raise every `discuss` item with the developer first, before any other\nwork/);
+  const night = fs.readFileSync('skills/start-night-shift/SKILL.md', 'utf8');
+  assert.match(night, /A\n`discuss` item is one the developer wants to talk through: leave it out\nof the plan entirely/);
+  assert.match(night, /close with \*\*one\nsentence\*\*/);
+  assert.match(night, /"schema": "night-shift\/plan@2"/);
+});
