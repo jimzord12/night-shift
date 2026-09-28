@@ -100,6 +100,7 @@ function toast(title: string, text: string, url: string): string | null {
   // Progress records off and errors as one plain line, so a failure reads as its reason.
   const script = [
     "$ProgressPreference = 'SilentlyContinue'",
+    "$ErrorActionPreference = 'Stop'",
     'try {',
     '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null',
     '[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null',
