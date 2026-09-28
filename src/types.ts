@@ -222,7 +222,8 @@ export interface NightSummary {
   follow_up: boolean;
   // Open items in the follow-up, and when it was created; null without one, or when it cannot be read.
   follow_up_open: number | null;
-  // Open items of kind discuss: when every open item is one, it is the developer's turn.
+  // Open items that wait for a talk with the developer (forTalk): when every open item does, it is
+  // the developer's turn.
   follow_up_discuss: number | null;
   follow_up_at: string | null;
   // Closed with work or questions for the next agent, and no follow-up yet.

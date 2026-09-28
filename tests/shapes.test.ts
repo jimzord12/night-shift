@@ -314,6 +314,8 @@ test("a task the developer wants to discuss holds its carried decisions with it;
   assert.deepEqual(nn.repos.find((r) => r.repo.id === talk.ref.id)!.items.map((i) => [i.item.kind, i.held]), [['discuss', true], ['decision', true], ['decision', true]]);
   // Talked through by day: the decisions are the next night's work again.
   resolveItem(talk.repo, `${talk.night}/A1`, 'done', 'day', 'Talked it through: pdfkit');
+  const after = (await (await talk.app.request('/api/next-night')).json()) as NextNight;
+  assert.deepEqual(after.repos.find((r) => r.repo.id === talk.ref.id)!.items.map((i) => [i.item.kind, i.held]), [['decision', false], ['decision', false]]);
   refused(() => start(talk.repo, plan([TASKS[1]]), session('s5', DEAD_PID)), new RegExp(`${talk.night}/A2`));
   assert.equal(start(talk.repo, plan([{ ...TASKS[0], follow_up: [`${talk.night}/A2`, `${talk.night}/A3`] }]), session('s6', DEAD_PID), new Date('2026-09-29T23:10:00')).night.status, 'open');
 });

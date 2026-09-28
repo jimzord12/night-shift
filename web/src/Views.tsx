@@ -17,12 +17,18 @@ export const KIND: Record<FollowUpItem['kind'], { label: string; color: string }
 
 // What the next night in each repository will pick up: every open follow-up item, per repository,
 // grouped by the night it came from (D24 keeps one follow-up per night).
+// The discuss item a held item waits on, named by its id: " (A1)".
+function talkAbout(list: NextNightItem[], item: FollowUpItem): string {
+  const talk = list.find((x) => x.item.kind === 'discuss' && x.item.task === item.task);
+  return talk ? ` (${talk.item.id})` : '';
+}
+
 export function NextNightView({ next, onPick }: { next: NextNight | null; onPick: (repo: string, night: string) => void }) {
   if (!next) return <div className="py-24 text-center text-white/40">Loading what is scheduled…</div>;
   if (!next.repos.length) return <Empty icon="moon" text="Nothing is scheduled. When you save a night's unfinished work or answers for the next agent, the items show here until an agent finishes them." />;
   return (
     <div className="space-y-8">
-      <p className="text-white/60">What the next night in each repository will pick up. It starts when you tell an agent there: “start night shift” (or “work on the follow-up” by day).</p>
+      <p className="text-white/60">What the next night in each repository will pick up, and what waits for your talk first. It starts when you tell an agent there: “start night shift” (or “work on the follow-up” by day).</p>
       {next.repos.map(({ repo, items, problems }) => {
         const groups = new Map<string, NextNightItem[]>();
         for (const i of items) groups.set(i.from_night, [...(groups.get(i.from_night) ?? []), i]);
@@ -54,7 +60,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                             {item.owner_note && <div className="mt-0.5 text-sm text-white/60">Your note: {item.owner_note}</div>}
                             {item.left && item.left.length > 0 && <div className="mt-0.5 text-sm text-white/55">Still to do: {item.left.join(' · ')}</div>}
                             {item.kind === 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">No night works on this: talk it through with an agent, with you there (&ldquo;work on the follow-up&rdquo;).</div>}
-                            {held && item.kind !== 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">Waits for your talk about this task: no night works on it until then.</div>}
+                            {held && item.kind !== 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">Waits for your talk{talkAbout(list, item)}.</div>}
                           </div>
                         </li>
                       );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
+import type { FollowUp, FollowUpItem, NightDetail, NightSummary, Task } from '../../src/types.ts';
 import { OUTCOMES, answerLabel, countOutcomes, forTalk, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { Phrase } from './Gate.tsx';
 import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
@@ -42,6 +42,12 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
       )}
     </div>
   );
+}
+
+// The discuss item a held item waits on, named by its id: " (A1)".
+function talkId(f: FollowUp, item: FollowUpItem): string {
+  const talk = f.items.find((o) => o.status === 'open' && o.kind === 'discuss' && o.task === item.task);
+  return talk ? ` (${talk.id})` : '';
 }
 
 function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
@@ -97,13 +103,15 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
                 <span className="min-w-[10rem] flex-1 text-white/85">
                   {i.title}
                   {i.decision_label && <span className="font-semibold text-white"> → {i.decision_label}</span>}
+                  {i.decision_label && i.question && <span className="block text-sm text-white/55">{i.question}</span>}
+                  {i.status === 'open' && i.kind !== 'discuss' && forTalk(detail.follow_up!, i) && (
+                    // Held with a point the developer wants to talk through: no night takes it on.
+                    <span className="block text-sm text-eyes/90">Waits for your talk{talkId(detail.follow_up!, i)}.</span>
+                  )}
                 </span>
                 {i.status === 'open' && detail.taken[`${n.night}/${i.id}`] ? (
                   // A night running now took it on: the agent's turn, not the developer's.
                   <span className="shrink-0 rounded-full bg-agent/15 px-2 py-px text-xs font-semibold whitespace-nowrap text-agent">Taken by a running night</span>
-                ) : i.status === 'open' && i.kind !== 'discuss' && forTalk(detail.follow_up!, i) ? (
-                  // Held with a point the developer wants to talk through: no night takes it on.
-                  <span className="shrink-0 rounded-full bg-eyes/15 px-2 py-px text-xs font-semibold whitespace-nowrap text-eyes">Waits for your talk</span>
                 ) : i.status === 'open' ? (
                   <span className="shrink-0 rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${KIND[i.kind].color} 75%, white)`, background: `color-mix(in srgb, ${KIND[i.kind].color} 18%, transparent)` }}>{KIND[i.kind].label}</span>
                 ) : (
@@ -184,7 +192,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
               <li key={i.id}>{i.question ?? i.title}{i.owner_note && <span className="text-white/85"> · your note: {i.owner_note}</span>}</li>
             ))}
           </ul>
-          <p className="mt-2 text-sm text-white/55">No night works on these. Open Claude Code in this folder and say:</p>
+          <p className="mt-2 text-sm text-white/55">{talks.length === 1 ? 'No night works on this' : 'No night works on these'}. Open Claude Code in this folder and say:</p>
           <div className="mt-2 sm:max-w-sm"><Phrase text="work on the follow-up" hint="now, with you there" /></div>
         </div>
       </div>,

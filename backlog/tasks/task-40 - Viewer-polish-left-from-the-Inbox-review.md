@@ -44,4 +44,5 @@ From TASK-32 round 2: after a failed gate Save the focus returns behind an open 
 From file shapes round 1: the media viewer's header wraps into blobs at 390 (buttons, close, caption dropped); a file deleted after its question shows a broken image instead of 'file not found'; with three files a question's options start below the fold.
 
 At 768 px the header's version and proposals pill wrap to a second row under the tabs (seen in TASK-31 round 2 shots).
+From file shapes round 5: while a night runs and has taken the only plannable item, the Report's next line says 'start night shift' although only a talk with the developer is left (onlyDiscussLeft ignores items a running night took); the state 'Needs answers' reads oddly when every question is answered and only a talk waits (a wording like 'Needs you').
 <!-- SECTION:NOTES:END -->

@@ -183,9 +183,10 @@ export function App() {
   useEffect(() => {
     if (route.page === 'next') loadNext();
   }, [route.page, loadNext]);
-  const nextCount = next?.repos.reduce((sum, r) => sum + r.items.length, 0) ?? 0;
-  // Amber when an item still needs the developer's answer: their turn (D24).
-  const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.item.kind === 'waiting'));
+  // What a night will plan: items held for a talk with the developer are not counted.
+  const nextCount = next?.repos.reduce((sum, r) => sum + r.items.filter((i) => !i.held).length, 0) ?? 0;
+  // Amber when an item still needs the developer's answer or talk: their turn (D24).
+  const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.held || i.item.kind === 'waiting'));
   const detail = selected ? (details[selected] ?? null) : null;
   const summary = selected ? (overview?.nights.find((n) => keyOf(n.repo, n.id) === selected) ?? null) : null;
   // Every open question across nights: what Start my morning walks through.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { DISCUSS, answerLabel, followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
+import { DISCUSS, answerLabel, followUpOpen, forTalk, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
 import type { NightDetail } from '../../src/types.ts';
 import { ApiError, createFollowUp } from './api.ts';
 import { Icon, nightTitle } from './ui.tsx';
@@ -182,16 +182,22 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
 // What happens next, in plain words: nothing runs by itself; the phrase to say, and where. Also shown
 // on the Night Report after its own Save.
 export function Saved({ detail: d, flat = false }: { detail: NightDetail; flat?: boolean }) {
+  // Everything open waits for a talk with the developer: no night has work, only a day session.
+  const onlyTalk = !!d.follow_up && d.follow_up.items.some((i) => i.status === 'open') && d.follow_up.items.every((i) => i.status !== 'open' || forTalk(d.follow_up!, i));
   return (
     <section className={`pop-in bg-shipped/10 p-4 sm:p-5 ${flat ? '' : 'rounded-2xl border border-shipped/30'}`}>
       <div className="flex items-center gap-2 font-semibold text-shipped">
         <Icon name="check" className="size-5 shrink-0" strokeWidth={2.8} /> Saved for the next agent: {d.repo.name}
       </div>
-      <p className="mt-2 text-sm text-white/75">Nothing runs yet. When you want the work done, open a Claude Code session in this folder and say one of the phrases:</p>
+      <p className="mt-2 text-sm text-white/75">
+        {onlyTalk
+          ? 'Nothing runs yet, and no night takes this on: it waits for your talk. Open a Claude Code session in this folder, with you there, and say:'
+          : 'Nothing runs yet. When you want the work done, open a Claude Code session in this folder and say one of the phrases:'}
+      </p>
       <div className="mt-3 grid gap-2">
         <Phrase text={d.repo.path} hint="the folder" path />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Phrase text="start night shift" hint="tonight, unattended" />
+        <div className={`grid gap-2 ${onlyTalk ? '' : 'sm:grid-cols-2'}`}>
+          {!onlyTalk && <Phrase text="start night shift" hint="tonight, unattended" />}
           <Phrase text="work on the follow-up" hint="now, with you there" />
         </div>
       </div>
