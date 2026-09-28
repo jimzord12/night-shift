@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
-import { OUTCOMES, countOutcomes, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import { OUTCOMES, answerLabel, countOutcomes, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import { Saved } from './Gate.tsx';
@@ -291,7 +291,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
                   <Icon name="question" className="size-5 shrink-0 text-[var(--accent)]" />
                   <span className="min-w-0 flex-1">
                     <span className="block">{q.ask}</span>
-                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up, detail.taken) ? 'open' : 'locked'}</span>
+                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${answerLabel(q)}` : isOpenQuestionIn(q, detail.follow_up, detail.taken) ? 'open' : 'locked'}</span>
                   </span>
                 </button>
               ))}

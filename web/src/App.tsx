@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
+import { followUpDiscuss, followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
 import { getNextNight, getNight, getOverview, getProposals, markRead } from './api.ts';
 import { Inbox } from './Inbox.tsx';
@@ -55,6 +55,7 @@ export function App() {
             follow_up: n.follow_up || !!d.follow_up,
             hand_over: !n.follow_up && needsHandOver(d.night, d.follow_up),
             follow_up_open: d.follow_up ? followUpOpen(d.follow_up) : n.follow_up_open,
+            follow_up_discuss: d.follow_up ? followUpDiscuss(d.follow_up) : n.follow_up_discuss,
             follow_up_at: d.follow_up?.created_at ?? n.follow_up_at,
           }
         : live;

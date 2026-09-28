@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
+import { answerLabel, followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
 import type { NightDetail } from '../../src/types.ts';
 import { ApiError, createFollowUp } from './api.ts';
 import { Icon, nightTitle } from './ui.tsx';
@@ -144,7 +144,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
       {d.night.questions.length > 0 && (
         <ul className="mt-3 space-y-1.5 text-sm">
           {d.night.questions.map((q) => {
-            const label = q.answer === null ? null : (q.options.find((o) => o.id === q.answer)?.label ?? q.answer);
+            const label = answerLabel(q);
             return (
               <li key={q.id} className="flex gap-2">
                 <Icon name={label ? 'check' : 'question'} className={`mt-0.5 size-4 shrink-0 ${label ? 'text-shipped' : 'text-eyes'}`} strokeWidth={2.6} />

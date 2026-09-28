@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { handedItem, isOpenQuestionIn } from '../../src/types.ts';
+import { DISCUSS, answerLabel, handedItem, isOpenQuestionIn } from '../../src/types.ts';
 import type { NightDetail, Question } from '../../src/types.ts';
-import { ApiError, fileUrl, postAnswer } from './api.ts';
-import { MediaThumb, MediaViewer } from './Evidence.tsx';
+import { ApiError, fileUrl, postAnswer, questionFileUrl, revealQuestionFile } from './api.ts';
+import { MediaThumb, MediaViewer, mediaKind } from './Evidence.tsx';
 import { Gate, gateState } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
 import { Starfield } from './Starfield.tsx';
@@ -120,10 +120,17 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
 
   const save = useCallback(async () => {
     if (!q || !item || !draft || !key || busy || lock) return;
+    // Let's discuss says what to talk through, or the next agent has nothing to start from.
+    if (draft.answer === DISCUSS && !draft.note.trim()) {
+      setMessage("Let's discuss needs a note: what is unclear, or what you want to talk through.");
+      setShowNote(true);
+      setFocusNote(true);
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
-      const detail = await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft.answer, note: draft.note, baseHash: item.detail.hash });
+      const detail = await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft.answer, note: draft.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
       onSaved(detail);
       const nextSaved = new Set(savedKeys).add(key);
       setSavedKeys(nextSaved);
@@ -177,6 +184,11 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       const n = Number(e.key);
       const pick = qRef.current.options[n - 1];
       if (n >= 1 && pick) setDraft({ ...draft, answer: pick.id });
+      if (e.key === '0') {
+        setDraft({ ...draft, answer: DISCUSS });
+        setShowNote(true);
+        setFocusNote(true);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -235,6 +247,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             )}
             <h2 className="font-display mt-4 text-2xl leading-tight font-semibold sm:text-4xl">{q.ask}</h2>
             {q.why && <p className="mt-2 text-white/60 sm:text-lg">{q.why}</p>}
+            {q.files && q.files.length > 0 && <QuestionFiles detail={item.detail} q={q} onView={setZoom} />}
 
             <div className="mt-6 grid gap-3">
               {q.options.map((o, i) => {
@@ -276,6 +289,33 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               })}
             </div>
 
+            {(() => {
+              const on = draft.answer === DISCUSS;
+              if (lock && !on) return null;
+              return (
+                <button
+                  onClick={() => {
+                    setDraft({ ...draft, answer: DISCUSS });
+                    setShowNote(true);
+                    setFocusNote(true);
+                  }}
+                  disabled={!!lock}
+                  className={`mt-3 flex w-full items-center gap-4 rounded-2xl border-2 border-dashed px-4 py-3 text-left transition ${lock ? 'cursor-not-allowed' : 'hover:bg-white/5'}`}
+                  style={{ borderColor: on ? 'var(--color-eyes)' : '#ffffff1f', background: on ? 'color-mix(in srgb, var(--color-eyes) 14%, var(--color-night-900))' : 'transparent' }}
+                >
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full border-2" style={{ borderColor: on ? 'var(--color-eyes)' : '#ffffff30', background: on ? 'var(--color-eyes)' : undefined }}>
+                    {on && <Icon name="check" className="size-4 text-night-950" strokeWidth={3} />}
+                  </span>
+                  <span className="flex-1">
+                    <span className="block font-medium">I'm not sure, let's discuss</span>
+                    <span className="block text-sm text-white/55">Say what is unclear in a note; the next agent talks it through with you before any work on it.</span>
+                  </span>
+                  {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
+                  {!lock && <kbd className="hidden text-white/40 sm:inline">0</kbd>}
+                </button>
+              );
+            })()}
+
             {rec && (
               <div className="mt-6 flex items-start gap-3 rounded-2xl bg-moon/8 px-4 py-3 text-sm">
                 <Icon name="sparkle" className="mt-0.5 size-4 shrink-0 text-moon" />
@@ -291,7 +331,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               {lock ? (
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
-                <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="A note for the agent (optional)" rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
+                <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
               ) : (
                 <button onClick={() => { setShowNote(true); setFocusNote(true); }} className="text-sm text-white/50 hover:text-white">+ add a note</button>
               )}
@@ -300,7 +340,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             <footer className="sticky bottom-0 z-10 -mx-4 mt-auto border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
               {message && <div className="mb-2 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{message}</div>}
               {/* On a phone the options may be above the fold: name the answer Save would keep. */}
-              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{q.options.find((o) => o.id === draft.answer)?.label}</span></div>}
+              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{answerLabel({ ...q, answer: draft.answer })}</span></div>}
               <div className="flex items-center gap-2">
               <div className="hidden gap-2 sm:flex">
                 <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
@@ -319,6 +359,50 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         )}
       </div>
       {zoom && <MediaViewer media={zoom} onClose={() => setZoom(null)} />}
+    </div>
+  );
+}
+
+// The files a question points at (TASK-30): view one here, or have the tool show it in the file
+// manager, since a browser cannot open a folder on the machine.
+function QuestionFiles({ detail, q, onView }: { detail: NightDetail; q: Question; onView: (m: Media) => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const repo = detail.repo.id;
+  const night = detail.night.night;
+  return (
+    <div className="mt-4">
+      <ul className="grid gap-2">
+        {(q.files ?? []).map((f, i) => {
+          const src = questionFileUrl(repo, night, q.id, i);
+          const viewable = mediaKind(f.path) !== 'page' || /\.html?$/i.test(f.path);
+          return (
+            <li key={`${f.path}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-white/10 bg-night-900/70 px-3 py-2">
+              <Icon name="file" className="size-4 shrink-0 text-white/50" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-mono text-sm break-all text-white/85">{f.path}</span>
+                {f.caption && <span className="block text-xs text-white/55">{f.caption}</span>}
+              </span>
+              <span className="flex shrink-0 gap-2">
+                {viewable ? (
+                  <button onClick={() => onView({ src, title: f.caption ?? f.path })} className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20">View</button>
+                ) : (
+                  <a href={src} target="_blank" rel="noreferrer" className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20">Open</a>
+                )}
+                <button
+                  onClick={() => {
+                    setError(null);
+                    revealQuestionFile(repo, night, q.id, i).catch((e: Error) => setError(e.message));
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
+                >
+                  <Icon name="folder" className="size-3.5" /> Show in folder
+                </button>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {error && <p className="mt-2 text-sm text-broken">{error}</p>}
     </div>
   );
 }
