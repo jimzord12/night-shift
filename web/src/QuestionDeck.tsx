@@ -48,6 +48,9 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const [index, setIndex] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  // Questions left with Not now: the deck moves past them, and the gate says the next agent asks again.
+  const [passed, setPassed] = useState<Set<string>>(new Set());
+  const [inNote, setInNote] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [showNote, setShowNote] = useState(false);
@@ -109,13 +112,21 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(order.length - 1, i))), [order.length]);
 
-  const advance = (nextSaved: Set<string>) => {
-    const ahead = order.findIndex((k, i) => i > index && !handled(k, nextSaved));
-    const behind = order.findIndex((k, i) => i < index && !handled(k, nextSaved));
+  // The next question still waiting: ahead first, then behind; none left opens the gate. Not now
+  // (pass) leaves the current one for the next agent; a locked question's Next just browses on.
+  const moveOn = (nextSaved: Set<string>, nextPassed: Set<string>, browse: boolean) => {
+    const waiting = (k: string) => !handled(k, nextSaved) && !nextPassed.has(k);
+    const ahead = order.findIndex((k, i) => i > index && waiting(k));
+    const behind = order.findIndex((k, i) => i < index && waiting(k));
     if (ahead >= 0) setIndex(ahead);
     else if (behind >= 0) setIndex(behind);
-    else if (index < order.length - 1) setIndex(index + 1);
+    else if (browse && index < order.length - 1) setIndex(index + 1);
     else setFinished(true);
+  };
+  const advance = (nextSaved: Set<string>, pass = false) => {
+    const nextPassed = pass && key ? new Set(passed).add(key) : passed;
+    if (nextPassed !== passed) setPassed(nextPassed);
+    moveOn(nextSaved, nextPassed, !pass);
   };
 
   const save = useCallback(async () => {
@@ -143,11 +154,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         const { [key]: _, ...rest } = all;
         return rest;
       });
-      const ahead = order.findIndex((k, i) => i > index && !handled(k, nextSaved));
-      const behind = order.findIndex((k, i) => i < index && !handled(k, nextSaved));
-      if (ahead >= 0) setIndex(ahead);
-      else if (behind >= 0) setIndex(behind);
-      else setFinished(true);
+      moveOn(nextSaved, passed, false);
     } catch (error) {
       const reloaded = error instanceof ApiError && error.status === 409 ? await onConflict(item.detail.repo.id, item.detail.night.night) : true;
       setMessage(reloaded ? (error as Error).message : 'This night changed, and the new version could not be loaded. Reload the Viewer and try again.');
@@ -155,7 +162,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       setBusy(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, item, draft, key, busy, savedKeys, order, index]);
+  }, [q, item, draft, key, busy, savedKeys, passed, order, index]);
 
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const qRef = useRef(q);
@@ -163,6 +170,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (zoom) return;
+      const letter = e.code.startsWith('Key') ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const typing = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
       if (e.key === 'Escape' && typing) return (e.target as HTMLElement).blur();
       if (e.key === 'Escape') return onClose();
@@ -174,12 +182,14 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           e.preventDefault();
           if (gateState(deckNights).clear) onClose();
         }
-        if (e.key.toLowerCase() === 's' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (letter === 's' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
           e.preventDefault();
           document.querySelector<HTMLButtonElement>('[data-gate-save]:not(:disabled)')?.click();
         }
         return;
       }
+      const ownButton = e.target instanceof HTMLButtonElement && !!scroller.current?.contains(e.target) && !e.target.hasAttribute('data-option');
+      if (e.key === 'Enter' && ownButton && !e.ctrlKey) return;
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
         e.preventDefault();
         // A locked question has nothing to save: Enter moves on, like its Next button.
@@ -190,17 +200,20 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       if (e.key === 'ArrowRight') return go(index + 1);
       if (e.key === 'ArrowLeft') return go(index - 1);
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.toLowerCase() === 'n') return advance(savedKeys);
+      if (letter === 'n') return advance(savedKeys, !lock);
       if (lock) return;
       const n = Number(e.key);
       const pick = qRef.current.options[n - 1];
       if (n >= 1 && pick) setDraft({ ...draft, answer: pick.id });
-      if (e.key.toLowerCase() === 'd') {
+      if (letter === 'd') {
         // The key picks the choice; it must not also land in the note that opens focused.
         e.preventDefault();
         setDraft({ ...draft, answer: DISCUSS });
         setShowNote(true);
         setFocusNote(true);
+        // An open note takes the cursor now, before the next key; a new one once it is drawn.
+        noteRef.current?.focus();
+        setTimeout(() => noteRef.current?.focus(), 0);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -268,6 +281,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                 return (
                   <button
                     key={o.id}
+                    data-option
                     onClick={() => setDraft({ ...draft, answer: o.id })}
                     disabled={!!lock}
                     className={`flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition ${lock ? 'cursor-not-allowed' : 'hover:bg-white/5'}`}
@@ -307,6 +321,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               if (lock && !on) return null;
               return (
                 <button
+                  data-option
                   onClick={() => {
                     setDraft({ ...draft, answer: DISCUSS });
                     setShowNote(true);
@@ -345,7 +360,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
                 <>
-                <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
+                <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => { setInNote(true); e.currentTarget.scrollIntoView({ block: 'nearest' }); }} onBlur={() => setInNote(false)} />
                   <p className="mt-1 hidden text-xs text-white/40 sm:block"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> saves · <kbd>Esc</kbd> leaves the note</p>
                 </>
               ) : (
@@ -363,10 +378,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                 <button onClick={() => go(index + 1)} disabled={index === order.length - 1} className="moon-btn size-12 shrink-0" aria-label="Next" title="Next question (→)"><Icon name="right" className="size-5" strokeWidth={2.8} /></button>
               </div>
               <div className="flex-1" />
-              <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">N</kbd>}</button>
+              <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys, !lock))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">N</kbd>}</button>
               {!lock && (
                 <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-5 py-2.5 font-semibold whitespace-nowrap text-white sm:px-6 shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
-                  {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">Enter</kbd>
+                  {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">{inNote ? 'Ctrl+Enter' : 'Enter'}</kbd>
                 </button>
               )}
               </div>

@@ -173,7 +173,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
       <div className="mt-4 flex items-center gap-3">
         <button ref={button} onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta inline-flex flex-1 items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:flex-none">
           <Icon name="forward" className="size-4" strokeWidth={2.6} /> {busy ? 'Saving…' : 'Save for the next agent'}
-          {first && <kbd className="ml-1 hidden !border-white/40 sm:inline">S</kbd>}
+          {first && <kbd className="ml-1 hidden !border-white/40 font-normal sm:inline">S</kbd>}
         </button>
         <HelpDot step="save" term="Save for the next agent" />
       </div>

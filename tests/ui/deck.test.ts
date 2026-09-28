@@ -53,12 +53,14 @@ test('the deck saves the chosen answer and its note into the night file', async 
 
 test('a whole morning without the mouse: accept, discuss one, save', async () => {
   const repo = gitRepo('keys');
-  const id = start(repo, plan(TASKS.slice(0, 2)), session('k', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  const id = start(repo, plan(TASKS), session('k', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
   ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'b' });
   record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
   ask(repo, { task: 'T2', ask: 'Which login fix?', options: [{ label: 'Relax the cookie' }, { label: 'Own-domain login' }], recommended: 'a' });
   record(repo, { task: 'T2', outcome: 'blocked', checks: [false], blocked_by: 'Q2' });
-  close(repo, 'Invoices and login wait for you.');
+  ask(repo, { task: 'T3', ask: 'Upgrade now or after the release?', options: [{ label: 'Now' }, { label: 'After the release' }], recommended: 'b' });
+  record(repo, { task: 'T3', outcome: 'blocked', checks: [false, false], blocked_by: 'Q3' });
+  close(repo, 'Invoices, login and the upgrade wait for you.');
   recover(repo);
   registerRepo(repo);
 
@@ -78,23 +80,31 @@ test('a whole morning without the mouse: accept, discuss one, save', async () =>
     await page.keyboard.press('Enter');
     const deck = page.locator('div.sky.fixed');
     await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor();
-    // Enter keeps the recommended answer.
+    // A browser shortcut is not an answer; Enter keeps the recommended one.
+    await page.keyboard.press('Control+d');
     await page.keyboard.press('Enter');
     await deck.getByRole('heading', { name: 'Which login fix?' }).waitFor();
-    // D picks let's discuss and puts the cursor in the note; Ctrl+Enter saves.
+    // Enter on a focused Not now presses it, and the deck does not come back to that question.
+    await deck.getByRole('button', { name: /Not now/ }).focus();
+    await page.keyboard.press('Enter');
+    await deck.getByRole('heading', { name: 'Upgrade now or after the release?' }).waitFor();
+    // D picks let's discuss and puts the cursor in the note, also when pressed again after leaving it.
     await page.keyboard.press('d');
-    await page.keyboard.type('Does the cookie change affect the mobile app?');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('1');
+    await page.keyboard.press('d');
+    await page.keyboard.type('Does the upgrade change the login?');
     await page.keyboard.press('Control+Enter');
     await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
-    // S saves for the next agent; then Enter leaves.
-    await page.keyboard.press('s');
+    // S saves for the next agent, by the key's place (here a Greek layout); then Enter leaves.
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'σ', code: 'KeyS' })));
     await deck.getByRole('heading', { name: 'All clear' }).waitFor({ timeout: 10_000 });
     await page.keyboard.press('Enter');
     await deck.waitFor({ state: 'detached' });
 
     const n = loadNight(repo, id).night;
-    assert.deepEqual(n.questions.map((q) => [q.answer, q.note ?? null]), [['b', null], ['discuss', 'Does the cookie change affect the mobile app?']]);
-    assert.deepEqual(readFollowUp(repo, id).items.map((i) => [i.task, i.kind]), [['T1', 'decision'], ['T2', 'discuss']]);
+    assert.deepEqual(n.questions.map((q) => [q.answer, q.note ?? null]), [['b', null], [null, null], ['discuss', 'Does the upgrade change the login?']]);
+    assert.deepEqual(readFollowUp(repo, id).items.map((i) => [i.task, i.kind]), [['T1', 'decision'], ['T2', 'waiting'], ['T3', 'discuss']]);
   } finally {
     await browser.close();
     server.close();
