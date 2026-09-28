@@ -52,13 +52,15 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
       </section>
 
       {reachable > 0 && (
-        <button onClick={onStartMorning} disabled={!questionsReady} className="cta cta-block flex w-full flex-col items-center justify-center gap-x-3 gap-y-0.5 px-6 py-3.5 text-lg disabled:opacity-70 sm:flex-row sm:py-4">
+        <button onClick={onStartMorning} disabled={!questionsReady} className="cta cta-block flex w-full flex-col items-center justify-center gap-x-3 gap-y-0.5 px-6 py-3.5 text-lg disabled:opacity-70 lg:flex-row lg:py-4">
           <span className="cta-shine" />
           <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
-          <span className="font-semibold">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
+          <span className="font-semibold whitespace-nowrap">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
           <span className="text-sm text-white/80 sm:text-base">
             {reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
-            {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`} · <span className="whitespace-nowrap">about {estimate.minutes} min</span>
+            {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`}
+            {/* Its own line when the button stacks; after a dot when it is one row. */}
+            <span className="block whitespace-nowrap lg:inline"><span className="hidden lg:inline"> · </span>about {estimate.minutes} min</span>
           </span>
         </button>
       )}
