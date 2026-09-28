@@ -25,7 +25,7 @@ interface Props {
   startKey?: string;
   onClose: () => void;
   onSaved: (detail: NightDetail) => void;
-  onConflict: (repo: string, night: string) => Promise<void>;
+  onConflict: (repo: string, night: string) => Promise<boolean>;
 }
 
 export const deckKey = (d: NightDetail, q: Question) => `${d.repo.id}/${d.night.night}/${q.id}`;
@@ -114,8 +114,8 @@ export function QuestionDeck({ items, startKey, onClose, onSaved, onConflict }: 
       else if (behind >= 0) setIndex(behind);
       else setFinished(true);
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) await onConflict(item.detail.repo.id, item.detail.night.night);
-      setMessage((error as Error).message);
+      const reloaded = error instanceof ApiError && error.status === 409 ? await onConflict(item.detail.repo.id, item.detail.night.night) : true;
+      setMessage(reloaded ? (error as Error).message : 'This night changed, and the new version could not be loaded. Reload the Viewer and try again.');
     } finally {
       setBusy(false);
     }

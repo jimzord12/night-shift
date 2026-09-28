@@ -12,6 +12,9 @@ interface Props {
   scheduled: number;
   // Every open question across nights is loaded and ready for the deck.
   questionsReady: boolean;
+  // Nights with open questions whose detail could not be loaded: left out of the deck, named here.
+  unloaded: { repo: string; night: string; count: number }[];
+  onReload: () => void;
   onOpen: (repo: string, night: string) => void;
   onAnswer: (repo: string, night: string) => void;
   onStartMorning: () => void;
@@ -25,31 +28,42 @@ const isCard = (n: NightSummary) => readable(n) && (ownerState(n) === 'running' 
 
 // The Inbox (D24): what needs the developer at a glance, then one card per night that is running or
 // theirs, then the nights waiting for an agent or settled. No night opens until it is picked.
-export function Inbox({ overview, inbox, scheduled, questionsReady, onOpen, onAnswer, onStartMorning, onNext, onHistory }: Props) {
+export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, onReload, onOpen, onAnswer, onStartMorning, onNext, onHistory }: Props) {
   if (!overview.nights.length) return <Empty />;
   const now = Date.now();
   const cards = inbox.filter(isCard);
   const strip = inbox.filter((n) => !isCard(n));
   const questions = overview.nights.reduce((sum, n) => sum + n.questions_open, 0);
-  const questionRepos = new Set(overview.nights.filter((n) => n.questions_open > 0).map((n) => n.repo)).size;
+  // What Start my morning can actually walk: the questions of the nights that loaded.
+  const reachable = questions - unloaded.reduce((sum, u) => sum + u.count, 0);
+  const failedKeys = new Set(unloaded.map((u) => `${u.repo}/${u.night}`));
+  const questionRepos = new Set(overview.nights.filter((n) => n.questions_open > 0 && !failedKeys.has(`${n.repo}/${n.id}`)).map((n) => n.repo)).size;
   const yours = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
   const last = overview.nights[0];
 
   return (
     <div className="space-y-6">
       <section aria-label="At a glance" className="grid grid-cols-3 gap-2 sm:gap-3">
-        <Stat value={questions} label={questions === 1 ? 'question for you' : 'questions for you'} color="var(--color-eyes)" onClick={questions && questionsReady ? onStartMorning : undefined} />
+        <Stat value={questions} label={questions === 1 ? 'question for you' : 'questions for you'} color="var(--color-eyes)" onClick={reachable && questionsReady ? onStartMorning : undefined} />
         <Stat value={yours} label={yours === 1 ? 'night needs you' : 'nights need you'} color="var(--color-eyes)" />
         <Stat value={scheduled} label="for the next night" color="var(--color-agent)" onClick={onNext} />
       </section>
 
-      {questions > 0 && (
+      {reachable > 0 && (
         <button onClick={onStartMorning} disabled={!questionsReady} className="cta cta-block flex w-full flex-col items-center justify-center gap-x-3 gap-y-0.5 px-6 py-3.5 text-lg disabled:opacity-70 sm:flex-row sm:py-4">
           <span className="cta-shine" />
           <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
           <span className="font-semibold">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
-          <span className="text-sm text-white/80 sm:text-base">{questions} question{questions === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}</span>
+          <span className="text-sm text-white/80 sm:text-base">{reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}</span>
         </button>
+      )}
+      {unloaded.length > 0 && (
+        <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">
+          <span>
+            {[...new Set(unloaded.map((u) => repoName(overview, u.repo)))].join(', ')} could not be loaded, so {unloaded.length === 1 ? 'its questions are' : 'their questions are'} not in Start my morning.
+          </span>
+          <button onClick={onReload} className="rounded-full border border-broken/40 px-3 py-0.5 font-semibold hover:bg-broken/10">Reload</button>
+        </p>
       )}
 
       {cards.length > 0 ? (
