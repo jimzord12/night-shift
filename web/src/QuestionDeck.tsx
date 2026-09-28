@@ -218,6 +218,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       if (e.key === 'Escape') return onClose();
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
+        // A held key saves nothing more: each night on the gate takes its own press (TASK-48).
+        if (e.repeat && (e.key === 'Enter' || letter === 's')) return e.preventDefault();
         const ownButton = e.target instanceof HTMLButtonElement && !!scroller.current?.contains(e.target);
         if (e.key === 'Enter' && !ownButton) {
           // A button behind the deck (the one that opened it) must not take the key.

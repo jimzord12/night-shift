@@ -67,16 +67,19 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
   // Each new state opens at the top, and Enter keeps working: the next Save takes the focus. Saving
   // waits a moment first, so a second Enter (or S) meant for the night just saved cannot save the
   // next one before the developer has seen it (TASK-48).
-  const [armed, setArmed] = useState(false);
+  // Armed per state, so a Save is disabled from the very render its state appears in; the focus
+  // does not scroll, so the state stays at its top on a phone.
+  const state = `${heading}|${toSave.length}`;
+  const [armedFor, setArmedFor] = useState<string | null>(null);
+  const armed = armedFor === state;
   useEffect(() => {
     onTop();
-    setArmed(false);
-    const t = setTimeout(() => setArmed(true), ARM_MS);
+    const t = setTimeout(() => setArmedFor(state), ARM_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heading, toSave.length]);
+  }, [state]);
   useEffect(() => {
-    if (armed) document.querySelector<HTMLButtonElement>('[data-gate-save]')?.focus();
+    if (armed) document.querySelector<HTMLButtonElement>('[data-gate-save]')?.focus({ preventScroll: true });
   }, [armed]);
 
   return (

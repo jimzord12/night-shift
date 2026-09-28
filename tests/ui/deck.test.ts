@@ -295,13 +295,20 @@ test('saving one night on the gate never saves the next one before it is seen (T
     // it waits, and save nothing.
     await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
     await page.keyboard.press('Enter');
-    for (let i = 0; i < 40 && !saved().some(Boolean); i++) await page.waitForTimeout(50);
-    await page.keyboard.press('Enter');
+    // The keys come once the saved night shows as saved, when the next card is on the screen.
+    await deck.getByText(/Saved for the next agent: gate-/).first().waitFor();
+    // The second Enter is held down.
+    await page.keyboard.down('Enter');
     await page.keyboard.press('s');
     await page.waitForTimeout(300);
     assert.equal(saved().filter(Boolean).length, 1);
-    // Once its Save is ready, the next night saves as usual.
+    // A held Enter (the key's auto-repeat) saves nothing once the next Save is ready.
     await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(300);
+    assert.equal(saved().filter(Boolean).length, 1);
+    await page.keyboard.up('Enter');
+    // A fresh press saves the next night as usual.
     await page.keyboard.press('Enter');
     for (let i = 0; i < 40 && !saved().every(Boolean); i++) await page.waitForTimeout(100);
     assert.deepEqual(saved(), [true, true]);

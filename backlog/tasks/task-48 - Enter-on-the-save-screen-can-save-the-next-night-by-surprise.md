@@ -4,7 +4,7 @@ title: Enter on the save screen can save the next night by surprise
 status: Active
 assignee: []
 created_date: '2026-09-28 19:42'
-updated_date: '2026-09-28 20:32'
+updated_date: '2026-09-28 20:44'
 labels:
   - bug
 dependencies: []
@@ -29,3 +29,9 @@ Found by the TASK-46 visual review (V5), older than it (TASK-28): after saving o
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Review round 1 (0b36518): visual PASS (V1 held Enter still saved every night: taken, key repeats ignored on the gate; V2 dim level: no change). Code FINDINGS: F1 the test passed on the unfixed Gate (it pressed before the UI updated): now waits for the Saved line; pre-fix Gate fails 2/2 at the only-one-saved check, no-repeat-guard fails too. F2 the delayed focus scrolled the gate ~620px on a phone: focus({preventScroll}). F3 enabled for one render: armed is derived per state in render. N1 (deck double Enter), N2 (single-night confirmation skipped), N3 (order): pre-existing or accepted.
+<!-- SECTION:NOTES:END -->
