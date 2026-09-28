@@ -275,6 +275,10 @@ test('a running night that skips a follow-up item takes it too: locked in the de
   assert.deepEqual(d.taken, { [`${id}/A1`]: live.night.night });
   // Held by the running night, the question is not the developer's turn: it is not counted open.
   assert.equal(await open(), 0);
+  // A question the running night asks itself is not held by anything: it still counts.
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', why: 'Both fit.', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  const liveOpen = ((await (await app.request('/api/overview')).json()) as Overview).nights.find((n) => n.repo === ref.id && n.id === live.night.night)?.questions_open;
+  assert.deepEqual([await open(), liveOpen], [0, 1]);
   const res = await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: d.hash }) });
   assert.equal(res.status, 409);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
