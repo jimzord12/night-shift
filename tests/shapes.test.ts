@@ -357,18 +357,21 @@ test('a point to discuss without a task holds only itself', () => {
 test('a waiting question stays open and answerable when the task that followed it ends without asking again', async () => {
   const { repo, id, ref } = withFollowUp('still-waiting');
   createFollowUp(repo, loadNight(repo, id).night);
-  const s = start(repo, plan([{ ...TASKS[0], follow_up: `${id}/A1` }], { skipped_follow_ups: [{ follow_up: `${id}/A2`, reason: 'not tonight' }] }), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
+  start(repo, plan([{ ...TASKS[0], follow_up: `${id}/A1` }], { skipped_follow_ups: [{ follow_up: `${id}/A2`, reason: 'not tonight' }] }), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
   record(repo, { task: 'T1', outcome: 'partial', checks: [true, { met: false, note: 'the layout still waits' }] });
-  close(repo, 'Half the invoices; the layout question still stands.');
+  const second = close(repo, 'Half the invoices; the layout question still stands.').night;
   assert.deepEqual(readFollowUp(repo, id).items.map((i) => [i.kind, i.status]), [['waiting', 'open'], ['waiting', 'skipped']]);
   // The next night must plan it or skip it, and the developer can still answer it where it was asked.
   refused(() => start(repo, plan([TASKS[2]]), session('s3', DEAD_PID)), new RegExp(`${id}/A1`));
   const res = await createApp({ version: 'test' }).request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: loadNight(repo, id).hash }) });
   assert.equal(res.status, 200);
   assert.deepEqual(readFollowUp(repo, id).items.map((i) => [i.kind, i.decision_label ?? null, i.status]), [['decision', 'Detailed', 'open'], ['waiting', null, 'skipped']]);
-  // The next night takes on the answered question.
-  const t = start(repo, plan([{ ...TASKS[0], follow_up: `${id}/A1` }]), session('s4', DEAD_PID), new Date('2026-09-28T23:10:00'));
-  assert.equal(t.night.status, 'open');
+  // Answered before the second night is saved: the answer stays where it was given, not copied, so
+  // changing it later leaves one decision.
+  assert.deepEqual(createFollowUp(repo, second).items.map((i) => [i.kind, i.decision_label ?? null]), [['unfinished', null]]);
+  // The next night takes on the answered question with the work left, and is told the answer.
+  const t = start(repo, plan([{ ...TASKS[0], follow_up: [`${id}/A1`, `${second.night}/A1`] }]), session('s4', DEAD_PID), new Date('2026-09-28T23:10:00'));
+  assert.match(t.messages.join('\n'), new RegExp(`T1 follows ${id}/A1: the developer chose "Detailed"`));
 });
 
 test('a waiting question asked again by the next night is carried there and locked where it was first asked', () => {

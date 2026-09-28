@@ -355,14 +355,17 @@ it up, in a night or by day, does the digging for context.
   plans or skips it, nor the other open items of its task; a day session
   raises it with them first, and while only those items are open the
   night is the developer's turn). Once
-  it is asked again, or its task is done, the old copy of the question is
-  locked in the Viewer: the answer belongs where the question is open now.
-  A night that works on the task without asking again leaves it open where
-  it was, still answerable, and the next night plans or skips it again.
+  it is asked again (word for word), or its task ends done or skipped, the
+  old copy of the question is locked in the Viewer: the answer belongs
+  where the question is open now. A night that works on the task without
+  asking again leaves it open where it was, still answerable, and the next
+  night plans or skips it again (D30).
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
   night reached the item as a task that did not end done or skipped, so that
   task (and that night's own follow-up, which keeps a decision's answer)
-  carries it from here. A task left `not_started` leaves the item `open`.
+  carries it from here. A task left `not_started` leaves the item `open`,
+  and so does a task that followed a `waiting` item without asking it
+  again (D30).
 - The developer may fix things outside Night Shift, so statuses can go
   stale. The next plan therefore checks every open item against the code
   before linking it: a task with `follow_up` (one ref, or a list when one

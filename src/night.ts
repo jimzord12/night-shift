@@ -179,7 +179,7 @@ export function start(repo: string, planText: string, session: Session | null = 
     for (const ref of refsOf(t)) {
       const item = checkRef(repo, ref).item;
       if (item.kind === 'decision') messages.push(`${t.id} follows ${ref}: the developer chose "${item.decision_label}"${item.owner_note ? ` (note: ${item.owner_note})` : ''}.`);
-      else if (item.kind === 'waiting') messages.push(`${t.id} follows ${ref}: no answer yet; ask again before working on it.`);
+      else if (item.kind === 'waiting') messages.push(`${t.id} follows ${ref}: no answer yet; if the task still needs it, ask it again word for word ("${item.question}") and record the task blocked. Not asked again, it stays open where it was asked.`);
     }
   }
   const talk = openItems(repo).filter((o) => forTalk(o.followUp, o.item));
