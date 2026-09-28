@@ -3,6 +3,13 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v18 (4fb504d), 2026-09-28
+
+- Viewer: the save screen at the end of the deck no longer saves the
+  next night by surprise (TASK-48). After each save, its Save buttons
+  wait half a second before they take a press; a held Enter or S saves
+  nothing more; on a phone the screen stays at its top.
+
 ## v17 (a88f16c), 2026-09-28
 
 - File shapes version 3 (`night-shift/night@3`, `follow-up@3`; the plan
