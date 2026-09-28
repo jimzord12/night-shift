@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
-import { getNextNight, getNight, getOverview, markRead } from './api.ts';
+import { getNextNight, getNight, getOverview, getProposals, markRead } from './api.ts';
 import { Inbox } from './Inbox.tsx';
 import { ReportPage } from './Report.tsx';
 import { Starfield } from './Starfield.tsx';
@@ -49,7 +49,7 @@ export function App() {
       return d
         ? {
             ...live,
-            questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up)).length,
+            questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up, d.taken)).length,
             feedback_unsent: d.night.feedback.filter((f) => !f.sent).length,
             // A follow-up file the server found but could not read still counts as handed over.
             follow_up: n.follow_up || !!d.follow_up,
@@ -80,7 +80,7 @@ export function App() {
   const selected = route.page === 'night' ? route.key : null;
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string } | null>(null);
+  const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string; from: 'Inbox' | 'report' } | null>(null);
 
   // What the next night in each repository will pick up; fetched with the overview and whenever the
   // tab opens.
@@ -126,6 +126,8 @@ export function App() {
     }
   }, [putDetail]);
 
+  // Reload also asks GitHub again for the proposals count.
+  const [reloads, setReloads] = useState(0);
   const load = useCallback(async () => {
     setLoading(true);
     // Loads started before this point are dropped, and details and failures are forgotten now, so a
@@ -184,7 +186,7 @@ export function App() {
   const detail = selected ? (details[selected] ?? null) : null;
   const summary = selected ? (overview?.nights.find((n) => keyOf(n.repo, n.id) === selected) ?? null) : null;
   // Every open question across nights: what Start my morning walks through.
-  const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
+  const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
   // A night whose load failed is left out rather than holding the button back; the Inbox names it.
   const questionsReady = !!overview && overview.nights.every((n) => !n.questions_open || !readable(n) || !!details[keyOf(n.repo, n.id)] || failures.has(keyOf(n.repo, n.id)));
   // A night that failed only on a reload keeps its older detail, and the deck still walks it.
@@ -195,7 +197,7 @@ export function App() {
   const pick = (repo: string, night: string) => {
     go(`#/night/${encodeURIComponent(repo)}/${encodeURIComponent(night)}`);
   };
-  const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey });
+  const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey, from: route.page === 'night' ? 'report' : 'Inbox' });
   const nightItems = (key: string | null) => (key ? allItems.filter((i) => keyOf(i.detail.repo.id, i.detail.night.night) === key) : []);
   // The deck reads the latest details, so a saved answer updates the file hash for the next save.
   const deckItems = deck ? deck.items.map((i) => allItems.find((x) => x.key === i.key) ?? i) : [];
@@ -225,7 +227,8 @@ export function App() {
           </nav>
           <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
             <span className="hidden sm:inline">{overview?.version}</span>
-            <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
+            <Proposals reloads={reloads} />
+            <button onClick={() => { setReloads((r) => r + 1); void load(); }} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -247,7 +250,7 @@ export function App() {
                 onOpen={pick}
                 onAnswer={(repo, night) => {
                   const items = nightItems(keyOf(repo, night));
-                  if (items.length) openDeck(items, items.find((i) => isOpenQuestionIn(i.question, i.detail.follow_up))?.key);
+                  if (items.length) openDeck(items, items.find((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken))?.key);
                   else pick(repo, night);
                 }}
                 onStartMorning={() => openDeck(openItems)}
@@ -256,7 +259,7 @@ export function App() {
               />
             )}
             {route.page === 'night' && (
-              <ReportPage detail={detail} summary={summary} picking={!detail} failed={!!failure} onBack={() => go('#/')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(selected), startKey)} />
+              <ReportPage detail={detail} summary={summary} picking={!detail} failed={!!failure} onBack={() => go('#/')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(selected), startKey)} onReload={() => { if (selected) void loadNight(...(selected.split('/') as [string, string]), true); }} />
             )}
             {route.page === 'next' && <NextNightView next={next} onPick={pick} />}
             {route.page === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}
@@ -268,6 +271,7 @@ export function App() {
         <QuestionDeck
           items={deckItems}
           startKey={deck.startKey}
+          from={deck.from}
           onClose={() => setDeck(null)}
           onSaved={putDetail}
           onConflict={async (repo, night) => loadNight(repo, night, true)}
@@ -279,4 +283,32 @@ export function App() {
 
 function Banner({ children }: { children: ReactNode }) {
   return <div className="mb-4 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">{children}</div>;
+}
+
+// Open proposals on the Night Shift Repo (TASK-35): feedback sent from any repository that nobody
+// has closed yet. Shows only when gh answered and at least one is open; links to the list.
+function Proposals({ reloads }: { reloads: number }) {
+  const [p, setP] = useState<{ open: number; url: string } | null>(null);
+  useEffect(() => {
+    getProposals(reloads > 0).then(setP, () => setP(null));
+  }, [reloads]);
+  if (!p?.open) return null;
+  const what = `${p.open} open proposal${p.open === 1 ? '' : 's'} on GitHub (the Night Shift Repo)`;
+  // The GitHub mark and an outward arrow say where it goes at every width; the word joins from sm up.
+  return (
+    <a href={p.url} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white/75 hover:text-white" title={what} aria-label={what}>
+      <GitHubMark />
+      <span className="font-semibold">{p.open}</span>
+      <span className="hidden sm:inline">proposal{p.open === 1 ? '' : 's'}</span>
+      <Icon name="external" className="size-3.5 text-white/50" />
+    </a>
+  );
+}
+
+function GitHubMark() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className="size-4" aria-hidden>
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  );
 }

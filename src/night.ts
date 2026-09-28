@@ -453,7 +453,7 @@ export function recover(repo: string, now = new Date()): string[] {
 
 // The session-end hook: close this session's open night as interrupted, then measure. Nights of
 // other sessions are left alone.
-export function onSessionEnd(repo: string, sessionId: string, transcript: string | null, now = new Date()): string[] {
+export function onSessionEnd(repo: string, sessionId: string, transcript: string | null, now = new Date(), onClosed: (n: Night) => void = () => {}): string[] {
   const out: string[] = [];
   for (const id of listNightIds(repo)) {
     let n: Night;
@@ -466,6 +466,7 @@ export function onSessionEnd(repo: string, sessionId: string, transcript: string
     if (n.status === 'open') {
       finish(repo, n, 'interrupted', now);
       out.push(`night ${id} closed as interrupted`);
+      onClosed(n);
     }
     if (n.metrics === null) {
       n.metrics = measure(transcript && fs.existsSync(transcript) ? transcript : (n.session.transcript ?? findTranscript(sessionId)), sessionId, now);

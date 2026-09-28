@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
-import { OUTCOMES, countOutcomes, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
-import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
+import { OUTCOMES, countOutcomes, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
+import { Saved } from './Gate.tsx';
 import type { Media } from './Evidence.tsx';
 import { Section } from './Inbox.tsx';
 import { KIND } from './Views.tsx';
@@ -11,7 +12,7 @@ import { Icon, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, n
 
 // The Night Report page (D24): back to the Inbox, a header strip, what needs the developer, then
 // what happened as one row per task. Sections that have nothing to say are left out.
-export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDeck, onDetail }: {
+export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDeck, onDetail, onReload }: {
   detail: NightDetail | null;
   summary: NightSummary | null;
   // The detail is on the way, or could not be loaded (the banner above says why).
@@ -20,6 +21,7 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
   onBack: () => void;
   onOpenDeck: (startKey?: string) => void;
   onDetail: (d: NightDetail) => void;
+  onReload: () => void;
 }) {
   return (
     <div className="space-y-5">
@@ -27,7 +29,7 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
         <Icon name="left" className="size-4" strokeWidth={2.4} /> Inbox
       </button>
       {detail && summary ? (
-        <NightView detail={detail} summary={summary} onOpenDeck={onOpenDeck} onDetail={onDetail} />
+        <NightView detail={detail} summary={summary} onOpenDeck={onOpenDeck} onDetail={onDetail} onReload={onReload} />
       ) : failed ? (
         <div className="py-24 text-center text-white/50">This night could not be opened; the message above says why.</div>
       ) : picking ? (
@@ -39,7 +41,7 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
   );
 }
 
-function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void }) {
+function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
   const [open, setOpen] = useState<Task | null>(null);
   const n = detail.night;
   const counts = countOutcomes(n.tasks);
@@ -73,7 +75,7 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
       </header>
 
       <Section title="What needs you">
-        <NeedsYou detail={detail} onOpenDeck={onOpenDeck} onDetail={onDetail} />
+        <NeedsYou detail={detail} onOpenDeck={onOpenDeck} onDetail={onDetail} onReload={onReload} />
       </Section>
 
       {detail.follow_up && (
@@ -86,7 +88,10 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
                   {i.title}
                   {i.decision_label && <span className="font-semibold text-white"> → {i.decision_label}</span>}
                 </span>
-                {i.status === 'open' ? (
+                {i.status === 'open' && detail.taken[`${n.night}/${i.id}`] ? (
+                  // A night running now took it on: the agent's turn, not the developer's.
+                  <span className="shrink-0 rounded-full bg-agent/15 px-2 py-px text-xs font-semibold whitespace-nowrap text-agent">Taken by a running night</span>
+                ) : i.status === 'open' ? (
                   <span className="shrink-0 rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${KIND[i.kind].color} 75%, white)`, background: `color-mix(in srgb, ${KIND[i.kind].color} 18%, transparent)` }}>{KIND[i.kind].label}</span>
                 ) : (
                   <span className="shrink-0 text-xs text-white/50">{i.status}</span>
@@ -122,13 +127,20 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
 }
 
 // The questions as one compact row, and the save for the next agent; what is left when neither applies.
-function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void }) {
+function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDetail; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Saved from this row just now: say what happens next, as the deck's gate does.
+  const [justSaved, setJustSaved] = useState(false);
   const n = detail.night;
   const f = detail.follow_up;
-  const openQ = n.questions.filter((q) => isOpenQuestionIn(q, f)).length;
-  const answered = n.questions.length - openQ;
+  const openQ = n.questions.filter((q) => isOpenQuestionIn(q, f, detail.taken)).length;
+  const answered = n.questions.filter((q) => q.answer !== null).length;
+  // Unanswered, and its item taken on by a night running now.
+  const held = n.questions.filter((q) => {
+    const h = q.answer === null ? handedItem(f, q) : undefined;
+    return !!h && !!detail.taken[`${n.night}/${h.id}`];
+  }).length;
   const save = n.status !== 'open' && needsHandOver(n, f);
   const pending = unfinishedTasks(n);
   const create = async () => {
@@ -136,8 +148,11 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
     setError(null);
     try {
       onDetail(await createFollowUp(detail.repo.id, n.night));
+      setJustSaved(true);
     } catch (e) {
       setError((e as Error).message);
+      // Saved elsewhere meanwhile (another tab): show the night as it is now.
+      if (e instanceof ApiError && e.status === 409) onReload();
     } finally {
       setBusy(false);
     }
@@ -150,8 +165,8 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
           <span className="text-lg font-bold">{openQ}</span>
         </Ring>
         <div className="min-w-[12rem] flex-1">
-          <div className="font-semibold">{openQ ? `${openQ} question${openQ === 1 ? '' : 's'} waiting for you` : 'Every question answered'}</div>
-          <div className="text-sm text-white/55">{answered} of {n.questions.length} answered{openQ && f ? '; your answer still reaches the next agent' : ''}</div>
+          <div className="font-semibold">{openQ ? `${openQ} question${openQ === 1 ? '' : 's'} waiting for you` : answered < n.questions.length ? 'Nothing waiting for you' : 'Every question answered'}</div>
+          <div className="text-sm text-white/55">{answered} of {n.questions.length} answered{openQ && f ? '; your answer still reaches the next agent' : ''}{!openQ && answered < n.questions.length ? (held ? `; ${held} held by a running night` : '; the rest were settled elsewhere') : ''}</div>
         </div>
         <button onClick={() => onOpenDeck()} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 font-semibold transition hover:brightness-110 ${openQ ? 'bg-[var(--accent)] text-white' : 'glass text-white/85'}`}>
           {openQ ? 'Start answering' : 'Review answers'} <Icon name="right" className="size-4" strokeWidth={2.6} />
@@ -165,7 +180,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="forward" className="size-5" strokeWidth={2.4} /></span>
         <div className="min-w-[14rem] flex-1">
           <div className="font-semibold">Save for the next agent</div>
-          <div className="text-sm text-white/55">{pending} unfinished task{pending === 1 ? '' : 's'} and {n.questions.length} question{n.questions.length === 1 ? '' : 's'}. Answer what you can first; nothing runs until you start an agent.</div>
+          <div className="text-sm text-white/55">{[pending ? `${pending} unfinished task${pending === 1 ? '' : 's'}` : '', n.questions.length ? `${n.questions.length} question${n.questions.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. {openQ ? 'Answer what you can first; nothing' : 'Nothing'} runs until you start an agent.</div>
         </div>
         <button onClick={() => void create()} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
           {busy ? 'Saving…' : 'Save'}
@@ -173,12 +188,13 @@ function NeedsYou({ detail, onOpenDeck, onDetail }: { detail: NightDetail; onOpe
       </div>,
     );
   }
+  if (justSaved && f) rows.push(<Saved key="saved" detail={detail} flat />);
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
       {rows.length ? <div className="divide-y divide-white/8">{rows}</div> : (
         <p className="px-4 py-3 text-white/60">{n.status === 'open' ? 'Nothing yet: the night is still running.' : 'Nothing: no question was asked and nothing is left to save.'}</p>
       )}
-      {error && <div className="border-t border-white/8 bg-broken/15 px-4 py-2 text-sm text-broken">{error}</div>}
+      {error && (save || !f) && <div className="border-t border-white/8 bg-broken/15 px-4 py-2 text-sm text-broken">{error}</div>}
     </div>
   );
 }
@@ -195,7 +211,7 @@ function TaskRow({ task: t, onOpen }: { task: Task; onOpen: () => void }) {
       </Pill>
     ),
     t.blocked_by && <Pill key="b" className="!bg-eyes/20 !text-eyes"><Icon name="question" className="size-3" /> {t.blocked_by}</Pill>,
-    t.follow_up && <Pill key="f">from {t.follow_up}</Pill>,
+    refsOf(t).length > 0 && <Pill key="f">from {refsOf(t).join(', ')}</Pill>,
     t.unplanned && <Pill key="u">unplanned</Pill>,
   ].filter(Boolean);
   return (
@@ -275,7 +291,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
                   <Icon name="question" className="size-5 shrink-0 text-[var(--accent)]" />
                   <span className="min-w-0 flex-1">
                     <span className="block">{q.ask}</span>
-                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up) ? 'open' : 'locked'}</span>
+                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up, detail.taken) ? 'open' : 'locked'}</span>
                   </span>
                 </button>
               ))}

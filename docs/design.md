@@ -415,18 +415,27 @@ from any folder. Screens:
    (open one for its checks, questions and proof); feedback with tick
    boxes and **Send to GitHub**. Opening a night marks it read; a night
    opened while it ran is unread again once it ends.
-3. **Next night** (`#/next`): every open follow-up item across
+3. **The question deck** (over any page): one question per screen, the
+   recommendation preselected. It ends on the **gate** (TASK-28): for each
+   night it walked that is not saved yet, the answers and the unfinished
+   work with one **Save for the next agent**; once saved, a confirmation
+   that nothing runs until the developer starts an agent, with the
+   phrases to copy ("start night shift", "work on the follow-up") and the
+   folder to say them in; a night still running is named instead, to be
+   saved once it ends. An answer can change until an agent takes its
+   item on: the deck locks it, naming the night working on it or the one
+   that settled it (the server refuses the change too).
+4. **Next night** (`#/next`): every open follow-up item across
    repositories, per repository and grouped by the night it came from,
    with its kind, the decision, the owner's note and what is still to
    do; items a running night has taken on are left out; the tab shows
    the count (D26).
-4. **History** (`#/history`): one row per night: date, repository, its
+5. **History** (`#/history`): one row per night: date, repository, its
    state, outcome counts, duration, cost and the grey stopped-early line;
    a row opens that night.
 
 Every page has its own address, so the browser's Back works. Still to
-come from D24: a step track, the explicit gate after the deck and its
-confirmation (TASK-28), a "let's discuss" answer (TASK-29), and the
+come from D24: a step track, a "let's discuss" answer (TASK-29), and the
 one-sentence summary rule.
 
 The registry of repositories and the read marks live in the local install
@@ -434,6 +443,18 @@ folder (`~/.night-shift/repos.json`, `viewer.json`), never in a repository.
 `night-shift forget <id or path>` takes a repository off the list and drops its
 read marks; its own files stay, and `night-shift install` there, or the next
 night started there, adds it back.
+
+**Notifications** (D24, TASK-33): off until the developer runs `night-shift
+notify on`, since Night Shift imposes nothing. Then a night that ends (the
+agent's `close`, or the session-end hook marking it interrupted) raises a
+desktop notification, "blog: night finished" with "2 questions for you ·
+3 done, 1 blocked", whose click opens that `Night Report` in the Viewer; a
+Viewer is started on the configured port (4747 by default) when none runs.
+Windows raises a toast through Windows PowerShell, with nothing to install;
+elsewhere, or by choice, `--command "<cmd>"` runs the developer's own
+command with `NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
+`night-shift notify test` raises one now. The setting lives in the install
+folder (`notify.json`), per machine.
 
 ## Feedback to the Night Shift Repo
 
@@ -449,7 +470,9 @@ not post to a public tracker unattended.
   link, submitted from the browser. Labels stick only for people with rights
   on the repository.
 
-Unsent entries stay in the night file as history.
+Unsent entries stay in the night file as history. When `gh` is ready, the
+`Viewer`'s header shows how many `proposal` issues are still open, with the
+GitHub mark, linking to their list (TASK-35).
 
 ## Meter
 

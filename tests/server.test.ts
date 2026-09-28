@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { DEAD_PID, TASKS, evidenceFile, gitRepo, plan, session } from './helpers.ts';
 import { createApp } from '../src/server.ts';
@@ -248,15 +249,39 @@ test('answers after the follow-up: a running night on the item blocks a change; 
   assert.equal(busy.status, 409);
   assert.match(((await busy.json()) as { error: string }).error, /working on this right now/);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+  // The detail names the night holding the item, so the deck locks it before a save is tried.
+  const taken = async () => ((await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail).taken;
+  assert.deepEqual(await taken(), { [`${id}/A1`]: live.night.night });
   // That night settles it. The old copy of the question is no longer open, and an answer there,
   // which would reach no agent, is refused with the reason.
   record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
   close(repo, 'Login fixed.');
   const overview = (await (await app.request('/api/overview')).json()) as Overview;
   assert.equal(overview.nights.find((n) => n.repo === ref.id && n.id === id)?.questions_open, 0);
+  assert.deepEqual(await taken(), {});
   const late = await answer('b');
   assert.equal(late.status, 409);
   assert.match(((await late.json()) as { error: string }).error, /handed over unanswered and it was settled in night/);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+});
+
+test('a running night that skips a follow-up item takes it too: locked in the detail, a change refused', async () => {
+  const { ref, id, repo } = closedNight();
+  const app = createApp({ version: 'test' });
+  await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  const open = async () => ((await (await app.request('/api/overview')).json()) as Overview).nights.find((n) => n.repo === ref.id && n.id === id)?.questions_open;
+  assert.equal(await open(), 1);
+  const live = start(repo, plan([TASKS[0]], { skipped_follow_ups: [{ follow_up: `${id}/A1`, reason: 'already fixed on main' }] }), session('live', process.pid), new Date('2026-09-27T23:00:00'));
+  const d = (await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail;
+  assert.deepEqual(d.taken, { [`${id}/A1`]: live.night.night });
+  // Held by the running night, the question is not the developer's turn: it is not counted open.
+  assert.equal(await open(), 0);
+  // A question the running night asks itself is not held by anything: it still counts.
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', why: 'Both fit.', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  const liveOpen = ((await (await app.request('/api/overview')).json()) as Overview).nights.find((n) => n.repo === ref.id && n.id === live.night.night)?.questions_open;
+  assert.deepEqual([await open(), liveOpen], [0, 1]);
+  const res = await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: d.hash }) });
+  assert.equal(res.status, 409);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
 });
 
@@ -314,4 +339,64 @@ test('a foreign Host is refused when the port is known', async () => {
   assert.equal((await app.request('http://evil.example/api/overview')).status, 403);
   assert.equal((await app.request('http://127.0.0.1:4747/api/overview')).status, 200);
   assert.equal((await app.request('http://localhost:4747/api/nope')).status, 404);
+});
+
+// A stand-in for the GitHub CLI: a real process that answers only the exact query for open
+// proposals on the Night Shift Repo, and fails like gh does when logged out.
+function fakeGh(issues: number | 'logged-out', delayMs = 0): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-gh-'));
+  const script = path.join(dir, 'gh.mjs');
+  const want = ['issue', 'list', '--repo', 'jimzord12/night-shift', '--label', 'proposal', '--state', 'open'];
+  fs.writeFileSync(
+    script,
+    `const a = process.argv.slice(2);\n` +
+      `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${delayMs});\n` +
+      `if (${issues === 'logged-out'}) process.exit(4);\n` +
+      `const want = ${JSON.stringify(want)};\n` +
+      `if (want.every((w, i) => a[i] === w) && a.includes('--json')) { console.log(JSON.stringify(Array.from({ length: ${issues === 'logged-out' ? 0 : issues} }, (_, i) => ({ number: i + 1 })))); process.exit(0); }\n` +
+      `process.exit(2);\n`,
+  );
+  return script;
+}
+
+test('proposals: GitHub never holds the Inbox; the count is kept five minutes, and Reload asks again', async () => {
+  const before = process.env.NIGHT_SHIFT_GH;
+  try {
+    process.env.NIGHT_SHIFT_GH = fakeGh(2, 800);
+    const app = createApp({ version: 'test' });
+    const order: string[] = [];
+    const count = Promise.resolve(app.request('/api/proposals')).then(async (r) => {
+      order.push('proposals');
+      return ((await r.json()) as { open: number }).open;
+    });
+    await Promise.resolve(app.request('/api/overview')).then(() => order.push('overview'));
+    assert.equal(await count, 2);
+    assert.deepEqual(order, ['overview', 'proposals']);
+    // One more proposal on GitHub: the plain ask keeps the cached count, Reload's fresh ask sees it.
+    process.env.NIGHT_SHIFT_GH = fakeGh(3);
+    assert.equal(((await (await app.request('/api/proposals')).json()) as { open: number }).open, 2);
+    assert.equal(((await (await app.request('/api/proposals?fresh')).json()) as { open: number }).open, 3);
+  } finally {
+    if (before === undefined) delete process.env.NIGHT_SHIFT_GH;
+    else process.env.NIGHT_SHIFT_GH = before;
+  }
+});
+
+test('proposals: the count of open proposal issues with a link, and nothing when gh is missing or logged out', async () => {
+  const before = process.env.NIGHT_SHIFT_GH;
+  try {
+    process.env.NIGHT_SHIFT_GH = fakeGh(1);
+    const one = (await (await createApp({ version: 'test' }).request('/api/proposals')).json()) as { open: number; url: string };
+    assert.equal(one.open, 1);
+    assert.equal(one.url, 'https://github.com/jimzord12/night-shift/issues?q=is%3Aissue%20is%3Aopen%20label%3Aproposal');
+    process.env.NIGHT_SHIFT_GH = fakeGh('logged-out');
+    assert.equal(await (await createApp({ version: 'test' }).request('/api/proposals')).json(), null);
+    process.env.NIGHT_SHIFT_GH = path.join(os.tmpdir(), 'no-such-gh-here');
+    const missing = await createApp({ version: 'test' }).request('/api/proposals');
+    assert.equal(missing.status, 200);
+    assert.equal(await missing.json(), null);
+  } finally {
+    if (before === undefined) delete process.env.NIGHT_SHIFT_GH;
+    else process.env.NIGHT_SHIFT_GH = before;
+  }
 });

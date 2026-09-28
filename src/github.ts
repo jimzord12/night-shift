@@ -2,19 +2,58 @@
 // click sends every ticked entry), otherwise as pre-filled "new issue" links the developer submits
 // in the browser. A person always reads an entry before it leaves the machine.
 
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import type { Feedback } from './types.ts';
 
 export const ISSUES_REPO = () => process.env.NIGHT_SHIFT_ISSUES_REPO || 'jimzord12/night-shift';
 const GH = () => process.env.NIGHT_SHIFT_GH || 'gh';
 
+// NIGHT_SHIFT_GH may name another gh, or a JavaScript file that stands in for it (run with node).
+function ghCommand(args: string[]): [string, string[]] {
+  const cmd = GH();
+  return /\.m?js$/.test(cmd) ? [process.execPath, [cmd, ...args]] : [cmd, args];
+}
+
 function gh(args: string[]) {
-  return spawnSync(GH(), args, { encoding: 'utf8', windowsHide: true, timeout: 30_000 });
+  const [bin, all] = ghCommand(args);
+  return spawnSync(bin, all, { encoding: 'utf8', windowsHide: true, timeout: 30_000 });
+}
+
+// The same without holding the server: other requests are served while GitHub answers.
+function ghAsync(args: string[]): Promise<string | null> {
+  const [bin, all] = ghCommand(args);
+  return new Promise((resolve) => {
+    try {
+      execFile(bin, all, { encoding: 'utf8', windowsHide: true, timeout: 30_000 }, (error, stdout) => resolve(error ? null : stdout));
+    } catch {
+      // Some commands cannot be spawned at all (a .cmd wrapper on Windows): the same as no gh.
+      resolve(null);
+    }
+  });
 }
 
 export function ghReady(): boolean {
   const r = gh(['auth', 'status']);
   return !r.error && r.status === 0;
+}
+
+// Open proposals on the Night Shift Repo (TASK-35): feedback sent from any Adopter that nobody has
+// closed yet. Null when gh is missing, not logged in or offline: the Viewer then shows nothing.
+export interface Proposals {
+  open: number;
+  url: string;
+}
+
+export async function openProposals(): Promise<Proposals | null> {
+  // One call: gh refuses it when it is not logged in, so no separate auth check is needed.
+  const out = await ghAsync(['issue', 'list', '--repo', ISSUES_REPO(), '--label', 'proposal', '--state', 'open', '--limit', '200', '--json', 'number']);
+  if (out === null) return null;
+  try {
+    const list = JSON.parse(out) as unknown[];
+    return { open: Array.isArray(list) ? list.length : 0, url: `https://github.com/${ISSUES_REPO()}/issues?q=${encodeURIComponent('is:issue is:open label:proposal')}` };
+  } catch {
+    return null;
+  }
 }
 
 export function issueTitle(f: Feedback): string {

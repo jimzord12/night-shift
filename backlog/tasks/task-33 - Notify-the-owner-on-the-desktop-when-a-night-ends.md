@@ -1,10 +1,11 @@
 ---
 id: TASK-33
 title: Notify the owner on the desktop when a night ends
-status: Queued
-assignee: []
+status: Ready
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:43'
+updated_date: '2026-09-28 11:42'
 labels:
   - cli
   - viewer
@@ -33,3 +34,11 @@ D24. The Viewer only waits; a forgetful owner never opens it and the flow stalls
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Recovery does not notify: it runs inside the Viewer and night-shift start, where the owner already is (code review r1 F5). Only close and the session-end hook do.
+
+Review: code rounds 1-3 (docs/work/TASK-33/reviews/); round 3 PASS. Rounds 1 and 2 carry their dispositions at the end of each report (kept there by mistake; from round 3 on they live here). Round 3: N1 fixed ($ErrorActionPreference = 'Stop'); N2 this note; N3, N4 not changed. Open: acceptance #1 needs the owner's look: run night-shift notify test, click the toast, and see a real night's toast open its report. The toast is proven delivered to Windows' notification centre (round 2).
+<!-- SECTION:NOTES:END -->

@@ -9,7 +9,8 @@ import { spawn } from 'node:child_process';
 import { Hono } from 'hono';
 import { contentType, insideDir } from './files.ts';
 import { createFollowUp, followAnswer } from './followup.ts';
-import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
+import { ISSUES_REPO, createIssue, ghReady, newIssueUrl, openProposals } from './github.ts';
+import type { Proposals } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
@@ -79,7 +80,7 @@ function followUpOf(repo: string, id: string): FollowUp | null {
   }
 }
 
-function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>, now: number): NightSummary {
+function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>, now: number, taken: Record<string, string>): NightSummary {
   const r = readNight(repo.path, id);
   const base: NightSummary = {
     repo: repo.id,
@@ -117,7 +118,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     summary: n.summary,
     counts: countOutcomes(n.tasks),
     tasks: n.tasks.length,
-    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp)).length,
+    questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp, taken)).length,
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
     // A follow-up file that exists but cannot be read still blocks a second one.
     hand_over: !base.follow_up && needsHandOver(n, followUp),
@@ -128,6 +129,18 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     cost_usd: n.metrics?.cost_usd ?? null,
     running: n.status === 'open' && sessionRunning(repo.path, n, now),
   };
+}
+
+// Follow-up items that running nights have taken on (planned as a task or skipped), with the night.
+function takenRefs(repo: string): Map<string, string> {
+  const taken = new Map<string, string>();
+  for (const nid of listNightIds(repo)) {
+    const n = readNight(repo, nid).night;
+    if (n?.status !== 'open') continue;
+    for (const t of n.tasks) for (const ref of refsOf(t)) taken.set(ref, nid);
+    for (const x of n.skipped_follow_ups) taken.set(x.follow_up, nid);
+  }
+  return taken;
 }
 
 export function createApp({ version, port, reveal = revealInFileManager }: AppOptions): Hono {
@@ -160,7 +173,8 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
       } catch (error) {
         console.error(`recovery in ${repo.path}: ${(error as Error).message}`);
       }
-      for (const id of listNightIds(repo.path)) nights.push(summarise(repo, id, readMarks, now));
+      const taken = Object.fromEntries(takenRefs(repo.path));
+      for (const id of listNightIds(repo.path)) nights.push(summarise(repo, id, readMarks, now, taken));
     }
     nights.sort((a, b) => (b.started_at || b.id).localeCompare(a.started_at || a.id));
     const overview: Overview = { version, repos, nights, loadedAt: localIso(new Date()) };
@@ -172,7 +186,9 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
     const r = readNight(repo.path, id);
     if (!r.night) throw new StoreError(`night ${id} is invalid: ${r.problems.join('; ')}`, 422);
     const followUp = followUpOf(repo.path, id);
-    return { repo, night: r.night, hash: r.hash, running: r.night.status === 'open' && sessionRunning(repo.path, r.night), follow_up: followUp, problems: r.problems };
+    const taken: Record<string, string> = {};
+    if (followUp) for (const [ref, by] of takenRefs(repo.path)) if (ref.startsWith(`${id}/`)) taken[ref] = by;
+    return { repo, night: r.night, hash: r.hash, running: r.night.status === 'open' && sessionRunning(repo.path, r.night), follow_up: followUp, taken, problems: r.problems };
   };
 
   // Every open follow-up item across the registered repositories: what the next night there plans.
@@ -182,13 +198,7 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
       if (repo.missing) continue;
       const entry: NextNight['repos'][number] = { repo, items: [], problems: [] };
       // Items a running night has taken on are that night's work, not the next one's.
-      const taken = new Set<string>();
-      for (const nid of listNightIds(repo.path)) {
-        const n = readNight(repo.path, nid).night;
-        if (n?.status !== 'open') continue;
-        for (const t of n.tasks) for (const ref of refsOf(t)) taken.add(ref);
-        for (const s of n.skipped_follow_ups) taken.add(s.follow_up);
-      }
+      const taken = takenRefs(repo.path);
       for (const id of listFollowUpIds(repo.path)) {
         try {
           const f = readFollowUp(repo.path, id);
@@ -250,6 +260,30 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
 
   app.get('/api/gh', (c) => c.json({ ready: ghReady(), repo: ISSUES_REPO() }));
 
+  // The header's count of open proposals (null when gh is missing): asked of gh at most every five
+  // minutes, or at once with ?fresh (the Reload button), one ask at a time. gh runs asynchronously,
+  // so the Inbox never waits for GitHub.
+  let proposals: { at: number; value: Proposals | null } | null = null;
+  let asking: Promise<Proposals | null> | null = null;
+  // Bumped when a proposal is sent: an ask started before it does not keep the old count.
+  let generation = 0;
+  app.get('/api/proposals', async (c) => {
+    const stale = !proposals || Date.now() - proposals.at > 5 * 60_000 || c.req.query('fresh') !== undefined;
+    if (stale && !asking) {
+      const gen = generation;
+      asking = openProposals()
+        .catch(() => null)
+        .then((value) => {
+          if (gen === generation) proposals = { at: Date.now(), value };
+          return value;
+        })
+        .finally(() => {
+          asking = null;
+        });
+    }
+    return c.json(asking ? await asking : (proposals?.value ?? null));
+  });
+
   // Sends ticked feedback entries: with gh when it is ready, else hands back pre-filled links.
   app.post('/api/nights/:repo/:night/feedback/send', async (c) => {
     const b = await body<{ ids?: string[]; via?: 'gh' | 'link' }>(c);
@@ -276,6 +310,10 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
       } catch (error) {
         errors.push(`${f.id}: ${(error as Error).message}`);
       }
+    }
+    if (entries.some((f) => f.sent?.via === 'gh')) {
+      proposals = null;
+      generation += 1;
     }
     const fresh = loadNight(repo.path, n.night).night;
     for (const f of entries) {
