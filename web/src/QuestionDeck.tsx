@@ -129,10 +129,13 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     moveOn(nextSaved, nextPassed, !pass);
   };
 
-  const save = useCallback(async () => {
+  // An answer given with the save (Enter on a focused option) is the one saved.
+  const save = useCallback(async (answer?: string) => {
     if (!q || !item || !draft || !key || busy || lock) return;
+    const draft_ = answer ? { ...draft, answer } : draft;
+    if (answer) setDraft(draft_);
     // Let's discuss says what to talk through, or the next agent has nothing to start from.
-    if (draft.answer === DISCUSS && !draft.note.trim()) {
+    if (draft_.answer === DISCUSS && !draft_.note.trim()) {
       setMessage("Let's discuss needs a note: what is unclear, or what you want to talk through.");
       setShowNote(true);
       setFocusNote(true);
@@ -146,7 +149,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     setBusy(true);
     setMessage(null);
     try {
-      const detail = await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft.answer, note: draft.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
+      const detail = await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft_.answer, note: draft_.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
       onSaved(detail);
       const nextSaved = new Set(savedKeys).add(key);
       setSavedKeys(nextSaved);
@@ -188,8 +191,31 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         }
         return;
       }
-      const ownButton = e.target instanceof HTMLButtonElement && !!scroller.current?.contains(e.target) && !e.target.hasAttribute('data-option');
-      if (e.key === 'Enter' && ownButton && !e.ctrlKey) return;
+      // Enter on a control the keyboard reached does that control's job: an answer option saves that
+      // option, a thumbnail opens, a link or button presses itself. A button that holds the focus only
+      // because it was clicked leaves Enter to Save.
+      const t = e.target instanceof HTMLElement && e.target !== scroller.current && scroller.current?.contains(e.target) ? e.target : null;
+      if (e.key === 'Enter' && !e.ctrlKey && t) {
+        if (t.matches('[role=button]:not(button)')) {
+          e.preventDefault();
+          return t.click();
+        }
+        const option = t.getAttribute('data-option');
+        if (option === DISCUSS && !draft?.note.trim()) {
+          // Nothing to talk through yet: pick it and write the note first, as D does.
+          e.preventDefault();
+          if (draft) setDraft({ ...draft, answer: DISCUSS });
+          setShowNote(true);
+          setFocusNote(true);
+          noteRef.current?.focus();
+          return void setTimeout(() => noteRef.current?.focus(), 0);
+        }
+        if (option) {
+          e.preventDefault();
+          return void save(option);
+        }
+        if ((t instanceof HTMLButtonElement || t.matches('a[href]')) && t.matches(':focus-visible')) return;
+      }
       if (e.key === 'Enter' && (!typing || e.ctrlKey)) {
         e.preventDefault();
         // A locked question has nothing to save: Enter moves on, like its Next button.
@@ -281,7 +307,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                 return (
                   <button
                     key={o.id}
-                    data-option
+                    data-option={o.id}
                     onClick={() => setDraft({ ...draft, answer: o.id })}
                     disabled={!!lock}
                     className={`flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition ${lock ? 'cursor-not-allowed' : 'hover:bg-white/5'}`}
@@ -321,7 +347,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               if (lock && !on) return null;
               return (
                 <button
-                  data-option
+                  data-option={DISCUSS}
                   onClick={() => {
                     setDraft({ ...draft, answer: DISCUSS });
                     setShowNote(true);
