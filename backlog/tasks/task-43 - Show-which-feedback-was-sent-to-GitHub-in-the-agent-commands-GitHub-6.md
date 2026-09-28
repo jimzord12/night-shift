@@ -1,11 +1,11 @@
 ---
 id: TASK-43
 title: 'Show which feedback was sent to GitHub in the agent commands (GitHub #6)'
-status: Review
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-28 10:24'
-updated_date: '2026-09-28 10:33'
+updated_date: '2026-09-28 10:37'
 labels:
   - cli
 dependencies: []
@@ -24,13 +24,19 @@ GitHub #6 (missing-block, from an Adopter's night 2026-09-28-a). Send to GitHub 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 night-shift status shows, per night with feedback, which items were sent (with the issue link) and which await the developer (test on real files)
+- [x] #1 night-shift status shows, per night with feedback, which items were sent (with the issue link) and which await the developer (test on real files)
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Shipped in v15. Review: code rounds 1 (FINDINGS: M1 hook output over 1 MiB) and 2 (PASS), docs/work/TASK-42/reviews/. npm run check passes (36 tests); tests use a real git repository with failing and noisy pre-commit hooks. Unverified: an Adopter's real hook on POSIX.
+<!-- SECTION:FINAL_SUMMARY:END -->
