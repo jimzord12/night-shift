@@ -65,7 +65,7 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
         <div className="mt-5">
           <StepTrack state={state} />
           <div className="mt-3">
-            <NextLine {...nextStep(state, summary)} />
+            <NextLine {...nextStep(state, summary, !!detail.follow_up && detail.follow_up.items.some((i) => i.status === 'open') && detail.follow_up.items.every((i) => i.status !== 'open' || !!detail.taken[`${n.night}/${i.id}`]))} />
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-white/10 pt-3 text-sm">

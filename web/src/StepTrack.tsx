@@ -19,6 +19,7 @@ export function StepTrack({ state, small = false }: { state: OwnerState; small?:
     );
   }
   return (
+    <>
     <ol className="flex items-start" aria-label="Where this night stands">
       {OWNER_STATES.map((s, i) => {
         const done = i < at || (s === 'done' && state === 'done');
@@ -45,22 +46,28 @@ export function StepTrack({ state, small = false }: { state: OwnerState; small?:
         );
       })}
     </ol>
+    {/* A phone has no room for the labels: name the current step once. */}
+    <div className="mt-1.5 text-xs text-white/60 sm:hidden">Step {at + 1} of {OWNER_STATES.length} · <span className="font-semibold text-white">{OWNER_STATE[state].label}</span></div>
+    </>
   );
 }
 
 // What comes next in each state, in one line, with the phrase to say where an agent is the next step.
-export function nextStep(state: OwnerState, n: Pick<NightSummary, 'questions_open'>): { text: string; phrase?: string } {
+// `held`: every open follow-up item is taken on by a night running now.
+export function nextStep(state: OwnerState, n: Pick<NightSummary, 'questions_open' | 'follow_up'>, held = false): { text: string; phrase?: string } {
   switch (state) {
     case 'running':
-      return { text: 'the agent is still working; the report fills in as it goes.' };
+      return { text: 'an agent is on it; reload to see how far it got.' };
     case 'new':
       return { text: 'read what the night did.' };
     case 'needs_answers':
-      return n.questions_open ? { text: `answer ${n.questions_open === 1 ? 'its question' : `its ${n.questions_open} questions`}, then save for the next agent.` } : { text: 'talk it through with an agent: open Claude Code in this folder and say', phrase: 'work on the follow-up' };
+      if (!n.questions_open) return { text: 'talk it through with an agent: open Claude Code in this folder and say', phrase: 'work on the follow-up' };
+      // Already saved: an answer now goes straight to the next agent.
+      return { text: `answer ${n.questions_open === 1 ? 'its question' : `its ${n.questions_open} questions`}${n.follow_up ? '; your answer reaches the next agent.' : ', then save for the next agent.'}` };
     case 'ready_to_save':
       return { text: 'save for the next agent. Nothing runs until you start one.' };
     case 'waiting':
-      return { text: 'start an agent in this folder when you want the work done; tonight, say', phrase: 'start night shift' };
+      return held ? { text: 'a running night is working on what it carried.' } : { text: 'start an agent in this folder when you want the work done; tonight, say', phrase: 'start night shift' };
     case 'done':
       return { text: 'nothing is left for this night.' };
   }
