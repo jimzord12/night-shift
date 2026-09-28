@@ -29,7 +29,9 @@ night-shift status
 
 If a night is already open in this session, continue it; do not start
 another. The status also lists open follow-up items: decisions and
-unfinished work the developer handed back after an earlier night.
+unfinished work the developer handed back after an earlier night, and
+which feedback of earlier nights was sent to GitHub (with the issue) and
+which still awaits the developer.
 
 ## 2. Follow-ups first
 

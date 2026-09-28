@@ -3,6 +3,21 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v15 (25798b7), 2026-09-28
+
+- `night-shift close`: when a repository's pre-commit hook refuses the
+  history commit, the message keeps the hook's last lines (not only
+  git's last one) and saves the full output as `history-commit.log`
+  beside the night; a hook that fails silently says "(no output; exit
+  N)". Hooks that print megabytes no longer kill the commit or report a
+  commit that landed as refused (TASK-42, GitHub #5).
+- `night-shift status`: says which feedback was sent to GitHub, with the
+  issue, and which still awaits the developer, for the open night and
+  earlier ones (TASK-43, GitHub #6). The start-night-shift skill says so.
+- This repository: GitHub issues become tasks at the start of every day
+  session and close with the commit that brings their work to `main`
+  (D28).
+
 ## v14 (179e4d0), 2026-09-28
 
 - Viewer: Morning is now the Inbox (D24, D27, TASK-25). It opens on
