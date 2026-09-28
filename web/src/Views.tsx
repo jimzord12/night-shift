@@ -13,6 +13,8 @@ export const KIND: Record<FollowUpItem['kind'], { label: string; color: string }
   waiting: { label: 'Needs your answer', color: 'var(--color-eyes)' },
   // Only a day session with you works on it, so it is yours too.
   discuss: { label: "Let's discuss", color: 'var(--color-eyes)' },
+  // A decision the agent took that you disagree with: the next agent revisits it (D31).
+  disagreed: { label: 'You disagree', color: 'var(--color-agent)' },
 };
 
 // What the next night in each repository will pick up: every open follow-up item, per repository,

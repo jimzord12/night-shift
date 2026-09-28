@@ -8,13 +8,13 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { Hono } from 'hono';
 import { contentType, insideDir } from './files.ts';
-import { createFollowUp, followAnswer } from './followup.ts';
+import { createFollowUp, followAnswer, followDecision } from './followup.ts';
 import { ISSUES_REPO, createIssue, ghReady, newIssueUrl, openProposals } from './github.ts';
 import type { Proposals } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
-import { DISCUSS, countOutcomes, emptyCounts, followUpDiscuss, forTalk, followUpOpen, isOpenQuestionIn, needsHandOver, refsOf } from './types.ts';
+import { DISCUSS, countOutcomes, decisionsOpen, emptyCounts, followUpDiscuss, forTalk, followUpOpen, isOpenQuestionIn, needsHandOver, refsOf } from './types.ts';
 
 const WEB_DIST = path.join(REPO_ROOT, 'web', 'dist');
 
@@ -90,6 +90,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     ended_at: null,
     summary: null,
     counts: emptyCounts(),
+    decisions_open: 0,
     tasks: 0,
     questions_open: 0,
     feedback_unsent: 0,
@@ -119,6 +120,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     counts: countOutcomes(n.tasks),
     tasks: n.tasks.length,
     questions_open: n.questions.filter((q) => isOpenQuestionIn(q, followUp, taken)).length,
+    decisions_open: decisionsOpen(n),
     feedback_unsent: n.feedback.filter((f) => !f.sent).length,
     // A follow-up file that exists but cannot be read still blocks a second one.
     hand_over: !base.follow_up && needsHandOver(n, followUp),
@@ -252,6 +254,30 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
     if (q.answer) q.answered_at = localIso(new Date());
     else delete q.answered_at;
     const followUp = followAnswer(repo.path, r.night.night, q);
+    saveNight(repo.path, r.night);
+    if (followUp) saveFollowUp(repo.path, followUp);
+    return c.json(detail(repo.id, r.night.night));
+  });
+
+  // The Viewer's one write to an agent decision (D31): the developer's review, ok or disagree with a
+  // note, over the file version they saw (409 when the decision changed under them). `review: null`
+  // takes a review back.
+  app.post('/api/nights/:repo/:night/decision', async (c) => {
+    const b = await body<{ decision?: string; review?: 'ok' | 'disagree' | null; note?: string; baseHash?: string; was?: { review: 'ok' | 'disagree' | null; note: string | null } }>(c);
+    const repo = findRepo(c.req.param('repo'));
+    const r = readNight(repo.path, c.req.param('night'));
+    if (!r.night) throw new StoreError('the night file is invalid', 422);
+    const d = (r.night.agent_decisions ?? []).find((x) => x.id === b.decision);
+    if (!d) throw new StoreError(`no agent decision ${String(b.decision)}`, 404);
+    const unchanged = !!b.was && b.was.review === d.review && (b.was.note ?? null) === (d.note ?? null);
+    if (r.hash !== b.baseHash && !unchanged) throw new StoreError('the night changed since you opened it; showing the new version', 409);
+    if (b.review !== null && b.review !== undefined && b.review !== 'ok' && b.review !== 'disagree') throw new StoreError('a review is "ok" or "disagree"');
+    if (b.review === 'disagree' && !b.note?.trim()) throw new StoreError('a disagreement needs a note: what the next agent should do instead');
+    d.review = b.review ?? null;
+    d.note = b.note?.trim() ? b.note.trim() : null;
+    if (d.review) d.reviewed_at = localIso(new Date());
+    else delete d.reviewed_at;
+    const followUp = followDecision(repo.path, r.night, d);
     saveNight(repo.path, r.night);
     if (followUp) saveFollowUp(repo.path, followUp);
     return c.json(detail(repo.id, r.night.night));

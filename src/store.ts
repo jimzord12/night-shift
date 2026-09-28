@@ -165,6 +165,14 @@ export function nightProblems(n: Night, dir: string): string[] {
       if (p) problems.push(`${q.id}: option ${o.id}: ${p}`);
     }
   }
+  const dids = new Set<string>();
+  for (const d of n.agent_decisions ?? []) {
+    if (dids.has(d.id)) problems.push(`${d.id} appears twice`);
+    dids.add(d.id);
+    if (d.task !== null && !ids.has(d.task)) problems.push(`${d.id}: task ${d.task} does not exist`);
+    if (d.review === 'disagree' && !d.note?.trim()) problems.push(`${d.id}: a disagreement needs a note`);
+  }
+  if ((n.agent_decisions ?? []).length && n.schema !== 'night-shift/night@3') problems.push('agent decisions need a version 3 night file');
   if (n.status === 'complete' && !n.summary) problems.push('a complete night needs a summary');
   if (n.status !== 'open' && n.tasks.some((t) => t.outcome === null)) problems.push('a closed night has a task without an outcome');
   return problems;

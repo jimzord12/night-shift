@@ -92,7 +92,7 @@ test("let's discuss: needs a note, becomes a discuss item no night acts on, and 
   assert.equal((await answer('Q1', 'discuss', 'Which layout did the client sign off?')).status, 200);
   assert.equal((await answer('Q2', 'a')).status, 200);
   const f = createFollowUp(repo, loadNight(repo, id).night);
-  assert.equal(f.schema, 'night-shift/follow-up@2');
+  assert.equal(f.schema, 'night-shift/follow-up@3');
   assert.deepEqual(f.items.map((i) => [i.id, i.kind, i.owner_note ?? null]), [['A1', 'discuss', 'Which layout did the client sign off?'], ['A2', 'decision', null]]);
   // A saved decision can turn into a point to discuss, and back, until an agent takes it on.
   assert.equal((await answer('Q2', 'discuss', 'Is the own domain ready?')).status, 200);
@@ -116,7 +116,7 @@ test("let's discuss: needs a note, becomes a discuss item no night acts on, and 
   assert.deepEqual([n.follow_up_open, n.follow_up_discuss], [1, 1]);
   assert.equal(ownerState(n), 'needs_answers');
   const d = (await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail;
-  assert.equal(d.night.schema, 'night-shift/night@2');
+  assert.equal(d.night.schema, 'night-shift/night@3');
   // A discuss answer is a valid night file.
   assert.deepEqual(readNight(repo, id).problems, []);
 });
@@ -162,7 +162,7 @@ test('version 1 files still read: a night, a plan and a follow-up written before
   fs.writeFileSync(file, JSON.stringify({ ...f, schema: 'night-shift/follow-up@1' }));
   assert.equal(readFollowUp(repo, id).schema, 'night-shift/follow-up@1');
   const s = start(repo, JSON.stringify({ schema: 'night-shift/plan@1', tasks: [{ ...TASKS[0], follow_up: `${id}/A1` }, { ...TASKS[1], follow_up: `${id}/A2` }] }), session('s2', DEAD_PID));
-  assert.equal(s.night.schema, 'night-shift/night@2');
+  assert.equal(s.night.schema, 'night-shift/night@3');
 });
 
 test("a question's files: served from the repository and shown in the file manager, and nothing else", async () => {
@@ -251,7 +251,7 @@ test('a carried task that ends on a new question keeps the decisions it carried'
     await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: q, answer: a, baseHash: loadNight(repo, id).hash }) });
   }
   const first = createFollowUp(repo, loadNight(repo, id).night);
-  assert.equal(first.schema, 'night-shift/follow-up@2');
+  assert.equal(first.schema, 'night-shift/follow-up@3');
   const s = start(repo, plan([{ ...TASKS[0], follow_up: [`${id}/A1`, `${id}/A2`] }]), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
   ask(repo, { task: 'T1', ask: 'Which PDF library?', options: [{ label: 'pdfkit' }, { label: 'jsPDF' }], recommended: 'a' });
   record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
@@ -268,10 +268,10 @@ test('an older follow-up takes version 2 when an answer flows into it; "discuss"
   const { repo, id, ref } = withFollowUp('old-follow-up');
   createFollowUp(repo, loadNight(repo, id).night);
   const file = path.join(repo, '.night-shift', 'follow-ups', `${id}.json`);
-  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('night-shift/follow-up@2', 'night-shift/follow-up@1'));
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('night-shift/follow-up@3', 'night-shift/follow-up@1'));
   const res = await createApp({ version: 'test' }).request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'discuss', note: 'Talk first', baseHash: loadNight(repo, id).hash }) });
   assert.equal(res.status, 200);
-  assert.equal(readFollowUp(repo, id).schema, 'night-shift/follow-up@2');
+  assert.equal(readFollowUp(repo, id).schema, 'night-shift/follow-up@3');
   const live = gitRepo('reserved');
   start(live, plan(TASKS.slice(0, 1)), session('r', process.pid));
   refused(() => ask(live, { task: 'T1', ask: 'Who decides?', options: [{ id: 'discuss', label: 'Discuss with the team' }, { label: 'Me' }], recommended: 'b' }), /"discuss" is reserved/);

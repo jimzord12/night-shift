@@ -1,9 +1,10 @@
 ---
 id: TASK-46
 title: Make the decisions an agent took on the owner's behalf first-class
-status: Queued
+status: Active
 assignee: []
 created_date: '2026-09-28 13:47'
+updated_date: '2026-09-28 19:12'
 labels:
   - viewer
 dependencies: []

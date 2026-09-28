@@ -19,11 +19,12 @@ export type Block =
   | { type: 'note'; text: string };
 
 // Version 2 of the three shapes (D24, TASK-29): a `discuss` answer and follow-up item, file
-// references on questions, and a task that follows several follow-up items. Version 1 files stay
-// valid and are read as they are; new files are written as version 2.
+// references on questions, and a task that follows several follow-up items. Version 3 of the night
+// and follow-up (D31, TASK-46): the agent's decisions and the `disagreed` item. Older files stay
+// valid and are read as they are; new files are written at the newest version.
 export const PLAN_SCHEMA = 'night-shift/plan@2';
-export const NIGHT_SCHEMA = 'night-shift/night@2';
-export const FOLLOW_UP_SCHEMA = 'night-shift/follow-up@2';
+export const NIGHT_SCHEMA = 'night-shift/night@3';
+export const FOLLOW_UP_SCHEMA = 'night-shift/follow-up@3';
 
 // "<follow-up id>/<item id>", or a list of them when one task carries several items forward.
 export type FollowUpRefs = string | string[];
@@ -103,6 +104,21 @@ export interface Question {
   answered_at?: string;
 }
 
+// A decision the agent took on the developer's behalf (D31): a choice between options, a default
+// filled in where the task left it open, a step it would otherwise have asked about. The developer
+// reviews each in the Viewer; a disagreement reaches the next agent through the follow-up.
+export interface AgentDecision {
+  id: string;
+  task: string | null;
+  decision: string;
+  why: string;
+  at: string;
+  // Written by the Viewer only: ok, disagree (with a note), or null while not reviewed.
+  review: 'ok' | 'disagree' | null;
+  note: string | null;
+  reviewed_at?: string;
+}
+
 export interface QuestionFile {
   // Relative to the repository root, inside it.
   path: string;
@@ -154,7 +170,7 @@ export interface Session {
 export type NightStatus = 'open' | 'complete' | 'interrupted';
 
 export interface Night {
-  schema: 'night-shift/night@1' | 'night-shift/night@2';
+  schema: 'night-shift/night@1' | 'night-shift/night@2' | 'night-shift/night@3';
   night: string;
   status: NightStatus;
   started_at: string;
@@ -164,6 +180,8 @@ export interface Night {
   tasks: Task[];
   skipped_follow_ups: SkippedFollowUp[];
   questions: Question[];
+  // Version 3: absent in older files.
+  agent_decisions?: AgentDecision[];
   feedback: Feedback[];
   metrics: Metrics | null;
 }
@@ -171,7 +189,8 @@ export interface Night {
 // carried: a night took the item on as a task; that task's outcome is the item's fate now.
 export type ItemStatus = 'open' | 'done' | 'skipped' | 'carried';
 // discuss: the developer wants to talk it through; only a day session with them works on it.
-export type ItemKind = 'decision' | 'unfinished' | 'waiting' | 'discuss';
+// disagreed: the developer disagrees with a decision the agent took (D31); the next agent revisits it.
+export type ItemKind = 'decision' | 'unfinished' | 'waiting' | 'discuss' | 'disagreed';
 
 export interface FollowUpItem {
   id: string;
@@ -183,13 +202,15 @@ export interface FollowUpItem {
   decision?: string;
   decision_label?: string;
   owner_note?: string;
+  // disagreed: the agent decision it comes from ("AD1").
+  agent_decision?: string;
   left?: string[];
   done_when: string[];
   resolved?: { at: string; by: string; reason?: string };
 }
 
 export interface FollowUp {
-  schema: 'night-shift/follow-up@1' | 'night-shift/follow-up@2';
+  schema: 'night-shift/follow-up@1' | 'night-shift/follow-up@2' | 'night-shift/follow-up@3';
   id: string;
   from_night: string;
   created_at: string;
@@ -215,6 +236,8 @@ export interface NightSummary {
   counts: Record<Outcome, number>;
   tasks: number;
   questions_open: number;
+  // Agent decisions the developer has not reviewed yet (D31): they keep the night in their turn.
+  decisions_open: number;
   feedback_unsent: number;
   duration_min: number | null;
   cost_usd: number | null;
@@ -304,9 +327,14 @@ export const isOpenQuestionIn = (q: Question, f: FollowUp | null | undefined, ta
 export const unfinishedList = (n: Night) => n.tasks.filter((t) => t.outcome !== 'done' && t.outcome !== 'skipped' && !(refsOf(t).length && t.outcome === 'not_started'));
 export const unfinishedTasks = (n: Night) => unfinishedList(n).length;
 
-// A closed night with work or questions for the next agent and no follow-up yet: the developer
-// still has to hand it over.
-export const needsHandOver = (n: Night, f: FollowUp | null | undefined) => n.status !== 'open' && !f && (unfinishedTasks(n) > 0 || n.questions.length > 0);
+// Agent decisions: those not reviewed yet, and those the developer disagrees with.
+export const agentDecisions = (n: Night): AgentDecision[] => n.agent_decisions ?? [];
+export const decisionsOpen = (n: Night) => agentDecisions(n).filter((d) => d.review === null).length;
+export const disagreed = (n: Night) => agentDecisions(n).filter((d) => d.review === 'disagree');
+
+// A closed night with work, questions or disagreements for the next agent and no follow-up yet:
+// the developer still has to hand it over.
+export const needsHandOver = (n: Night, f: FollowUp | null | undefined) => n.status !== 'open' && !f && (unfinishedTasks(n) > 0 || n.questions.length > 0 || disagreed(n).length > 0);
 
 export const followUpOpen = (f: FollowUp) => f.items.filter((i) => i.status === 'open').length;
 // Waits for a talk with the developer: a discuss item, and every other open item of the same task in
@@ -323,19 +351,19 @@ export const answerLabel = (q: Question): string | null => (q.answer === null ? 
 // - running: still open, including a night whose session is gone until recovery closes it (a
 //   night file that cannot be read has no start and is never running);
 // - new: closed and not opened since it ended;
-// - needs_answers: a question still waits for the developer;
+// - needs_answers: a question or an agent decision still waits for the developer (D31);
 // - ready_to_save: work or answers the developer has not saved for the next agent yet;
 // - waiting: saved, and the follow-up still has open items (one that cannot be read counts);
 // - done: every item done, skipped or carried, or nothing was owed.
 export const OWNER_STATES = ['running', 'new', 'needs_answers', 'ready_to_save', 'waiting', 'done'] as const;
 export type OwnerState = (typeof OWNER_STATES)[number];
-type StateInput = Pick<NightSummary, 'status' | 'started_at' | 'read' | 'questions_open' | 'hand_over' | 'follow_up' | 'follow_up_open'> & Partial<Pick<NightSummary, 'follow_up_discuss'>>;
+type StateInput = Pick<NightSummary, 'status' | 'started_at' | 'read' | 'questions_open' | 'hand_over' | 'follow_up' | 'follow_up_open'> & Partial<Pick<NightSummary, 'follow_up_discuss' | 'decisions_open'>>;
 // A follow-up whose open items are all `discuss` waits for the developer, not an agent (D24).
 export const onlyDiscussLeft = (s: StateInput) => !!s.follow_up_open && s.follow_up_discuss === s.follow_up_open;
 export const ownerState = (s: StateInput): OwnerState =>
   s.status === 'open' && s.started_at ? 'running'
     : !s.read ? 'new'
-      : s.questions_open > 0 || onlyDiscussLeft(s) ? 'needs_answers'
+      : s.questions_open > 0 || (s.decisions_open ?? 0) > 0 || onlyDiscussLeft(s) ? 'needs_answers'
         : s.hand_over ? 'ready_to_save'
           : s.follow_up && s.follow_up_open !== 0 ? 'waiting'
             : 'done';
@@ -346,7 +374,7 @@ export const ownerState = (s: StateInput): OwnerState =>
 export const OWNER_STATE: Record<OwnerState, { label: string; color: string; hint: string }> = {
   running: { label: 'Running', color: 'var(--color-agent)', hint: 'An agent is working through this night' },
   new: { label: 'New', color: 'var(--accent)', hint: 'Ended since you last looked' },
-  needs_answers: { label: 'Needs answers', color: 'var(--color-eyes)', hint: 'A question waits for your answer' },
+  needs_answers: { label: 'Needs answers', color: 'var(--color-eyes)', hint: 'A question or a decision the agent took waits for you' },
   ready_to_save: { label: 'Ready to save', color: 'var(--color-eyes)', hint: 'Unfinished work or answers to save for the next agent' },
   waiting: { label: 'Waiting for an agent', color: 'var(--color-agent)', hint: 'Saved; the next agent has not finished it yet' },
   done: { label: 'Done', color: 'var(--color-shipped)', hint: 'Nothing is left for anyone' },
@@ -358,13 +386,15 @@ export const ownersTurn = (st: OwnerState) => st === 'new' || st === 'needs_answ
 // A night file that cannot be read has no start, so no state to judge; the Viewer shows it red.
 export const readable = (s: Pick<NightSummary, 'started_at'>) => !!s.started_at;
 
-// Start my morning's estimate (TASK-31): its questions, the saves its gates will ask for (the closed
-// nights among them not saved yet), and about a minute a question and half a minute a save.
-export function morningEstimate(nights: Pick<NightSummary, 'questions_open' | 'status' | 'hand_over'>[]) {
-  const walked = nights.filter((n) => n.questions_open > 0);
+// Start my morning's estimate (TASK-31): its questions and agent decisions, the saves its gates will
+// ask for (the closed nights among them not saved yet), and about a minute a question, half a
+// minute a decision and half a minute a save.
+export function morningEstimate(nights: (Pick<NightSummary, 'questions_open' | 'status' | 'hand_over'> & Partial<Pick<NightSummary, 'decisions_open'>>)[]) {
+  const walked = nights.filter((n) => n.questions_open > 0 || (n.decisions_open ?? 0) > 0);
   const questions = walked.reduce((sum, n) => sum + n.questions_open, 0);
+  const decisions = walked.reduce((sum, n) => sum + (n.decisions_open ?? 0), 0);
   const saves = walked.filter((n) => n.status !== 'open' && n.hand_over).length;
-  return { questions, saves, minutes: questions ? Math.max(1, Math.ceil(questions + saves / 2)) : 0 };
+  return { questions, decisions, saves, minutes: questions + decisions ? Math.max(1, Math.ceil(questions + decisions / 2 + saves / 2)) : 0 };
 }
 
 // Morning lists every night that is not done: the running ones, the developer's turn, and those

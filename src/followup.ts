@@ -1,7 +1,7 @@
 // Follow-up files: what the developer hands to the next agent after answering a night's questions.
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
-import type { FollowUp, FollowUpItem, Night, Question, Task } from './types.ts';
+import type { AgentDecision, FollowUp, FollowUpItem, Night, Question, Task } from './types.ts';
 import { DISCUSS, FOLLOW_UP_SCHEMA, handedItem, refsOf } from './types.ts';
 import { StoreError, followUpFile, listFollowUpIds, listNightIds, loadNight, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
@@ -52,6 +52,8 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
       priors.forEach((prior, i) => carried(prior, i === 0 ? { left } : {}));
     }
   }
+  // Decisions the agent took that the developer disagrees with: the next agent revisits each (D31).
+  for (const d of n.agent_decisions ?? []) if (d.review === 'disagree') add(disagreement(n, d));
   for (const q of n.questions) {
     if (used.has(q.id)) continue;
     const base = { task: q.task, title: q.ask, done_when: [] as string[] };
@@ -123,6 +125,59 @@ export function followAnswer(repo: string, night: string, q: Question): FollowUp
   }
   return f;
 }
+
+// A disagreement as a follow-up item: the decision, the developer's note, and its task's checks.
+function disagreement(n: Night, d: AgentDecision): Omit<FollowUpItem, 'id' | 'status'> {
+  const t = d.task ? n.tasks.find((x) => x.id === d.task) : undefined;
+  return { kind: 'disagreed', task: d.task, title: t?.title ?? d.decision, question: d.decision, agent_decision: d.id, ...(d.note ? { owner_note: d.note } : {}), done_when: t?.done_when ?? [] };
+}
+
+// A review changed after the follow-up exists: a disagreement adds its item (or updates its note,
+// or reopens one taken back); taking it back skips the item. An item a running night took on, or
+// one already worked on, refuses the change. Returns the follow-up to save, or null when there is
+// none.
+export function followDecision(repo: string, n: Night, d: AgentDecision, now = new Date()): FollowUp | null {
+  if (!fs.existsSync(followUpFile(repo, n.night))) return null;
+  const f = readFollowUp(repo, n.night);
+  const item = f.items.find((i) => i.kind === 'disagreed' && i.agent_decision === d.id);
+  if (item) {
+    const ref = `${n.night}/${item.id}`;
+    for (const id of listNightIds(repo)) {
+      let other: Night;
+      try {
+        other = loadNight(repo, id).night;
+      } catch {
+        continue;
+      }
+      if (other.status === 'open' && (other.tasks.some((t) => refsOf(t).includes(ref)) || other.skipped_follow_ups.some((s) => s.follow_up === ref))) {
+        throw new StoreError(`night ${id} is working on this right now (${ref}); change the review after it closes`, 409);
+      }
+    }
+    const takenBack = item.status === 'skipped' && item.resolved?.by === 'day' && item.resolved.reason === TAKEN_BACK;
+    if (item.status !== 'open' && !takenBack) {
+      const by = item.resolved?.by === 'day' ? 'by day' : `in night ${item.resolved?.by ?? '?'}`;
+      throw new StoreError(`the disagreement was already worked on ${by} (${ref} is ${item.status}); the review can no longer change`, 409);
+    }
+  }
+  if (d.review !== 'disagree') {
+    if (!item || item.status !== 'open') return null;
+    item.status = 'skipped';
+    item.resolved = { at: localIso(now), by: 'day', reason: TAKEN_BACK };
+    return f;
+  }
+  f.schema = FOLLOW_UP_SCHEMA;
+  if (item) {
+    item.status = 'open';
+    delete item.resolved;
+    item.owner_note = d.note ?? '';
+    return f;
+  }
+  const next = Math.max(0, ...f.items.map((i) => Number(i.id.slice(1)))) + 1;
+  f.items.push({ id: `A${next}`, status: 'open', ...disagreement(n, d) });
+  return f;
+}
+
+const TAKEN_BACK = 'the developer took the disagreement back';
 
 export interface OpenItem {
   ref: string;
