@@ -1,11 +1,11 @@
 ---
 id: TASK-26
 title: 'Lead the Night Report page with what needs the owner, then one row per task'
-status: Active
+status: Ready
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 07:39'
+updated_date: '2026-09-28 08:21'
 labels:
   - viewer
   - skills
@@ -24,7 +24,7 @@ D24. The report opens on the agent's summary paragraph (a wall of text the owner
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The report shows What needs you above What happened, tasks as rows, and only non-zero outcome counts (screenshot of a sample night)
+- [x] #1 The report shows What needs you above What happened, tasks as rows, and only non-zero outcome counts (screenshot of a sample night)
 <!-- AC:END -->
 
 ## Definition of Done

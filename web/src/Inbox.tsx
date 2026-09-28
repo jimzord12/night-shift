@@ -35,7 +35,8 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
   const strip = inbox.filter((n) => !isCard(n));
   const questions = overview.nights.reduce((sum, n) => sum + n.questions_open, 0);
   // What Start my morning can actually walk: the questions of the nights that loaded.
-  const reachable = questions - unloaded.reduce((sum, u) => sum + u.count, 0);
+  const missing = unloaded.reduce((sum, u) => sum + u.count, 0);
+  const reachable = questions - missing;
   const failedKeys = new Set(unloaded.map((u) => `${u.repo}/${u.night}`));
   const questionRepos = new Set(overview.nights.filter((n) => n.questions_open > 0 && !failedKeys.has(`${n.repo}/${n.id}`)).map((n) => n.repo)).size;
   const yours = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
@@ -60,9 +61,9 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
       {unloaded.length > 0 && (
         <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">
           <span>
-            {[...new Set(unloaded.map((u) => repoName(overview, u.repo)))].join(', ')} could not be loaded, so {unloaded.length === 1 ? 'its questions are' : 'their questions are'} not in Start my morning.
+            {[...new Set(unloaded.map((u) => repoName(overview, u.repo)))].join(', ')} could not be loaded, so {missing} question{missing === 1 ? ' is' : 's are'} not in Start my morning.
           </span>
-          <button onClick={onReload} className="rounded-full border border-broken/40 px-3 py-0.5 font-semibold hover:bg-broken/10">Reload</button>
+          <button onClick={onReload} className="rounded-full border border-broken/40 bg-broken/15 px-3 py-0.5 font-semibold hover:bg-broken/25">Reload</button>
         </p>
       )}
 

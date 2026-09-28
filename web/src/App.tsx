@@ -128,16 +128,16 @@ export function App() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    // Loads started before this point are dropped, and failures are forgotten now, so a night that
-    // fails while the overview is on its way is not fetched again when it lands.
+    // Loads started before this point are dropped, and details and failures are forgotten now, so a
+    // night that loads or fails while the overview is on its way is not fetched again when it lands.
     generation.current += 1;
     inFlight.current = new Set();
     setFailures(new Map());
+    setDetails({});
     try {
       const o = await getOverview();
       setOverview(o);
       loadNext();
-      setDetails({});
       setSeen(new Set());
       setError(null);
       document.title = 'Night Shift';
@@ -187,7 +187,8 @@ export function App() {
   const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
   // A night whose load failed is left out rather than holding the button back; the Inbox names it.
   const questionsReady = !!overview && overview.nights.every((n) => !n.questions_open || !readable(n) || !!details[keyOf(n.repo, n.id)] || failures.has(keyOf(n.repo, n.id)));
-  const unloaded = overview ? overview.nights.filter((n) => n.questions_open > 0 && failures.has(keyOf(n.repo, n.id))) : [];
+  // A night that failed only on a reload keeps its older detail, and the deck still walks it.
+  const unloaded = overview ? overview.nights.filter((n) => n.questions_open > 0 && failures.has(keyOf(n.repo, n.id)) && !details[keyOf(n.repo, n.id)]) : [];
   const failure = selected ? failures.get(selected) : undefined;
 
   // A night opens on its own page, at the top.
