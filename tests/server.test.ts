@@ -9,7 +9,7 @@ import { ask, close, feedback, onSessionEnd, record, start } from '../src/night.
 import { loadNight, markRead, readFollowUp, registerRepo } from '../src/store.ts';
 import { buildFollowUp, resolveItem } from '../src/followup.ts';
 import { issueBody, newIssueUrl } from '../src/github.ts';
-import { OWNER_STATE, OWNER_STATES, inMorning, needsHandOver, neverStarted, ownerState, ownersTurn, waitedDays } from '../src/types.ts';
+import { OWNER_STATE, OWNER_STATES, inMorning, morningEstimate, needsHandOver, neverStarted, ownerState, ownersTurn, waitedDays } from '../src/types.ts';
 import type { NextNight, NightDetail, Overview, OwnerState } from '../src/types.ts';
 
 const NOW = new Date('2026-09-26T23:10:00');
@@ -375,4 +375,22 @@ test('proposals: the count of open proposal issues with a link, and nothing when
     if (before === undefined) delete process.env.NIGHT_SHIFT_GH;
     else process.env.NIGHT_SHIFT_GH = before;
   }
+});
+
+test('Start my morning estimate: its questions, the saves its gates ask for, and the minutes', async () => {
+  // A closed night not saved yet: one question and one save.
+  const unsaved = closedNight('est-unsaved');
+  // A closed night already saved: its question is still open, but there is nothing left to save.
+  const saved = closedNight('est-saved');
+  await createApp({ version: 'test' }).request(`/api/nights/${saved.ref.id}/${saved.id}/follow-up`, { method: 'POST' });
+  // A running night that asked: a question, and no save until it ends.
+  const live = gitRepo('est-live');
+  start(live, plan(TASKS.slice(0, 1)), session('est', process.pid), new Date('2026-09-27T01:00:00'));
+  ask(live, { task: 'T1', ask: 'Which layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  const liveRef = registerRepo(live);
+  const mine = new Set([unsaved.ref.id, saved.ref.id, liveRef.id]);
+  const overview = (await (await createApp({ version: 'test' }).request('/api/overview')).json()) as Overview;
+  const est = morningEstimate(overview.nights.filter((n) => mine.has(n.repo)));
+  assert.deepEqual(est, { questions: 3, saves: 1, minutes: 4 });
+  assert.deepEqual(morningEstimate([]), { questions: 0, saves: 0, minutes: 0 });
 });

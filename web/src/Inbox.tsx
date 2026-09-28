@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { NightSummary, Overview } from '../../src/types.ts';
-import { OUTCOMES, neverStarted, ownerState, ownersTurn, readable } from '../../src/types.ts';
+import { OUTCOMES, morningEstimate, neverStarted, ownerState, ownersTurn, readable } from '../../src/types.ts';
 import { Icon, NightBadge, STATUS, StoppedEarly, nightTitle } from './ui.tsx';
 
 interface Props {
@@ -39,6 +39,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
   const reachable = questions - missing;
   const failedKeys = new Set(unloaded.map((u) => `${u.repo}/${u.night}`));
   const questionRepos = new Set(overview.nights.filter((n) => n.questions_open > 0 && !failedKeys.has(`${n.repo}/${n.id}`)).map((n) => n.repo)).size;
+  const estimate = morningEstimate(overview.nights.filter((n) => !failedKeys.has(`${n.repo}/${n.id}`)));
   const yours = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
   const last = overview.nights[0];
 
@@ -55,7 +56,10 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
           <span className="cta-shine" />
           <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
           <span className="font-semibold">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
-          <span className="text-sm text-white/80 sm:text-base">{reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}</span>
+          <span className="text-sm text-white/80 sm:text-base">
+            {reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
+            {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`} · about {estimate.minutes} min
+          </span>
         </button>
       )}
       {unloaded.length > 0 && (
