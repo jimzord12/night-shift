@@ -186,7 +186,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
       {rows.length ? <div className="divide-y divide-white/8">{rows}</div> : (
         <p className="px-4 py-3 text-white/60">{n.status === 'open' ? 'Nothing yet: the night is still running.' : 'Nothing: no question was asked and nothing is left to save.'}</p>
       )}
-      {error && <div className="border-t border-white/8 bg-broken/15 px-4 py-2 text-sm text-broken">{error}</div>}
+      {error && (save || !f) && <div className="border-t border-white/8 bg-broken/15 px-4 py-2 text-sm text-broken">{error}</div>}
     </div>
   );
 }

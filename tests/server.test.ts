@@ -264,6 +264,18 @@ test('answers after the follow-up: a running night on the item blocks a change; 
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
 });
 
+test('a running night that skips a follow-up item takes it too: locked in the detail, a change refused', async () => {
+  const { ref, id, repo } = closedNight();
+  const app = createApp({ version: 'test' });
+  await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  const live = start(repo, plan([TASKS[0]], { skipped_follow_ups: [{ follow_up: `${id}/A1`, reason: 'already fixed on main' }] }), session('live', process.pid), new Date('2026-09-27T23:00:00'));
+  const d = (await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail;
+  assert.deepEqual(d.taken, { [`${id}/A1`]: live.night.night });
+  const res = await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: d.hash }) });
+  assert.equal(res.status, 409);
+  assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+});
+
 test('feedback without gh: a pre-filled issue link, and the entry is marked sent', async () => {
   const { ref, id, repo } = closedNight();
   const app = createApp({ version: 'test' });

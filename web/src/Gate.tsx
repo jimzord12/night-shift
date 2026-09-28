@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
 import type { NightDetail } from '../../src/types.ts';
@@ -96,7 +96,7 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
           </p>
         )}
         {earlier.filter((d) => Object.keys(d.taken).length).length > 0 && (
-          <p className="text-center text-sm text-white/50">An agent is working on {names(earlier.filter((d) => Object.keys(d.taken).length))} now; what it took on is locked until that night ends.</p>
+          <p className="text-center text-sm text-white/50">A running night has taken on work from {names(earlier.filter((d) => Object.keys(d.taken).length))}; those answers are locked until it ends.</p>
         )}
       </div>
 
@@ -116,6 +116,7 @@ const names = (ds: NightDetail[]) => ds.map((d) => `${d.repo.name} (${nightTitle
 function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDetail; first: boolean; onSaved: (d: NightDetail) => void; onConflict: (repo: string, night: string) => Promise<boolean> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const tasks = unfinishedList(d.night);
   const save = async () => {
     setBusy(true);
@@ -128,6 +129,8 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
       if (e instanceof ApiError && e.status === 409) await onConflict(d.repo.id, d.night.night);
       setError((e as Error).message);
       setBusy(false);
+      // The button lost the focus while disabled: give it back, so Enter tries again.
+      setTimeout(() => button.current?.focus(), 0);
     }
   };
   return (
@@ -163,7 +166,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
         </div>
       )}
       {error && <div className="mt-3 rounded-xl bg-broken/15 px-3 py-2 text-sm text-broken">{error}</div>}
-      <button onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta mt-4 inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:w-auto">
+      <button ref={button} onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta mt-4 inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:w-auto">
         <Icon name="forward" className="size-4" strokeWidth={2.6} /> {busy ? 'Saving…' : 'Save for the next agent'}
       </button>
     </section>
