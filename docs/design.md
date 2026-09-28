@@ -381,8 +381,8 @@ from any folder. Screens:
    waiting for the developer, the nights that need them and the items
    scheduled for the next night; **Start my morning**, one deck through
    every open question across repositories; one card per night that is
-   Running or the developer's turn (repository, date, its `Owner state`,
-   a one-line result, the non-zero outcome counts, the grey stopped-early
+   Running or the developer's turn (repository, date, its `Owner state`
+   with a small step track, a one-line result, the non-zero outcome counts, the grey stopped-early
    line, and one next-step button: Answer N questions, Save for the next
    agent, Read the report or Watch it run); below, a slim strip of the
    nights Waiting for an agent or settled since the Viewer loaded, and
@@ -393,7 +393,9 @@ from any folder. Screens:
    an entry that settles shows its new state until the next reload.
 2. **Night Report** (`#/night/<repo>/<night>`): a way back to the Inbox,
    then the header (its state, the summary, the stopped-early line, the
-   non-zero outcome counts, duration, cost, sub-agents); **What needs
+   step track of the six `Owner state`s with one **Next:** line and the
+   phrase to say where an agent is next (TASK-27), the non-zero outcome
+   counts, duration, cost, sub-agents); **What needs
    you** (the questions as one row with a small ring, opening the deck;
    **Save for the next agent**, which writes the `Follow-up file`); the
    items saved for the next agent; **What happened**, one row per task

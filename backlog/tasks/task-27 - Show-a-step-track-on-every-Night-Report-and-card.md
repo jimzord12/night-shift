@@ -1,10 +1,11 @@
 ---
 id: TASK-27
 title: Show a step track on every Night Report and card
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:46'
+updated_date: '2026-09-28 13:24'
 labels:
   - viewer
 dependencies:
@@ -33,3 +34,9 @@ D24. The owner cannot tell where a night stands or what comes next. A step track
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Built on feat/step-track: web/src/StepTrack.tsx (StepTrack, nextStep, NextLine). The report shows the track under its summary with one Next: line (a phrase to copy for discuss and waiting); each Inbox card shows the small track. Evidence: .local/evidence/2026-09-28-step-track/r2-{1440,390}/ (log.txt: 6 of 6 cards carry a track; answering docs' last question moves the report from Needs answers to Ready to save without a reload; video in the same folder).
+<!-- SECTION:NOTES:END -->
