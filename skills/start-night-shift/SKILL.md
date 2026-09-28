@@ -1,6 +1,6 @@
 ---
 name: start-night-shift
-description: Run an unattended Night Shift in this repository - plan the tasks, work them one by one, record each outcome with evidence, ask the developer instead of guessing, and close the night so the developer can read it in the Night Shift Viewer. Use when the user says "start night shift", "start a night shift", "night shift", "run the night shift", or asks you to work unattended through a list of tasks and report in the morning.
+description: Run an unattended Night Shift in this repository - plan the tasks, work them one by one, record each outcome with evidence, ask or record each decision taken for the developer instead of guessing, and close the night so the developer can read it in the Night Shift Viewer. Use when the user says "start night shift", "start a night shift", "night shift", "run the night shift", or asks you to work unattended through a list of tasks and report in the morning.
 ---
 
 # Start a Night Shift
@@ -29,8 +29,8 @@ the repository: Claude Code blocks both.
 
 If a night is already open in this session, continue it; do not start
 another. The status also lists open follow-up items: decisions,
-disagreements and unfinished work the developer handed back after an earlier night, and
-which feedback of earlier nights was sent to GitHub (with the issue) and
+disagreements and unfinished work the developer handed back after an
+earlier night, and which feedback of earlier nights was sent to GitHub (with the issue) and
 which still awaits the developer.
 
 ## 2. Follow-ups first
@@ -134,9 +134,9 @@ Work you did but did not plan: record it with `"unplanned": true`, a
 `title` and a `why`.
 
 **A choice that belongs to the developer is never taken silently.** When
-the task cannot go on without it, ask, then move on to the next task;
-otherwise take it, record it with `decide` (below) and carry on. To ask,
-write to `.night-shift/input.json`:
+the task cannot go on without it, or a wrong choice would be costly to
+undo, ask, then move on to the next task; otherwise take it, record it
+with `decide` (below) and carry on. To ask, write to `.night-shift/input.json`:
 
 ```json
 {

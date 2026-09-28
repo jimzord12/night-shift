@@ -66,7 +66,7 @@ are in `docs/glossary.md`.
 |---|---|---|---|
 | 1 Plan | Agent, skill `start-night-shift` | The developer's instructions; open follow-up files | `plan.json`, checked by the tool; the night is marked open |
 | 2 Work | Agent, the developer's way | The plan | Code, commits, evidence files |
-| 3 Record | Agent, one tool call per task | What it did | Each task's outcome, checks and evidence, right after the task; questions and feedback as they arise |
+| 3 Record | Agent, one tool call per task | What it did | Each task's outcome, checks and evidence, right after the task; questions, decisions and feedback as they arise |
 | 4 Meter | Tool, a Claude Code session-end hook, or crash recovery | Claude Code's session logs; the night file | The metrics, added to the night file (closing it first if it is still open) |
 | 5 Close | Tool | Plan, records | `night.json`, validated, marked `complete` or `interrupted` |
 | 6 Viewer | Local app | Every night file of every registered repository; the developer's clicks | Inbox, reports, history; answers written into the night file; follow-up files; GitHub issues |
@@ -89,8 +89,8 @@ are in `docs/glossary.md`.
   once, so a crash loses at most the task in progress. Every tool reply ends
   with the next step, so the agent stays on track even after the harness has
   compressed older context.
-- **Normal end.** The agent adds the summary (questions and feedback were
-  recorded as they arose); the tool closes the night as `complete`. When the
+- **Normal end.** The agent adds the summary (questions, decisions and
+  feedback were recorded as they arose); the tool closes the night as `complete`. When the
   session then ends, the Meter adds the metrics. They cover the whole
   session, including anything done in it after the close.
 - **The session ends early** (context exhausted, the developer exits, the
@@ -244,9 +244,9 @@ decision the agent took on the developer's behalf: `decision`, `why`, the
 task; the developer reviews it as fine or disagrees with a note, and a
 disagreement becomes a `disagreed` follow-up item. Unreviewed decisions
 keep the night in the developer's turn. A metric Claude Code did not
-provide is `null` and shows as "unknown". `summary` is the headline on the Inbox card: one sentence on
-one line, at most 200 characters, checked at close (older nights keep
-longer ones). A question may carry `files` (paths inside the repository,
+provide is `null` and shows as "unknown". `summary` is the headline on
+the Inbox card: one sentence on one line, at most 200 characters, checked
+at close (older nights keep longer ones). A question may carry `files` (paths inside the repository,
 with an optional caption); the Viewer shows them and opens the file manager
 on one. An answer is an option id, `"discuss"` (with a note), or `null`. An
 abridged example (the schema has every field):
@@ -392,7 +392,7 @@ slash command.
 
 | Skill | Triggered by | Teaches |
 |---|---|---|
-| `start-night-shift` | "start night shift" | The whole night: follow-ups, plan, record per task, questions, feedback, close |
+| `start-night-shift` | "start night shift" | The whole night: follow-ups, plan, record per task, questions, decisions, feedback, close |
 | `do-night-shift-follow-up` | "work on the follow-up" | Pick up a follow-up file by day, check items against the code, fix them, update their status |
 
 No `/ns:ask` in version 1: outside a night the developer is at the terminal.
@@ -423,8 +423,9 @@ from any folder. Screens:
    agent decision to review (D31); one card per night that is
    Running or the developer's turn (repository, date, its `Owner state`
    with a small step track, a one-line result, the non-zero outcome counts, the grey stopped-early
-   line, and one next-step button: Answer N questions, Save for the next
-   agent, Read the report or Watch it run); below, a slim strip of the
+   line, and one next-step button: Answer N questions, Review N
+   decisions, Answer N · review M, Save for the next agent, Read the
+   report or Watch it run); below, a slim strip of the
    nights Waiting for an agent or settled since the Viewer loaded, and
    any night file that cannot be read (a red "Cannot be read" badge, not
    counted, gone once opened; History keeps it). No night opens until it

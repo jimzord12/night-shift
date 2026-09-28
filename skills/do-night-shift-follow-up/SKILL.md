@@ -8,8 +8,8 @@ description: Work through a Night Shift follow-up by day - the decisions the dev
 After a night, the developer answers its questions in the Night Shift Viewer
 and creates a follow-up: one item per unfinished task, with the decision
 they made, plus decisions about no particular task and each decision an
-agent took that they disagree with. This skill works those
-items outside a night, with the developer around.
+agent took that they disagree with. This skill works those items outside
+a night, with the developer around.
 
 Run the tool as: `{{cli}}`
 
@@ -40,6 +40,9 @@ Each item has a `kind`:
 - `disagreed`: a decision an earlier agent took on the developer's behalf
   (`question`) that they disagree with; `owner_note` says what they want
   instead. Redo that part their way.
+
+A choice that belongs to the developer comes up while you work: ask them
+in the conversation; they are around.
 
 ## 2. Check before you fix
 

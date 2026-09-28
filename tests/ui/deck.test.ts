@@ -232,6 +232,9 @@ test('a morning reviews the decisions the agent took, after the questions (D31)'
     // Enter keeps the decision; D disagrees, with a note for the next agent.
     await deck.getByRole('heading', { name: 'Generate invoices with pdfkit' }).waitFor();
     await deck.getByText('A decision the agent took for you').waitFor();
+    // A note belongs to "I disagree" only: under "Fine, keep it" none is offered.
+    assert.equal(await deck.getByText('+ add a note').count(), 0);
+    assert.equal(await deck.locator('textarea').count(), 0);
     await page.keyboard.press('Enter');
     await deck.getByRole('heading', { name: 'Keep the login cookie at 14 days' }).waitFor();
     await page.keyboard.press('d');
