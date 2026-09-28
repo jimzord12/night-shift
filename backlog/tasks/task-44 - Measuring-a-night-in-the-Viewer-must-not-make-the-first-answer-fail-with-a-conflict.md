@@ -3,9 +3,11 @@ id: TASK-44
 title: >-
   Measuring a night in the Viewer must not make the first answer fail with a
   conflict
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-28 11:33'
+updated_date: '2026-09-28 13:20'
 labels:
   - viewer
   - meter

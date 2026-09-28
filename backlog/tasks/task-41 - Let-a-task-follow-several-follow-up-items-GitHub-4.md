@@ -1,9 +1,11 @@
 ---
 id: TASK-41
 title: 'Let a task follow several follow-up items (GitHub #4)'
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-28 10:24'
+updated_date: '2026-09-28 13:20'
 labels:
   - cli
   - schemas

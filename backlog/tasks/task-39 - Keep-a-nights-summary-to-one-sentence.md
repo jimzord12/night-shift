@@ -1,9 +1,11 @@
 ---
 id: TASK-39
 title: Keep a night's summary to one sentence
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-28 07:39'
+updated_date: '2026-09-28 13:20'
 labels:
   - cli
   - skills
