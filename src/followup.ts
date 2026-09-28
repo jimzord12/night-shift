@@ -169,6 +169,10 @@ export function applyNightToFollowUps(repo: string, n: Night, now = new Date()):
     const reason = t.outcome === 'done' ? undefined : t.outcome === 'skipped' ? t.reason : `${t.id} ended ${t.outcome ?? 'without an outcome'} in ${n.night}`;
     for (const ref of refsOf(t)) {
       try {
+        // A question the developer has not answered stays open where it was asked unless this night
+        // asked it again or finished the task: carried, it would be locked and heard by no one.
+        const { item } = checkRef(repo, ref);
+        if (status === 'carried' && item.kind === 'waiting' && !n.questions.some((q) => q.task === t.id && q.ask === item.question)) continue;
         resolveItem(repo, ref, status, n.night, reason, now);
       } catch {
         // the follow-up was removed or edited by hand: nothing to update

@@ -355,8 +355,10 @@ it up, in a night or by day, does the digging for context.
   plans or skips it, nor the other open items of its task; a day session
   raises it with them first, and while only those items are open the
   night is the developer's turn). Once
-  it is asked again or worked on, the old copy of the question is locked in
-  the Viewer: the answer belongs where the question is open now.
+  it is asked again, or its task is done, the old copy of the question is
+  locked in the Viewer: the answer belongs where the question is open now.
+  A night that works on the task without asking again leaves it open where
+  it was, still answerable, and the next night plans or skips it again.
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
   night reached the item as a task that did not end done or skipped, so that
   task (and that night's own follow-up, which keeps a decision's answer)

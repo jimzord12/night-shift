@@ -3,9 +3,10 @@ id: TASK-47
 title: >-
   A waiting question is lost when the task that followed it ends without asking
   again
-status: Queued
+status: Active
 assignee: []
 created_date: '2026-09-28 14:04'
+updated_date: '2026-09-28 18:42'
 labels:
   - bug
 dependencies: []
