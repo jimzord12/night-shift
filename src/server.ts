@@ -235,12 +235,21 @@ export function createApp({ version, port }: AppOptions): Hono {
 
   app.get('/api/gh', (c) => c.json({ ready: ghReady(), repo: ISSUES_REPO() }));
 
-  // The header's count of open proposals: asked of gh at most every five minutes, and never
-  // blocking the page (null when gh is missing).
+  // The header's count of open proposals (null when gh is missing): asked of gh at most every five
+  // minutes, or at once with ?fresh (the Reload button), one ask at a time. gh runs asynchronously,
+  // so the Inbox never waits for GitHub.
   let proposals: { at: number; value: Proposals | null } | null = null;
-  app.get('/api/proposals', (c) => {
-    if (!proposals || Date.now() - proposals.at > 5 * 60_000) proposals = { at: Date.now(), value: openProposals() };
-    return c.json(proposals.value);
+  let asking: Promise<Proposals | null> | null = null;
+  app.get('/api/proposals', async (c) => {
+    const stale = !proposals || Date.now() - proposals.at > 5 * 60_000 || c.req.query('fresh') !== undefined;
+    if (stale && !asking) {
+      asking = openProposals().then((value) => {
+        proposals = { at: Date.now(), value };
+        asking = null;
+        return value;
+      });
+    }
+    return c.json(asking ? await asking : (proposals?.value ?? null));
   });
 
   // Sends ticked feedback entries: with gh when it is ready, else hands back pre-filled links.
@@ -270,6 +279,7 @@ export function createApp({ version, port }: AppOptions): Hono {
         errors.push(`${f.id}: ${(error as Error).message}`);
       }
     }
+    if (entries.some((f) => f.sent?.via === 'gh')) proposals = null;
     const fresh = loadNight(repo.path, n.night).night;
     for (const f of entries) {
       const target = fresh.feedback.find((x) => x.id === f.id);

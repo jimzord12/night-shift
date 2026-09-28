@@ -317,11 +317,20 @@ test('a foreign Host is refused when the port is known', async () => {
   assert.equal((await app.request('http://localhost:4747/api/nope')).status, 404);
 });
 
-// A stand-in for the GitHub CLI: a real process that answers the two calls the server makes.
+// A stand-in for the GitHub CLI: a real process that answers only the exact query for open
+// proposals on the Night Shift Repo, and fails like gh does when logged out.
 function fakeGh(issues: number | 'logged-out'): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-gh-'));
   const script = path.join(dir, 'gh.mjs');
-  fs.writeFileSync(script, `const [cmd] = process.argv.slice(2);\nif (cmd === 'auth') process.exit(${issues === 'logged-out' ? 1 : 0});\nif (cmd === 'issue') { console.log(JSON.stringify(Array.from({ length: ${issues === 'logged-out' ? 0 : issues} }, (_, i) => ({ number: i + 1 })))); process.exit(0); }\nprocess.exit(2);\n`);
+  const want = ['issue', 'list', '--repo', 'jimzord12/night-shift', '--label', 'proposal', '--state', 'open'];
+  fs.writeFileSync(
+    script,
+    `const a = process.argv.slice(2);\n` +
+      `if (${issues === 'logged-out'}) process.exit(4);\n` +
+      `const want = ${JSON.stringify(want)};\n` +
+      `if (want.every((w, i) => a[i] === w) && a.includes('--json')) { console.log(JSON.stringify(Array.from({ length: ${issues === 'logged-out' ? 0 : issues} }, (_, i) => ({ number: i + 1 })))); process.exit(0); }\n` +
+      `process.exit(2);\n`,
+  );
   return script;
 }
 

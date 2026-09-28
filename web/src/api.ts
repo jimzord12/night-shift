@@ -29,7 +29,7 @@ export const getNight = (repo: string, night: string) => call<NightDetail>(night
 export const markRead = (repo: string, night: string) => post<{ ok: true }>(`${nightUrl(repo, night)}/read`);
 export const createFollowUp = (repo: string, night: string) => post<NightDetail>(`${nightUrl(repo, night)}/follow-up`);
 export const ghStatus = () => call<{ ready: boolean; repo: string }>('/api/gh');
-export const getProposals = () => call<{ open: number; url: string } | null>('/api/proposals');
+export const getProposals = (fresh = false) => call<{ open: number; url: string } | null>(`/api/proposals${fresh ? '?fresh' : ''}`);
 
 export function postAnswer(repo: string, night: string, body: { question: string; answer: string | null; note: string; baseHash: string }) {
   return post<NightDetail>(`${nightUrl(repo, night)}/answer`, body);

@@ -126,6 +126,8 @@ export function App() {
     }
   }, [putDetail]);
 
+  // Reload also asks GitHub again for the proposals count.
+  const [reloads, setReloads] = useState(0);
   const load = useCallback(async () => {
     setLoading(true);
     // Loads started before this point are dropped, and details and failures are forgotten now, so a
@@ -225,8 +227,8 @@ export function App() {
           </nav>
           <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
             <span className="hidden sm:inline">{overview?.version}</span>
-            <Proposals />
-            <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
+            <Proposals reloads={reloads} />
+            <button onClick={() => { setReloads((r) => r + 1); void load(); }} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -284,11 +286,11 @@ function Banner({ children }: { children: ReactNode }) {
 
 // Open proposals on the Night Shift Repo (TASK-35): feedback sent from any repository that nobody
 // has closed yet. Shows only when gh answered and at least one is open; links to the list.
-function Proposals() {
+function Proposals({ reloads }: { reloads: number }) {
   const [p, setP] = useState<{ open: number; url: string } | null>(null);
   useEffect(() => {
-    getProposals().then(setP, () => setP(null));
-  }, []);
+    getProposals(reloads > 0).then(setP, () => setP(null));
+  }, [reloads]);
   if (!p?.open) return null;
   const what = `${p.open} open proposal${p.open === 1 ? '' : 's'} on GitHub (the Night Shift Repo)`;
   // The GitHub mark and an outward arrow say where it goes at every width; the word joins from sm up.
