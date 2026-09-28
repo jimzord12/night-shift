@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 07:51'
+updated_date: '2026-09-28 07:53'
 labels:
   - viewer
 dependencies:
@@ -40,4 +40,12 @@ D24. Morning has no hierarchy: nights are a thin chip row and the first night op
 
 <!-- SECTION:NOTES:BEGIN -->
 Strip rule (review R4): a night that reaches Done stays in the strip until the next reload (D22's fixed list); a Waiting for an agent night stays in it across reloads until it reaches Done.
+
+Review round 1 (docs/work/TASK-25/reviews/01-*.md; also covers TASK-26 and the shipped part of TASK-31): code FINDINGS, design FINDINGS, visual FINDINGS. Dispositions:
+- design D1 / code F1 / visual V1 (Inbox 380 wide at 360): fixed; the grid column may shrink and the step button wraps; scrollWidth 360 (inbox-r3/log.txt).
+- design D2 Blocking (saved-item titles one word per line, overlap at 360): fixed; the kind pill wraps under the title. D3 (task rows): pills go under the line on a phone.
+- code F2 (the questions number opens a partial deck): only clickable once every question is loaded. F3 (a failed load holds Start my morning back): failed loads are left out and not retried in a loop. F4 / visual V3 (the banner outlives its night page): leaving the failed night clears it. F5: TASK-25 acceptance #2 rewritten to D26 and D27; TASK-31 noted.
+- visual V2 (deck end screen in the old words): now speaks of saving for the next agent and goes back to the Inbox. V5 / code N1 (duplicate fetches): in-flight and failed loads are remembered. V6 (cramped save row): roomier, wraps.
+- design D4 (unknown metrics): the report shows only measured duration, cost and sub-agents. D5 (tight numbers at 360): smaller labels on a phone. D6 (tall pill): Start my morning is a rounded block on a phone. code N4: the from-follow-up pill is back on task rows. N6: an empty task list says so. N8: a malformed address falls back to the Inbox.
+- Not changed: visual V4 / code N11 (an unreadable night leaves the strip once opened: the TASK-24 rule, reviewed in four rounds; History keeps it red); code N2 (deck order), N3 (History highlight), N5 (feedback heading), N7 (a night newer than the load reads as not in the list; Reload fixes it), N9 (dark backing behind transparent images), N10 (Back scrolls to top); design D7.
 <!-- SECTION:NOTES:END -->
