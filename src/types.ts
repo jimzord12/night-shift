@@ -261,11 +261,13 @@ export const isOpenQuestion = (q: Question) => q.answer === null;
 export const handedItem = (f: FollowUp | null | undefined, q: Question): FollowUpItem | undefined =>
   f ? (f.items.find((i) => i.question === q.ask && i.task === q.task) ?? f.items.find((i) => i.question === q.ask)) : undefined;
 
-// Waiting for the developer: unanswered, and not handed over unanswered and settled since (asked
-// again by a later night, or worked on by day). An answer there would reach no agent.
-export const isOpenQuestionIn = (q: Question, f: FollowUp | null | undefined) => {
+// Waiting for the developer: unanswered, not handed over unanswered and settled since (asked
+// again by a later night, or worked on by day), and not held by a night running now that took its
+// item on (`taken`, keyed "<night>/<item>"). An answer there would reach no agent, or must wait.
+export const isOpenQuestionIn = (q: Question, f: FollowUp | null | undefined, taken?: Record<string, string>) => {
   if (q.answer !== null) return false;
   const h = handedItem(f, q);
+  if (h && f && taken?.[`${f.from_night}/${h.id}`]) return false;
   return !h || h.status === 'open';
 };
 

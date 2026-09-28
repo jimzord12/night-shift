@@ -49,7 +49,7 @@ export function App() {
       return d
         ? {
             ...live,
-            questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up)).length,
+            questions_open: d.night.questions.filter((q) => isOpenQuestionIn(q, d.follow_up, d.taken)).length,
             feedback_unsent: d.night.feedback.filter((f) => !f.sent).length,
             // A follow-up file the server found but could not read still counts as handed over.
             follow_up: n.follow_up || !!d.follow_up,
@@ -80,7 +80,7 @@ export function App() {
   const selected = route.page === 'night' ? route.key : null;
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string } | null>(null);
+  const [deck, setDeck] = useState<{ items: DeckItem[]; startKey?: string; from: 'Inbox' | 'report' } | null>(null);
 
   // What the next night in each repository will pick up; fetched with the overview and whenever the
   // tab opens.
@@ -184,7 +184,7 @@ export function App() {
   const detail = selected ? (details[selected] ?? null) : null;
   const summary = selected ? (overview?.nights.find((n) => keyOf(n.repo, n.id) === selected) ?? null) : null;
   // Every open question across nights: what Start my morning walks through.
-  const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up));
+  const openItems = allItems.filter((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
   // A night whose load failed is left out rather than holding the button back; the Inbox names it.
   const questionsReady = !!overview && overview.nights.every((n) => !n.questions_open || !readable(n) || !!details[keyOf(n.repo, n.id)] || failures.has(keyOf(n.repo, n.id)));
   // A night that failed only on a reload keeps its older detail, and the deck still walks it.
@@ -195,7 +195,7 @@ export function App() {
   const pick = (repo: string, night: string) => {
     go(`#/night/${encodeURIComponent(repo)}/${encodeURIComponent(night)}`);
   };
-  const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey });
+  const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey, from: route.page === 'night' ? 'report' : 'Inbox' });
   const nightItems = (key: string | null) => (key ? allItems.filter((i) => keyOf(i.detail.repo.id, i.detail.night.night) === key) : []);
   // The deck reads the latest details, so a saved answer updates the file hash for the next save.
   const deckItems = deck ? deck.items.map((i) => allItems.find((x) => x.key === i.key) ?? i) : [];
@@ -247,7 +247,7 @@ export function App() {
                 onOpen={pick}
                 onAnswer={(repo, night) => {
                   const items = nightItems(keyOf(repo, night));
-                  if (items.length) openDeck(items, items.find((i) => isOpenQuestionIn(i.question, i.detail.follow_up))?.key);
+                  if (items.length) openDeck(items, items.find((i) => isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken))?.key);
                   else pick(repo, night);
                 }}
                 onStartMorning={() => openDeck(openItems)}
@@ -268,6 +268,7 @@ export function App() {
         <QuestionDeck
           items={deckItems}
           startKey={deck.startKey}
+          from={deck.from}
           onClose={() => setDeck(null)}
           onSaved={putDetail}
           onConflict={async (repo, night) => loadNight(repo, night, true)}

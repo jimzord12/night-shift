@@ -268,9 +268,13 @@ test('a running night that skips a follow-up item takes it too: locked in the de
   const { ref, id, repo } = closedNight();
   const app = createApp({ version: 'test' });
   await app.request(`/api/nights/${ref.id}/${id}/follow-up`, { method: 'POST' });
+  const open = async () => ((await (await app.request('/api/overview')).json()) as Overview).nights.find((n) => n.repo === ref.id && n.id === id)?.questions_open;
+  assert.equal(await open(), 1);
   const live = start(repo, plan([TASKS[0]], { skipped_follow_ups: [{ follow_up: `${id}/A1`, reason: 'already fixed on main' }] }), session('live', process.pid), new Date('2026-09-27T23:00:00'));
   const d = (await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail;
   assert.deepEqual(d.taken, { [`${id}/A1`]: live.night.night });
+  // Held by the running night, the question is not the developer's turn: it is not counted open.
+  assert.equal(await open(), 0);
   const res = await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: d.hash }) });
   assert.equal(res.status, 409);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);

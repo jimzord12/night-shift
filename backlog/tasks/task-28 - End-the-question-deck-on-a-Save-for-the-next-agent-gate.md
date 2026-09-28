@@ -5,7 +5,7 @@ status: Review
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 11:57'
+updated_date: '2026-09-28 12:22'
 labels:
   - viewer
 dependencies:
@@ -50,4 +50,6 @@ Review round 1 (docs/work/TASK-28/reviews/01-*.md): code FINDINGS (M1, M2), desi
 Evidence: .local/evidence/2026-09-28-save-gate/r5 (keys.mjs: Enter-only walk, the running night; lock-390.png).
 
 Review round 2 (docs/work/TASK-28/reviews/02-*): code PASS; design FINDINGS; visual FINDINGS. Dispositions: m1 fixed (a failed Save shows its error instead of hanging); m2 fixed (a 409 on the Report's Save reloads the night); m3 fixed (says 'reach the next agent' only while follow-up items are open); m4 fixed (focus moves to the next Save card). D1/V1 Blocking fixed: the phrase wraps with non-breaking hyphens beside Copy; checked at 360 (.local/evidence/2026-09-28-save-gate/r6/360). D2 fixed (the gate scrolls to top when its heading changes). D3 and D5 deferred to TASK-40 (polish). D4 fixed (zero counts dropped). V2 fixed: the deck takes focus on open and Enter ignores buttons behind it. V3 fixed in the same change as the celebrated state. V4 fixed: 'Esc closes' hint on Answers kept. V5 fixed: lock text says 'has taken this on'.
+
+Review round 3 (03-*): code FINDINGS (M1 evidence only), design PASS, visual FINDINGS. Dispositions: code M1 closed by the design reviewer's report-confirmation shots at 360/390 (.local/evidence/2026-09-28-design-gate-r3/rep/). m1 fixed (a failed Save refocuses its button). m2 fixed (the report's error hides once the night shows saved). m3 fixed (test: a skipped item is taken, locked, refused, and not counted open). N1 fixed (design.md wording; gate line for a night that took work on). Visual V1 Blocking fixed: isOpenQuestionIn takes the night's taken items, so a question held by a running night is not counted in the Inbox, cards, Report or deck, shows no recommendation as its answer, and the Report says 'Nothing waiting for you' with the follow-up items marked 'Taken by a running night'. V2 Blocking fixed: the gate's button says 'Back to the report' when the deck was opened from a report (it returns there). V3 resolved by V1. V4 nits: the two-line Save button at 390 left as is (reads fine per design r3 D4); U+2011 hand-selection kept (Copy gives '-'). Evidence: .local/evidence/2026-09-28-save-gate/r7/.
 <!-- SECTION:NOTES:END -->

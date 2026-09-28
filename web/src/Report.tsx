@@ -88,7 +88,10 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
                   {i.title}
                   {i.decision_label && <span className="font-semibold text-white"> → {i.decision_label}</span>}
                 </span>
-                {i.status === 'open' ? (
+                {i.status === 'open' && detail.taken[`${n.night}/${i.id}`] ? (
+                  // A night running now took it on: the agent's turn, not the developer's.
+                  <span className="shrink-0 rounded-full bg-agent/15 px-2 py-px text-xs font-semibold whitespace-nowrap text-agent">Taken by a running night</span>
+                ) : i.status === 'open' ? (
                   <span className="shrink-0 rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${KIND[i.kind].color} 75%, white)`, background: `color-mix(in srgb, ${KIND[i.kind].color} 18%, transparent)` }}>{KIND[i.kind].label}</span>
                 ) : (
                   <span className="shrink-0 text-xs text-white/50">{i.status}</span>
@@ -131,8 +134,8 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
   const [justSaved, setJustSaved] = useState(false);
   const n = detail.night;
   const f = detail.follow_up;
-  const openQ = n.questions.filter((q) => isOpenQuestionIn(q, f)).length;
-  const answered = n.questions.length - openQ;
+  const openQ = n.questions.filter((q) => isOpenQuestionIn(q, f, detail.taken)).length;
+  const answered = n.questions.filter((q) => q.answer !== null).length;
   const save = n.status !== 'open' && needsHandOver(n, f);
   const pending = unfinishedTasks(n);
   const create = async () => {
@@ -157,8 +160,8 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
           <span className="text-lg font-bold">{openQ}</span>
         </Ring>
         <div className="min-w-[12rem] flex-1">
-          <div className="font-semibold">{openQ ? `${openQ} question${openQ === 1 ? '' : 's'} waiting for you` : 'Every question answered'}</div>
-          <div className="text-sm text-white/55">{answered} of {n.questions.length} answered{openQ && f ? '; your answer still reaches the next agent' : ''}</div>
+          <div className="font-semibold">{openQ ? `${openQ} question${openQ === 1 ? '' : 's'} waiting for you` : answered < n.questions.length ? 'Nothing waiting for you' : 'Every question answered'}</div>
+          <div className="text-sm text-white/55">{answered} of {n.questions.length} answered{openQ && f ? '; your answer still reaches the next agent' : ''}{!openQ && answered < n.questions.length ? '; the rest are held by a running night or settled' : ''}</div>
         </div>
         <button onClick={() => onOpenDeck()} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 font-semibold transition hover:brightness-110 ${openQ ? 'bg-[var(--accent)] text-white' : 'glass text-white/85'}`}>
           {openQ ? 'Start answering' : 'Review answers'} <Icon name="right" className="size-4" strokeWidth={2.6} />
@@ -283,7 +286,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
                   <Icon name="question" className="size-5 shrink-0 text-[var(--accent)]" />
                   <span className="min-w-0 flex-1">
                     <span className="block">{q.ask}</span>
-                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up) ? 'open' : 'locked'}</span>
+                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up, detail.taken) ? 'open' : 'locked'}</span>
                   </span>
                 </button>
               ))}
