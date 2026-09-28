@@ -4,7 +4,7 @@ title: Make the whole morning work from the keyboard
 status: Active
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 17:15'
+updated_date: '2026-09-28 17:32'
 labels:
   - viewer
 dependencies:
@@ -46,4 +46,6 @@ Review round 2 (02-*): design PASS, code FINDINGS, visual FINDINGS. Dispositions
 Review round 3 (03-*): code FINDINGS, visual FINDINGS. Dispositions: visual V10 and code F2 fixed (the deck remembers whether the focus came from a click, pointerdown, cleared by Tab; a clicked button or link leaves Enter to Save; :focus-visible dropped, Chromium marks a clicked button focus-visible on keydown; the round-2 F3 disposition was wrong, this replaces it). Visual V11 and code F1 fixed (a number key moves the focus to the option it picked, so Enter saves the checked answer). Visual V12 fixed (Save's hint returns to Enter when the question changes). New browser test: click an option then 2 then Enter, click use it then Enter, focus one option then 2 then Enter; removing either fix fails it. No action: code N1 (Enter during a save is swallowed), N2 (after a conflict a second Enter saves the kept draft; as before this change), N3 (WebKit).
 
 Review round 4 (04-*): visual PASS, code FINDINGS. Dispositions: code F1 fixed (the mixed test clicks use it, Tabs to Not now, presses Enter and asserts the question stays unanswered; removing the Tab reset fails it). Code F2 fixed (a clicked thumbnail leaves Enter to Save, like a clicked button). No action: N1 (a keyboard-reached progress segment keeps the focus; with TASK-40 V5), N2 (a rare stale Ctrl+Enter hint after the gate). To TASK-40: visual V13 (the focus ring on the cream footer buttons is hard to see).
+
+Review round 5 (05-*): visual PASS, code FINDINGS. Dispositions: code F1 fixed after the round (the mixed test adds a question with picture options: a thumbnail reached by keyboard opens on Enter and answers nothing; a clicked one, after Esc, leaves Enter to Save; removing either thumbnail rule fails it). Code F2 fixed after the round (a note focus still pending is cancelled by Esc; five back-to-back UI runs pass). N1 (Enter on let's discuss with no note untested) and visual V14 (a clicked thumbnail shows the keyboard ring after Esc) no action. The round cap (5, attended) is reached with these fixes unreviewed: not reported as done; a sixth round needs the owner's go.
 <!-- SECTION:NOTES:END -->

@@ -59,6 +59,13 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   // Whether the focus came from a click rather than the keyboard: a clicked button leaves Enter to
   // Save. Tab clears it. (Browsers mark a clicked button :focus-visible once a key is pressed.)
   const clicked = useRef(false);
+  // A focus the note still owes (D on a note not drawn yet); Esc cancels it, or it pulls the cursor back.
+  const noteFocus = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const focusNoteSoon = () => {
+    noteRef.current?.focus();
+    clearTimeout(noteFocus.current);
+    noteFocus.current = setTimeout(() => noteRef.current?.focus(), 0);
+  };
   const [zoom, setZoom] = useState<Media | null>(null);
   const [finished, setFinished] = useState(false);
   const [savedNow, setSavedNow] = useState<ReadonlySet<string>>(new Set());
@@ -181,7 +188,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       if (e.key === 'Tab') clicked.current = false;
       const letter = e.code.startsWith('Key') ? e.code.slice(3).toLowerCase() : e.key.toLowerCase();
       const typing = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
-      if (e.key === 'Escape' && typing) return (e.target as HTMLElement).blur();
+      if (e.key === 'Escape' && typing) {
+        clearTimeout(noteFocus.current);
+        return (e.target as HTMLElement).blur();
+      }
       if (e.key === 'Escape') return onClose();
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
@@ -213,8 +223,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           if (draft) setDraft({ ...draft, answer: DISCUSS });
           setShowNote(true);
           setFocusNote(true);
-          noteRef.current?.focus();
-          return void setTimeout(() => noteRef.current?.focus(), 0);
+          return focusNoteSoon();
         }
         if (option) {
           e.preventDefault();
@@ -249,8 +258,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         setShowNote(true);
         setFocusNote(true);
         // An open note takes the cursor now, before the next key; a new one once it is drawn.
-        noteRef.current?.focus();
-        setTimeout(() => noteRef.current?.focus(), 0);
+        focusNoteSoon();
       }
     };
     window.addEventListener('keydown', onKey);

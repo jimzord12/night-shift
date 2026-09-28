@@ -130,8 +130,15 @@ test('mouse and keyboard together: Enter saves what the screen shows as chosen',
   ask(repo, { task: 'T2', ask: 'Which login fix?', options: [{ label: 'Relax the cookie' }, { label: 'Own-domain login' }], recommended: 'a' });
   record(repo, { task: 'T2', outcome: 'blocked', checks: [false], blocked_by: 'Q2' });
   ask(repo, { task: 'T3', ask: 'Upgrade now or after the release?', options: [{ label: 'Now' }, { label: 'After the release' }], recommended: 'a' });
+  // Picture options: a 1x1 PNG in the night's folder.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  const pics = path.join(repo, '.night-shift', 'nights', id, 'evidence');
+  fs.mkdirSync(pics, { recursive: true });
+  fs.writeFileSync(path.join(pics, 'red.png'), png);
+  fs.writeFileSync(path.join(pics, 'blue.png'), png);
+  ask(repo, { task: 'T3', ask: 'Which icon colour?', options: [{ label: 'Red', image: 'evidence/red.png' }, { label: 'Blue', image: 'evidence/blue.png' }], recommended: 'b' });
   record(repo, { task: 'T3', outcome: 'blocked', checks: [false, false], blocked_by: 'Q3' });
-  close(repo, 'Three choices wait for you.');
+  close(repo, 'Four choices wait for you.');
   recover(repo);
   const ref = registerRepo(repo);
 
@@ -169,8 +176,24 @@ test('mouse and keyboard together: Enter saves what the screen shows as chosen',
     await deck.getByRole('button', { name: /^Now/ }).focus();
     await page.keyboard.press('2');
     await page.keyboard.press('Enter');
+    // A picture the keyboard reached opens on Enter and answers nothing; one that was clicked leaves
+    // Enter to Save.
+    await deck.getByRole('heading', { name: 'Which icon colour?' }).waitFor();
+    const viewer = page.locator('[class*="bg-black/90"]');
+    await page.keyboard.press('Tab');
+    await deck.locator('[title="View Red in full"]').focus();
+    await page.keyboard.press('Enter');
+    await viewer.waitFor();
+    assert.equal(loadNight(repo, id).night.questions[3].answer, null);
+    await page.keyboard.press('Escape');
+    await viewer.waitFor({ state: 'detached' });
+    await deck.locator('[title="View Red in full"]').click();
+    await viewer.waitFor();
+    await page.keyboard.press('Escape');
+    await viewer.waitFor({ state: 'detached' });
+    await page.keyboard.press('Enter');
     await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
-    assert.deepEqual(loadNight(repo, id).night.questions.map((q) => q.answer), ['b', 'a', 'b']);
+    assert.deepEqual(loadNight(repo, id).night.questions.map((q) => q.answer), ['b', 'a', 'b', 'b']);
   } finally {
     await browser.close();
     server.close();
