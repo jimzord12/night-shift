@@ -58,13 +58,14 @@ export async function notifyNightEnded(repo: string, n: Night): Promise<string |
 
 export async function raise(s: NotifySettings, title: string, text: string, url: string): Promise<string> {
   if (s.command) {
-    const r = spawnSync(s.command, { shell: true, windowsHide: true, timeout: 10_000, encoding: 'utf8', env: { ...process.env, NIGHT_SHIFT_TITLE: title, NIGHT_SHIFT_TEXT: text, NIGHT_SHIFT_URL: url } });
+    // Output ignored: a pipe a grandchild keeps open would hold the command past its timeout.
+    const r = spawnSync(s.command, { shell: true, windowsHide: true, timeout: 10_000, stdio: 'ignore', env: { ...process.env, NIGHT_SHIFT_TITLE: title, NIGHT_SHIFT_TEXT: text, NIGHT_SHIFT_URL: url } });
     return r.status === 0 ? `Notified: ${title}.` : `The notify command failed (${r.error?.message ?? `exit ${r.status}`}).`;
   }
   if (process.platform !== 'win32') return 'Desktop notifications are built in on Windows only; set a command with night-shift notify on --command "<command>".';
   await ensureViewer(s.port);
-  toast(title, text, url);
-  return `Notified: ${title}.`;
+  const failed = toast(title, text, url);
+  return failed ? `The notification failed: ${failed}` : `Notified: ${title}.`;
 }
 
 // The link needs a Viewer to answer; start one in the background when the port is free.
@@ -82,14 +83,18 @@ async function ensureViewer(port: number): Promise<void> {
   });
   if (up) return;
   const cli = fileURLToPath(new URL('./cli.ts', import.meta.url));
-  spawn(process.execPath, [cli, 'view', '--port', String(port)], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  // Started from the install folder, so the long-lived Viewer never holds a repository's folder.
+  spawn(process.execPath, [cli, 'view', '--port', String(port)], { cwd: installRoot(), detached: true, stdio: 'ignore', windowsHide: true })
+    .on('error', () => {})
+    .unref();
 }
 
 const xml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // A Windows toast through Windows PowerShell's own app id, so nothing needs installing. The text
-// travels base64-encoded, never through shell quoting.
-function toast(title: string, text: string, url: string): void {
+// travels base64-encoded, never through shell quoting. Waits for PowerShell (about a second), so a
+// failure is reported rather than lost; returns the reason, or null when it was shown.
+function toast(title: string, text: string, url: string): string | null {
   const body = `<toast activationType="protocol" launch="${xml(url)}"><visual><binding template="ToastGeneric"><text>${xml(title)}</text><text>${xml(text)}</text></binding></visual><actions><action content="Open the report" activationType="protocol" arguments="${xml(url)}"/></actions></toast>`;
   const script = [
     '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null',
@@ -99,5 +104,8 @@ function toast(title: string, text: string, url: string): void {
     '$d.LoadXml($x)',
     "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($d))",
   ].join('\n');
-  spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { cwd: installRoot(), encoding: 'utf8', timeout: 15_000, windowsHide: true });
+  if (r.error) return r.error.message;
+  if (r.status !== 0) return (r.stderr || '').replace(/#< CLIXML[\s\S]*?(?=\r?\n|$)/, '').trim().split('\n').slice(-2).join(' ').slice(0, 300) || `exit ${r.status}`;
+  return null;
 }

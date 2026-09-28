@@ -181,7 +181,7 @@ async function commandMeter(): Promise<number> {
     const closed: Night[] = [];
     const done = hook.session_id ? onSessionEnd(repo, hook.session_id, hook.transcript_path ?? null, new Date(), (n) => closed.push(n)) : recover(repo);
     for (const n of closed) {
-      const note = await notifyNightEnded(repo, n);
+      const note = await notifyNightEnded(repo, n).catch((e: Error) => `the notification failed: ${e.message}`);
       if (note) done.push(note);
     }
     if (done.length) console.log(`night-shift: ${done.join('; ')}`);

@@ -5,7 +5,7 @@ status: Review
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 11:19'
+updated_date: '2026-09-28 11:24'
 labels:
   - cli
   - viewer
@@ -34,3 +34,9 @@ D24. The Viewer only waits; a forgetful owner never opens it and the flow stalls
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Recovery does not notify: it runs inside the Viewer and night-shift start, where the owner already is (code review r1 F5). Only close and the session-end hook do.
+<!-- SECTION:NOTES:END -->
