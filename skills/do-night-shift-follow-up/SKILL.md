@@ -27,7 +27,8 @@ in the conversation, then do what you agree, and mark the item.
 Each item has a `kind`:
 
 - `discuss`: the developer wants to talk it through (see above). No night
-  works on it, so it waits for a session like this one.
+  works on it, nor on the other items of the same task, so they wait for a
+  session like this one.
 - `decision`: the developer answered the question; `decision_label` and
   `owner_note` say what they chose and why. Follow it. One carried from an
   earlier night that did not finish it also has `left`.

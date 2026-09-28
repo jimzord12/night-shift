@@ -44,8 +44,9 @@ leaves an open item out. A `decision` item carries the developer's answer:
 follow it. A `waiting` item has no answer yet: plan it, and if it still
 needs the answer, ask again (step 4) and record the task `blocked`. A
 `discuss` item is one the developer wants to talk through: leave it out
-of the plan entirely (the tool refuses planning or skipping it); a day
-session raises it with them.
+of the plan entirely, together with the other open items of the same task
+(the tool refuses planning or skipping them); a day session raises them
+with the developer.
 
 ## 3. The plan: your promise
 

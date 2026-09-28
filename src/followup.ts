@@ -27,7 +27,10 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
     const base = { task: t.id, title: t.title, done_when: t.done_when };
     // Every decision the task carried keeps the developer's answer, one item each, whatever the task
     // ended on: the new question first when it asked one, else the work left on the first decision.
-    const priors = refsOf(t).map((r) => earlier(r)).filter((i): i is FollowUpItem => i?.kind === 'decision');
+    const priors = refsOf(t)
+      .map((r) => earlier(r))
+      // A question asked again: its new answer (or its wait) replaces the earlier one.
+      .filter((i): i is FollowUpItem => i?.kind === 'decision' && !(q && i.question === q.ask));
     const carried = (prior: FollowUpItem, extra: object = {}) =>
       add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...extra });
     if (q && q.answer !== null) {

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { Block, Check, Feedback, Night, Option, PlanInput, Question, QuestionFile, Session, Task } from './types.ts';
-import { BLOCK_TYPES, DISCUSS, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, refsOf } from './types.ts';
+import { BLOCK_TYPES, DISCUSS, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, forTalk, refsOf } from './types.ts';
 import {
   StoreError,
   evidenceDir,
@@ -139,11 +139,12 @@ export function start(repo: string, planText: string, session: Session | null = 
   const refs = [...plan.tasks.flatMap((t) => refsOf(t)), ...(plan.skipped_follow_ups ?? []).map((s) => s.follow_up)];
   if (new Set(refs).size !== refs.length) throw new StoreError('a follow-up item appears twice in the plan');
   for (const ref of refs) {
-    const { item } = checkRef(repo, ref);
+    const { item, followUp } = checkRef(repo, ref);
     if (item.status !== 'open') throw new StoreError(`follow-up item ${ref} is ${item.status}, not open`);
     if (item.kind === 'discuss') throw new StoreError(`follow-up item ${ref} is one the developer wants to discuss ("${item.title}"); no night works on it or skips it. Leave it out of the plan: a day session raises it with the developer.`);
+    if (forTalk(followUp, item)) throw new StoreError(`follow-up item ${ref} belongs to task ${item.task}, which the developer wants to discuss first ("${item.title}"); no night works on it or skips it. Leave it out of the plan: a day session raises it with the developer.`);
   }
-  const missing = openItems(repo).filter((o) => !refs.includes(o.ref) && o.item.kind !== 'discuss');
+  const missing = openItems(repo).filter((o) => !refs.includes(o.ref) && !forTalk(o.followUp, o.item));
   if (missing.length) {
     throw new StoreError(
       `open follow-up items are not in the plan: ${missing.map((o) => `${o.ref} "${o.item.title}"`).join('; ')}. Check each against the code, then either plan it as a task with "follow_up": "<ref>" (or a list of refs for one task) or list it under "skipped_follow_ups" with a reason (for example, already fixed).`,
@@ -181,7 +182,7 @@ export function start(repo: string, planText: string, session: Session | null = 
       else if (item.kind === 'waiting') messages.push(`${t.id} follows ${ref}: no answer yet; ask again before working on it.`);
     }
   }
-  const talk = openItems(repo).filter((o) => o.item.kind === 'discuss');
+  const talk = openItems(repo).filter((o) => forTalk(o.followUp, o.item));
   if (talk.length) messages.push(`Left for a day session with the developer (they want to discuss): ${talk.map((o) => `${o.ref} "${o.item.title}"`).join('; ')}.`);
   messages.push(`Night ${id} is open with ${night.tasks.length} task(s)${session ? '' : ' (no Claude Code session found: metrics will be unknown)'}.`);
   messages.push(`Evidence goes in ${path.relative(repo, evidenceDir(repo, id)).split(path.sep).join('/')}/ and is referenced as evidence/<file>.`);

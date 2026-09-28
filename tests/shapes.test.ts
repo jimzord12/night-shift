@@ -276,3 +276,51 @@ test('an older follow-up takes version 2 when an answer flows into it; "discuss"
   start(live, plan(TASKS.slice(0, 1)), session('r', process.pid));
   refused(() => ask(live, { task: 'T1', ask: 'Who decides?', options: [{ id: 'discuss', label: 'Discuss with the team' }, { label: 'Me' }], recommended: 'b' }), /"discuss" is reserved/);
 });
+
+test("a task the developer wants to discuss holds its carried decisions with it; an answer given first is carried too", async () => {
+  const setup = async (name: string, answer: string, note = '') => {
+    const { repo, id, ref } = withFollowUp(name);
+    const app = createApp({ version: 'test' });
+    for (const [q, a] of [['Q1', 'b'], ['Q2', 'a']]) {
+      await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: q, answer: a, baseHash: loadNight(repo, id).hash }) });
+    }
+    createFollowUp(repo, loadNight(repo, id).night);
+    const s = start(repo, plan([{ ...TASKS[0], follow_up: [`${id}/A1`, `${id}/A2`] }]), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
+    ask(repo, { task: 'T1', ask: 'Which PDF library?', options: [{ label: 'pdfkit' }, { label: 'jsPDF' }], recommended: 'a' });
+    record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+    close(repo, 'The invoices wait for a library.');
+    // The developer answers first and saves after: the usual order.
+    const res = await app.request(`/api/nights/${ref.id}/${s.night.night}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer, note, baseHash: loadNight(repo, s.night.night).hash }) });
+    assert.equal(res.status, 200);
+    return { repo, app, ref, night: s.night.night, f: createFollowUp(repo, loadNight(repo, s.night.night).night) };
+  };
+  const decided = await setup('carry-first', 'a');
+  assert.deepEqual(decided.f.items.map((i) => [i.kind, i.decision_label]), [['decision', 'pdfkit'], ['decision', 'Detailed'], ['decision', 'Cookie']]);
+
+  const talk = await setup('carry-talk', 'discuss', 'Is a library even needed?');
+  assert.deepEqual(talk.f.items.map((i) => [i.kind, i.decision_label ?? null]), [['discuss', null], ['decision', 'Detailed'], ['decision', 'Cookie']]);
+  // No night works on the task or its decisions until the talk; a plan without them is accepted.
+  refused(() => start(talk.repo, plan([{ ...TASKS[0], follow_up: `${talk.night}/A2` }]), session('s3', DEAD_PID)), /belongs to task T1, which the developer wants to discuss first/);
+  const next = start(talk.repo, plan([TASKS[2]]), session('s4', DEAD_PID), new Date('2026-09-28T23:10:00'));
+  assert.match(next.messages.join('\n'), new RegExp(`Left for a day session .*${talk.night}/A1.*${talk.night}/A2.*${talk.night}/A3`));
+  record(talk.repo, { task: 'T3', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  close(talk.repo, 'Framework upgraded.');
+  // The night is the developer's turn: everything open waits for the talk.
+  await talk.app.request(`/api/nights/${talk.ref.id}/${talk.night}/read`, { method: 'POST' });
+  const n = ((await (await talk.app.request('/api/overview')).json()) as Overview).nights.find((x) => x.repo === talk.ref.id && x.id === talk.night)!;
+  assert.deepEqual([n.follow_up_open, n.follow_up_discuss, ownerState(n)], [3, 3, 'needs_answers']);
+});
+
+test('a question asked again hands over its new answer, not the earlier one as well', async () => {
+  const { repo, id, ref } = withFollowUp('reask');
+  const app = createApp({ version: 'test' });
+  await app.request(`/api/nights/${ref.id}/${id}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'b', baseHash: loadNight(repo, id).hash }) });
+  createFollowUp(repo, loadNight(repo, id).night);
+  const s = start(repo, plan([{ ...TASKS[0], follow_up: `${id}/A1` }], { skipped_follow_ups: [{ follow_up: `${id}/A2`, reason: 'not tonight' }] }), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  close(repo, 'The layout question came back.');
+  await app.request(`/api/nights/${ref.id}/${s.night.night}/answer`, { method: 'POST', headers: json, body: JSON.stringify({ question: 'Q1', answer: 'a', baseHash: loadNight(repo, s.night.night).hash }) });
+  const f = createFollowUp(repo, loadNight(repo, s.night.night).night);
+  assert.deepEqual(f.items.map((i) => [i.kind, i.decision_label]), [['decision', 'Compact']]);
+});

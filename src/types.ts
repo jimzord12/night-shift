@@ -306,7 +306,11 @@ export const unfinishedTasks = (n: Night) => unfinishedList(n).length;
 export const needsHandOver = (n: Night, f: FollowUp | null | undefined) => n.status !== 'open' && !f && (unfinishedTasks(n) > 0 || n.questions.length > 0);
 
 export const followUpOpen = (f: FollowUp) => f.items.filter((i) => i.status === 'open').length;
-export const followUpDiscuss = (f: FollowUp) => f.items.filter((i) => i.status === 'open' && i.kind === 'discuss').length;
+// Waits for a talk with the developer: a discuss item, and every other open item of the same task in
+// that follow-up (its carried decisions): no night works on the task until the talk.
+export const forTalk = (f: FollowUp, item: FollowUpItem) =>
+  item.status === 'open' && (item.kind === 'discuss' || (!!item.task && f.items.some((o) => o.status === 'open' && o.kind === 'discuss' && o.task === item.task)));
+export const followUpDiscuss = (f: FollowUp) => f.items.filter((i) => forTalk(f, i)).length;
 
 // How an answer reads to a person: the option's label, or "Let's discuss".
 export const answerLabel = (q: Question): string | null => (q.answer === null ? null : q.answer === DISCUSS ? "Let's discuss" : (q.options.find((o) => o.id === q.answer)?.label ?? q.answer));
