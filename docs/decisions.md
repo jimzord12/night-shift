@@ -422,3 +422,15 @@ the Viewer's own. Requests with neither header (the tool, tests) pass.
 posting to `127.0.0.1`; such a page could write an answer or open a file
 manager window (TASK-45). **Rejected:** a token in every request (more
 moving parts for the same protection on a local tool).
+
+## D30  An unanswered question stays where it was asked (2026-09-28)
+
+**Decision:** a `waiting` follow-up item that a night took on stays `open`
+when its task ends neither done nor skipped and the night did not ask the
+same question again (word for word) for that task. The developer answers
+it where it was asked; the next night plans or skips it again. **Why:**
+marking it `carried` locked the question in the Viewer and no follow-up
+repeated it, so nobody heard it again (TASK-47). **Rejected:** copying the
+question into the new follow-up (answers are given on the night that asked
+the question and flow into that night's follow-up; a copy elsewhere could
+not be answered).

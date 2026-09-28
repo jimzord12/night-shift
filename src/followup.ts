@@ -1,7 +1,7 @@
 // Follow-up files: what the developer hands to the next agent after answering a night's questions.
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
-import type { FollowUp, FollowUpItem, Night, Question } from './types.ts';
+import type { FollowUp, FollowUpItem, Night, Question, Task } from './types.ts';
 import { DISCUSS, FOLLOW_UP_SCHEMA, handedItem, refsOf } from './types.ts';
 import { StoreError, followUpFile, listFollowUpIds, listNightIds, loadNight, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
@@ -9,6 +9,10 @@ import fs from 'node:fs';
 // Every task that was not done or skipped, with the decision the developer made for it; answered
 // questions about no such task become decision items of their own; unanswered ones wait.
 // `earlier` finds the item a task took on, so a carried decision keeps the developer's answer.
+// The task asked the item's question again tonight, word for word: as its own question or the one
+// it was blocked by.
+const askedAgain = (n: Night, t: Task, item: FollowUpItem) => n.questions.some((q) => (q.task === t.id || q.id === t.blocked_by) && q.ask === item.question);
+
 export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string) => FollowUpItem | undefined = () => undefined): FollowUp {
   const items: FollowUpItem[] = [];
   const used = new Set<string>();
@@ -30,7 +34,8 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
     const priors = refsOf(t)
       .map((r) => earlier(r))
       // A question asked again: its new answer (or its wait) replaces the earlier one.
-      .filter((i): i is FollowUpItem => i?.kind === 'decision' && !n.questions.some((x) => x.task === t.id && x.ask === i.question));
+      // An item still open (a question left waiting where it was asked) is not this night's to carry.
+      .filter((i): i is FollowUpItem => i?.kind === 'decision' && i.status === 'carried' && i.resolved?.by === n.night && !askedAgain(n, t, i));
     const carried = (prior: FollowUpItem, extra: object = {}) =>
       add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...extra });
     if (q && q.answer !== null) {
@@ -169,6 +174,10 @@ export function applyNightToFollowUps(repo: string, n: Night, now = new Date()):
     const reason = t.outcome === 'done' ? undefined : t.outcome === 'skipped' ? t.reason : `${t.id} ended ${t.outcome ?? 'without an outcome'} in ${n.night}`;
     for (const ref of refsOf(t)) {
       try {
+        // A question the developer has not answered stays open where it was asked unless this night
+        // asked it again or finished the task: carried, it would be locked and heard by no one.
+        const { item } = checkRef(repo, ref);
+        if (status === 'carried' && item.kind === 'waiting' && !askedAgain(n, t, item)) continue;
         resolveItem(repo, ref, status, n.night, reason, now);
       } catch {
         // the follow-up was removed or edited by hand: nothing to update

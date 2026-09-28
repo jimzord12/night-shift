@@ -42,7 +42,10 @@ several items belong to one piece of work) or list it under
 `skipped_follow_ups` with a one-line reason. The tool refuses a plan that
 leaves an open item out. A `decision` item carries the developer's answer:
 follow it. A `waiting` item has no answer yet: plan it, and if it still
-needs the answer, ask again (step 4) and record the task `blocked`. A
+needs the answer, ask it again word for word (step 4; the tool matches the
+wording) and record the task `blocked`; not asked again, it stays open
+where it was asked. Skip a `waiting` item only when the question no
+longer matters: a skipped question is closed. A
 `discuss` item is one the developer wants to talk through: leave it out
 of the plan entirely, together with the other open items of the same task
 (the tool refuses planning or skipping them); a day session raises them
