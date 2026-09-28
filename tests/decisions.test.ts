@@ -8,7 +8,7 @@ import { DEAD_PID, TASKS, gitRepo, plan, session } from './helpers.ts';
 import { createApp } from '../src/server.ts';
 import { close, decide, record, start } from '../src/night.ts';
 import { createFollowUp } from '../src/followup.ts';
-import { loadNight, readFollowUp, registerRepo } from '../src/store.ts';
+import { loadNight, readFollowUp, readNight, registerRepo } from '../src/store.ts';
 import { ownerState } from '../src/types.ts';
 import type { AgentDecision, NightDetail, Overview } from '../src/types.ts';
 
@@ -105,4 +105,43 @@ test('a night started by an older release cannot take a decision; version 2 file
   fs.writeFileSync(file, JSON.stringify(old, null, 2));
   assert.equal(loadNight(repo, id).night.schema, 'night-shift/night@2');
   refused(() => decide(repo, { task: 'T1', decision: 'Used pdfkit', why: 'Smaller' }), /started by an older release/);
+});
+
+test('a night that finished everything but a disagreement still hands over', async () => {
+  const repo = gitRepo('decide-done');
+  const id = start(repo, plan(TASKS.slice(0, 1)), session('d', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  decide(repo, { task: 'T1', decision: 'Keep the login cookie at 14 days', why: 'The task did not say.' });
+  record(repo, { task: 'T1', outcome: 'done', checks: [true, true], evidence: [{ type: 'command', command: 'npm test', exit_code: 0, excerpt: 'ok' }] });
+  close(repo, 'Done.', new Date('2026-09-27T04:00:00'));
+  const ref = registerRepo(repo);
+  const app = createApp({ version: 'test' });
+  let s = await summary(app, ref.id, id);
+  assert.deepEqual([s.hand_over, ownerState(s)], [false, 'needs_answers']);
+  await review(app, repo, ref.id, id, 'AD1', { review: 'disagree', note: 'Seven days.' });
+  s = await summary(app, ref.id, id);
+  assert.deepEqual([s.hand_over, ownerState(s)], [true, 'ready_to_save']);
+  assert.deepEqual(createFollowUp(repo, loadNight(repo, id).night).items.map((i) => [i.kind, i.owner_note]), [['disagreed', 'Seven days.']]);
+});
+
+test('a disagreement a later night carried unfinished keeps the decision and the note', async () => {
+  const { repo, id, ref } = nightWithDecisions('decide-carry');
+  const app = createApp({ version: 'test' });
+  await review(app, repo, ref.id, id, 'AD1', { review: 'ok' });
+  await review(app, repo, ref.id, id, 'AD2', { review: 'disagree', note: 'Seven days.' });
+  createFollowUp(repo, loadNight(repo, id).night);
+  const next = start(repo, plan([{ ...TASKS[1], follow_up: [`${id}/A2`] }], { skipped_follow_ups: [{ follow_up: `${id}/A1`, reason: 'later' }] }), session('n', DEAD_PID), new Date('2026-09-27T23:10:00')).night.night;
+  record(repo, { task: 'T2', outcome: 'failed', why: 'the cookie is not changed yet', checks: [false] });
+  close(repo, 'Ran out of time.', new Date('2026-09-28T04:00:00'));
+  assert.equal(readFollowUp(repo, id).items[1].status, 'carried');
+  const f = createFollowUp(repo, loadNight(repo, next).night);
+  assert.deepEqual(f.items.map((i) => [i.kind, i.task, i.question, i.owner_note]), [['disagreed', 'T2', 'Keep the login cookie at 14 days', 'Seven days.']]);
+});
+
+test('a version 2 night file with agent decisions is reported, not read as version 3', () => {
+  const { repo, id } = nightWithDecisions('decide-v2');
+  const file = path.join(repo, '.night-shift', 'nights', id, 'night.json');
+  const old = JSON.parse(fs.readFileSync(file, 'utf8'));
+  old.schema = 'night-shift/night@2';
+  fs.writeFileSync(file, JSON.stringify(old, null, 2));
+  assert.ok(readNight(repo, id).problems.includes('agent decisions need a night-shift/night@3 night file'));
 });

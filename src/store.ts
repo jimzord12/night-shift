@@ -9,7 +9,7 @@ import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { insideDir } from './files.ts';
 import type { FollowUp, Night, PlanInput, RepoRef } from './types.ts';
-import { DISCUSS, OUTCOMES } from './types.ts';
+import { NIGHT_SCHEMA, DISCUSS, OUTCOMES } from './types.ts';
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const SCHEMAS = path.join(REPO_ROOT, 'schemas');
@@ -172,7 +172,7 @@ export function nightProblems(n: Night, dir: string): string[] {
     if (d.task !== null && !ids.has(d.task)) problems.push(`${d.id}: task ${d.task} does not exist`);
     if (d.review === 'disagree' && !d.note?.trim()) problems.push(`${d.id}: a disagreement needs a note`);
   }
-  if ((n.agent_decisions ?? []).length && n.schema !== 'night-shift/night@3') problems.push('agent decisions need a version 3 night file');
+  if ((n.agent_decisions ?? []).length && n.schema !== NIGHT_SCHEMA) problems.push(`agent decisions need a ${NIGHT_SCHEMA} night file`);
   if (n.status === 'complete' && !n.summary) problems.push('a complete night needs a summary');
   if (n.status !== 'open' && n.tasks.some((t) => t.outcome === null)) problems.push('a closed night has a task without an outcome');
   return problems;

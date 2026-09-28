@@ -44,7 +44,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
   const questionRepos = new Set(overview.nights.filter((n) => (n.questions_open > 0 || n.decisions_open > 0) && !failedKeys.has(`${n.repo}/${n.id}`)).map((n) => n.repo)).size;
   const estimate = morningEstimate(overview.nights.filter((n) => !failedKeys.has(`${n.repo}/${n.id}`)));
   const reachable = estimate.questions + estimate.decisions;
-  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+  const plural = (n: number, one: string) => `${n}\u00a0${one}${n === 1 ? '' : 's'}`;
   const yours = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
   const last = overview.nights[0];
 
@@ -64,7 +64,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
           <span className={`font-semibold ${questionsReady ? 'whitespace-nowrap' : ''}`}>{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
           <span className="text-sm text-white/80 sm:text-base">
             {[estimate.questions && plural(estimate.questions, 'question'), estimate.decisions && plural(estimate.decisions, 'decision')].filter(Boolean).join(', ')}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
-            {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`}
+            {estimate.saves > 0 && `, ${plural(estimate.saves, 'save')}`}
             {/* Its own line when the button stacks; after a dot when it is one row. */}
             <span className="block whitespace-nowrap lg:inline"><span className="hidden lg:inline"> · </span>about {estimate.minutes} min</span>
           </span>

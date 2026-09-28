@@ -35,9 +35,13 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
       .map((r) => earlier(r))
       // A question asked again: its new answer (or its wait) replaces the earlier one.
       // An item still open (a question left waiting where it was asked) is not this night's to carry.
-      .filter((i): i is FollowUpItem => i?.kind === 'decision' && i.status === 'carried' && i.resolved?.by === n.night && !askedAgain(n, t, i));
+      .filter((i): i is FollowUpItem => (i?.kind === 'decision' || i?.kind === 'disagreed') && i.status === 'carried' && i.resolved?.by === n.night && !askedAgain(n, t, i));
+    // A disagreement keeps the decision and the developer's note; its `agent_decision` names a
+    // decision of the night it was taken in, so the copy leaves it out.
     const carried = (prior: FollowUpItem, extra: object = {}) =>
-      add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...extra });
+      prior.kind === 'disagreed'
+        ? add({ ...base, kind: 'disagreed', question: prior.question, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...extra })
+        : add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...extra });
     if (q && q.answer !== null) {
       add({ ...base, ...answered(q) });
       priors.forEach((prior) => carried(prior));

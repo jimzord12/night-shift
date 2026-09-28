@@ -224,7 +224,7 @@ test('a morning reviews the decisions the agent took, after the questions (D31)'
     await page.locator('button', { hasText: 'Start my morning' }).filter({ hasText: '2 decisions' }).waitFor();
     // This night's own deck: its question, then its decisions.
     await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
-    await page.getByText('2 decisions the agent took for you').waitFor();
+    await page.getByText('2 decisions to review', { exact: true }).waitFor();
     await page.getByRole('button', { name: /Start answering/ }).click();
     const deck = page.locator('div.sky.fixed');
     await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor();
@@ -238,7 +238,7 @@ test('a morning reviews the decisions the agent took, after the questions (D31)'
     await page.keyboard.type('Seven days: the client asked for it.');
     await page.keyboard.press('Control+Enter');
     await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
-    await deck.getByText('You disagree: the next agent revisits it').waitFor();
+    await deck.getByText('You disagree: Seven days: the client asked for it.').waitFor();
     await page.keyboard.press('s');
     await deck.getByRole('heading', { name: 'All clear' }).waitFor({ timeout: 10_000 });
 

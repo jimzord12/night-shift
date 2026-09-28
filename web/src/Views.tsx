@@ -119,6 +119,7 @@ export function HistoryView({ overview, selected, onPick }: { overview: Overview
               <div className="mt-2 flex flex-wrap gap-3 text-xs text-white/60">
                 {OUTCOMES.map((o) => n.counts[o] > 0 && <span key={o} style={{ color: STATUS[o].color }}>{n.counts[o]} {STATUS[o].label.toLowerCase()}</span>)}
                 {n.questions_open > 0 && <span className="text-eyes">{n.questions_open} open question{n.questions_open === 1 ? '' : 's'}</span>}
+                {n.decisions_open > 0 && <span className="text-eyes">{n.decisions_open} decision{n.decisions_open === 1 ? '' : 's'} to review</span>}
                 {n.problems.length > 0 && <span className="text-broken">{n.problems.length} file problem{n.problems.length === 1 ? '' : 's'}</span>}
               </div>
             </button>

@@ -149,7 +149,7 @@ function commandFollowUp(p: Parsed, repo: string): number {
   if (sub === 'list') {
     const items = openItems(repo);
     if (!items.length) console.log('No open follow-up items.');
-    for (const o of items) console.log(`${o.ref}  ${o.item.kind.padEnd(10)} ${o.item.title}${o.item.decision_label ? ` → ${o.item.decision_label}` : ''}`);
+    for (const o of items) console.log(`${o.ref}  ${o.item.kind.padEnd(10)} ${o.item.title}${o.item.decision_label ? ` → ${o.item.decision_label}` : ''}${o.item.kind === 'disagreed' ? `: the agent decided "${o.item.question}"; the developer: ${o.item.owner_note ?? '-'}` : ''}`);
     return 0;
   }
   if (sub === 'show') {

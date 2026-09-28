@@ -275,7 +275,7 @@ export function App() {
               />
             )}
             {route.page === 'night' && (
-              <ReportPage detail={detail} summary={summary} picking={!detail} failed={!!failure} onBack={() => go('#/')} onDetail={putDetail} onOpenDeck={(startKey) => openDeck(nightItems(selected), startKey)} onReload={() => { if (selected) void loadNight(...(selected.split('/') as [string, string]), true); }} />
+              <ReportPage detail={detail} summary={summary} picking={!detail} failed={!!failure} onBack={() => go('#/')} onDetail={putDetail} onOpenDeck={(startKey, only) => openDeck(only === 'decisions' ? nightItems(selected).filter((i) => i.decision) : nightItems(selected), startKey)} onReload={() => { if (selected) void loadNight(...(selected.split('/') as [string, string]), true); }} />
             )}
             {route.page === 'next' && <NextNightView next={next} onPick={pick} />}
             {route.page === 'history' && <HistoryView overview={overview} selected={selected ?? undefined} onPick={pick} />}

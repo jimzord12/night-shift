@@ -166,7 +166,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
               <Icon name={x.review === 'ok' ? 'check' : 'compass'} className={`mt-0.5 size-4 shrink-0 ${x.review === 'ok' ? 'text-shipped' : x.review === 'disagree' ? 'text-agent' : 'text-eyes'}`} strokeWidth={2.6} />
               <span className="min-w-0">
                 <span className="text-white/60">The agent decided: {x.decision}</span>{' '}
-                {x.review === 'ok' ? <span className="font-medium text-white">Fine</span> : x.review === 'disagree' ? <span className="font-medium text-white">You disagree: the next agent revisits it</span> : <span className="text-eyes">not reviewed yet</span>}
+                {x.review === 'ok' ? <span className="font-medium text-white">Fine</span> : x.review === 'disagree' ? <span className="font-medium text-white">You disagree: {x.note}</span> : <span className="text-eyes">not reviewed yet</span>}
               </span>
             </li>
           ))}
