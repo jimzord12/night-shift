@@ -9,7 +9,7 @@ import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { insideDir } from './files.ts';
 import type { FollowUp, Night, PlanInput, RepoRef } from './types.ts';
-import { OUTCOMES } from './types.ts';
+import { DISCUSS, OUTCOMES } from './types.ts';
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const SCHEMAS = path.join(REPO_ROOT, 'schemas');
@@ -158,7 +158,7 @@ export function nightProblems(n: Night, dir: string): string[] {
     const opts = q.options.map((o) => o.id);
     if (new Set(opts).size !== opts.length) problems.push(`${q.id}: option ids repeat`);
     if (!opts.includes(q.recommended)) problems.push(`${q.id}: recommended "${q.recommended}" is not an option`);
-    if (q.answer !== null && !opts.includes(q.answer)) problems.push(`${q.id}: answer "${q.answer}" is not an option`);
+    if (q.answer !== null && q.answer !== DISCUSS && !opts.includes(q.answer)) problems.push(`${q.id}: answer "${q.answer}" is not an option`);
     if (q.task !== null && !ids.has(q.task)) problems.push(`${q.id}: task ${q.task} does not exist`);
     for (const o of q.options) if (o.image) {
       const p = evidenceProblem(dir, o.image);
@@ -243,7 +243,7 @@ export function readPlanInput(text: string): PlanInput {
     throw new StoreError(`the plan is not valid JSON: ${(error as Error).message}`);
   }
   const problems = planProblems(data);
-  if (problems.length) throw new StoreError(`the plan does not match night-shift/plan@1: ${problems.join('; ')}`);
+  if (problems.length) throw new StoreError(`the plan does not match night-shift/plan@2: ${problems.join('; ')}`);
   return data as PlanInput;
 }
 

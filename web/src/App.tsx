@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
+import { followUpDiscuss, followUpOpen, inMorning, isOpenQuestionIn, needsHandOver, readable } from '../../src/types.ts';
 import type { NextNight, NightDetail, Overview } from '../../src/types.ts';
 import { getNextNight, getNight, getOverview, getProposals, markRead } from './api.ts';
 import { Inbox } from './Inbox.tsx';
@@ -57,6 +57,7 @@ export function App() {
             follow_up: n.follow_up || !!d.follow_up,
             hand_over: !n.follow_up && needsHandOver(d.night, d.follow_up),
             follow_up_open: d.follow_up ? followUpOpen(d.follow_up) : n.follow_up_open,
+            follow_up_discuss: d.follow_up ? followUpDiscuss(d.follow_up) : n.follow_up_discuss,
             follow_up_at: d.follow_up?.created_at ?? n.follow_up_at,
           }
         : live;
@@ -182,9 +183,10 @@ export function App() {
   useEffect(() => {
     if (route.page === 'next') loadNext();
   }, [route.page, loadNext]);
-  const nextCount = next?.repos.reduce((sum, r) => sum + r.items.length, 0) ?? 0;
-  // Amber when an item still needs the developer's answer: their turn (D24).
-  const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.item.kind === 'waiting'));
+  // What a night will plan: items held for a talk with the developer are not counted.
+  const nextCount = next?.repos.reduce((sum, r) => sum + r.items.filter((i) => !i.held).length, 0) ?? 0;
+  // Amber when an item still needs the developer's answer or talk: their turn (D24).
+  const nextWaits = !!next?.repos.some((r) => r.items.some((i) => i.held || i.item.kind === 'waiting'));
   const detail = selected ? (details[selected] ?? null) : null;
   const summary = selected ? (overview?.nights.find((n) => keyOf(n.repo, n.id) === selected) ?? null) : null;
   // Every open question across nights: what Start my morning walks through.

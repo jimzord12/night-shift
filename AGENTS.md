@@ -151,8 +151,9 @@ without committing.
   `questions[].answer`, `questions[].note` and `feedback[].sent`, and the
   tool alone writes `status` and `metrics`.
 - File shapes are versioned by their `schema` values
-  (`night-shift/plan@1`, `night-shift/night@1`, `night-shift/follow-up@1`).
-  A breaking change adds `@2` and keeps reading `@1`, or, while the only
+  (`night-shift/plan@2`, `night-shift/night@2`, `night-shift/follow-up@2`;
+  `@1` still read). A breaking change adds the next version and keeps
+  reading the older ones, or, while the only
   `Adopter`s are the owner's own repositories, updates them in the same
   change and says so in CHANGELOG.md.
 - Credentials (a `gh` login, tokens) stay with the tool; the browser never

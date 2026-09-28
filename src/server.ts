@@ -5,6 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { Hono } from 'hono';
 import { contentType, insideDir } from './files.ts';
 import { createFollowUp, followAnswer } from './followup.ts';
@@ -13,7 +14,7 @@ import type { Proposals } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
-import { countOutcomes, emptyCounts, followUpOpen, isOpenQuestionIn, needsHandOver } from './types.ts';
+import { DISCUSS, countOutcomes, emptyCounts, followUpDiscuss, forTalk, followUpOpen, isOpenQuestionIn, needsHandOver, refsOf } from './types.ts';
 
 const WEB_DIST = path.join(REPO_ROOT, 'web', 'dist');
 
@@ -22,6 +23,14 @@ export interface AppOptions {
   // The port the server listens on. When set, requests whose Host is not this machine at this
   // port are refused, so a web page elsewhere cannot reach the app through DNS rebinding.
   port?: number;
+  // Opens the file manager on a file (Show in folder); the operating system's by default.
+  reveal?: (file: string) => void;
+}
+
+// Show in folder: Explorer with the file selected on Windows, Finder on macOS, the folder elsewhere.
+function revealInFileManager(file: string): void {
+  const [cmd, args] = process.platform === 'win32' ? ['explorer.exe', [`/select,${file}`]] : process.platform === 'darwin' ? ['open', ['-R', file]] : ['xdg-open', [path.dirname(file)]];
+  spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: false }).on('error', () => {}).unref();
 }
 
 function safeDecode(s: string): string | null {
@@ -32,10 +41,10 @@ function safeDecode(s: string): string | null {
   }
 }
 
-// Media the Viewer shows inline. HTML is shown too, but only as a sandboxed document with an
+// Media the Viewer shows inline, plain text (notes, Markdown) included. HTML is shown too, but only as a sandboxed document with an
 // opaque origin (scripts may run, yet it can never read or act on this app); anything else
 // (scripts, archives, unknown types) downloads instead.
-const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|application\/pdf|video\/(mp4|webm|quicktime))$/;
+const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|application\/pdf|video\/(mp4|webm|quicktime)|text\/plain)$/;
 const HTML = /^text\/html\b/;
 
 function fileResponse(body: Uint8Array, type: string): Response {
@@ -45,7 +54,7 @@ function fileResponse(body: Uint8Array, type: string): Response {
     headers['Content-Type'] = 'text/html; charset=utf-8';
     headers['Content-Security-Policy'] = 'sandbox allow-scripts';
   } else if (INLINE.test(bare)) {
-    headers['Content-Type'] = bare;
+    headers['Content-Type'] = bare === 'text/plain' ? 'text/plain; charset=utf-8' : bare;
     if (bare !== 'application/pdf' && !bare.startsWith('video/')) headers['Content-Security-Policy'] = 'sandbox';
   } else {
     headers['Content-Type'] = 'application/octet-stream';
@@ -89,6 +98,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     read: !!readMarks[`${repo.id}/${id}`],
     follow_up: fs.existsSync(followUpFile(repo.path, id)),
     follow_up_open: null,
+    follow_up_discuss: null,
     follow_up_at: null,
     hand_over: false,
     running: false,
@@ -113,6 +123,7 @@ function summarise(repo: RepoRef, id: string, readMarks: Record<string, string>,
     // A follow-up file that exists but cannot be read still blocks a second one.
     hand_over: !base.follow_up && needsHandOver(n, followUp),
     follow_up_open: followUp ? followUpOpen(followUp) : null,
+    follow_up_discuss: followUp ? followUpDiscuss(followUp) : null,
     follow_up_at: followUp?.created_at ?? null,
     duration_min: n.metrics?.duration_min.total ?? null,
     cost_usd: n.metrics?.cost_usd ?? null,
@@ -126,13 +137,13 @@ function takenRefs(repo: string): Map<string, string> {
   for (const nid of listNightIds(repo)) {
     const n = readNight(repo, nid).night;
     if (n?.status !== 'open') continue;
-    for (const t of n.tasks) if (t.follow_up) taken.set(t.follow_up, nid);
+    for (const t of n.tasks) for (const ref of refsOf(t)) taken.set(ref, nid);
     for (const x of n.skipped_follow_ups) taken.set(x.follow_up, nid);
   }
   return taken;
 }
 
-export function createApp({ version, port }: AppOptions): Hono {
+export function createApp({ version, port, reveal = revealInFileManager }: AppOptions): Hono {
   const app = new Hono();
 
   if (port !== undefined) {
@@ -205,7 +216,7 @@ export function createApp({ version, port }: AppOptions): Hono {
       for (const id of listFollowUpIds(repo.path)) {
         try {
           const f = readFollowUp(repo.path, id);
-          for (const item of f.items) if (item.status === 'open' && !taken.has(`${id}/${item.id}`)) entry.items.push({ ref: `${id}/${item.id}`, from_night: f.from_night, created_at: f.created_at, item });
+          for (const item of f.items) if (item.status === 'open' && !taken.has(`${id}/${item.id}`)) entry.items.push({ ref: `${id}/${item.id}`, from_night: f.from_night, created_at: f.created_at, item, held: forTalk(f, item) });
         } catch (e) {
           entry.problems.push(`follow-up ${id}: ${(e as Error).message}`);
         }
@@ -223,14 +234,19 @@ export function createApp({ version, port }: AppOptions): Hono {
   // The Viewer's one write to a question: the answer and a note, over the exact file version the
   // developer saw (409 otherwise). `answer: null` takes an answer back.
   app.post('/api/nights/:repo/:night/answer', async (c) => {
-    const b = await body<{ question?: string; answer?: string | null; note?: string; baseHash?: string }>(c);
+    const b = await body<{ question?: string; answer?: string | null; note?: string; baseHash?: string; was?: { answer: string | null; note: string | null } }>(c);
     const repo = findRepo(c.req.param('repo'));
     const r = readNight(repo.path, c.req.param('night'));
     if (!r.night) throw new StoreError('the night file is invalid', 422);
-    if (r.hash !== b.baseHash) throw new StoreError('the night changed since you opened it; showing the new version', 409);
     const q = r.night.questions.find((x) => x.id === b.question);
     if (!q) throw new StoreError(`no question ${String(b.question)}`, 404);
-    if (b.answer !== null && b.answer !== undefined && !q.options.some((o) => o.id === b.answer)) throw new StoreError(`"${b.answer}" is not an option of ${q.id}`);
+    // The file changed since the developer opened it: fine when this question is still as they saw
+    // it (the Meter adding metrics, another question answered); a conflict only when it is not.
+    const unchanged = !!b.was && b.was.answer === q.answer && (b.was.note ?? null) === (q.note ?? null);
+    if (r.hash !== b.baseHash && !unchanged) throw new StoreError('the night changed since you opened it; showing the new version', 409);
+    if (b.answer !== null && b.answer !== undefined && b.answer !== DISCUSS && !q.options.some((o) => o.id === b.answer)) throw new StoreError(`"${b.answer}" is not an option of ${q.id}`);
+    // "Let's discuss" says what is unclear, so the day session can start from it.
+    if (b.answer === DISCUSS && !b.note?.trim()) throw new StoreError("let's discuss needs a note: what is unclear, or what you want to talk through");
     q.answer = b.answer ?? null;
     q.note = b.note?.trim() ? b.note.trim() : null;
     if (q.answer) q.answered_at = localIso(new Date());
@@ -332,6 +348,25 @@ export function createApp({ version, port }: AppOptions): Hono {
     const file = rel === null ? '' : path.resolve(dir, rel);
     if (rel === null || !/^\d{4}-\d{2}-\d{2}-[a-z]+$/.test(night) || !insideDir(path.join(dir, 'evidence'), file) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return c.json({ error: 'no such file' }, 404);
     return fileResponse(fs.readFileSync(file), contentType(file));
+  });
+
+  // A file a question points at (TASK-30): only one the question lists, and only inside its repository.
+  const questionFile = (repoId: string, night: string, qid: string, index: string): string => {
+    const repo = findRepo(repoId);
+    const r = readNight(repo.path, night);
+    const f = r.night?.questions.find((q) => q.id === qid)?.files?.[Number(index)];
+    const root = fs.realpathSync.native(repo.path);
+    const full = f ? path.resolve(root, f.path) : '';
+    if (!f || !/^\d+$/.test(index) || !insideDir(root, full) || !fs.existsSync(full) || !fs.statSync(full).isFile()) throw new StoreError('no such file', 404);
+    return full;
+  };
+  app.get('/api/nights/:repo/:night/questions/:q/files/:i', (c) => {
+    const full = questionFile(c.req.param('repo'), c.req.param('night'), c.req.param('q'), c.req.param('i'));
+    return fileResponse(fs.readFileSync(full), contentType(full));
+  });
+  app.post('/api/nights/:repo/:night/questions/:q/files/:i/reveal', (c) => {
+    reveal(questionFile(c.req.param('repo'), c.req.param('night'), c.req.param('q'), c.req.param('i')));
+    return c.json({ ok: true });
   });
 
   app.all('/api/*', (c) => c.json({ error: 'no such endpoint' }, 404));

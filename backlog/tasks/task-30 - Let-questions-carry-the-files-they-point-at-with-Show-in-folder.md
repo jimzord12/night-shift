@@ -2,9 +2,10 @@
 id: TASK-30
 title: 'Let questions carry the files they point at, with Show in folder'
 status: Done
-assignee: []
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 15:57'
+updated_date: '2026-09-28 16:00'
 labels:
   - viewer
   - skills
@@ -40,10 +41,12 @@ D24. A question like: Which of the three 2026-09-25 design concepts do we keep d
 
 <!-- SECTION:NOTES:BEGIN -->
 D24: the three file-shape changes (TASK-26 summary headline, TASK-29 discuss kind, TASK-30 file references) land together as one versioned change under the AGENTS.md rule; TASK-29 carries the version change and this task ships in the same release. The summary limit applies to new nights only, so older night files stay valid.
+
+Web: a question's files listed under its why with View (the media viewer, by the file's kind) and Show in folder (the tool reveals it; Explorer opened on the concepts folder in a Windows run, checked through Shell.Application and closed). A file index that does not exist is 404; a path outside the repository is refused by ask (tests/shapes.test.ts).
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Integrated to main after five review rounds (reports in docs/work/TASK-29/reviews; dispositions in TASK-29 notes; round 5 code, design and visual PASS). npm run check 60/60 and npm run test:ui pass on the merged revision. Screenshots looked at: .local/evidence/2026-09-28-shapes/r5, r6 in the shapes worktree. Show in folder: POST reveal returned 200 and Explorer opened a window on the file's folder (seen in the shell window list, not in a screenshot). Not done yet: the CHANGELOG entry lands with release v16 (DoD 4).
+Integrated to main after five review rounds (reports in docs/work/TASK-29/reviews; dispositions in TASK-29 notes; round 5 code, design and visual PASS). npm run check and npm run test:ui pass on the merged revision. Screenshots looked at: .local/evidence/2026-09-28-shapes/r5, r6 in the shapes worktree. Show in folder: POST reveal returned 200 and Explorer opened a window on the file's folder (seen in the shell window list, not in a screenshot). Not done yet: the CHANGELOG entry lands with release v16 (DoD 4).
 <!-- SECTION:FINAL_SUMMARY:END -->

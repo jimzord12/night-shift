@@ -18,6 +18,8 @@ const TYPES: Record<string, string> = {
   '.htm': 'text/html; charset=utf-8',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+  '.md': 'text/plain; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
 };
 
 export function contentType(file: string): string {

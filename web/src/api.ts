@@ -31,13 +31,18 @@ export const createFollowUp = (repo: string, night: string) => post<NightDetail>
 export const ghStatus = () => call<{ ready: boolean; repo: string }>('/api/gh');
 export const getProposals = (fresh = false) => call<{ open: number; url: string } | null>(`/api/proposals${fresh ? '?fresh' : ''}`);
 
-export function postAnswer(repo: string, night: string, body: { question: string; answer: string | null; note: string; baseHash: string }) {
+export function postAnswer(repo: string, night: string, body: { question: string; answer: string | null; note: string; baseHash: string; was: { answer: string | null; note: string | null } }) {
   return post<NightDetail>(`${nightUrl(repo, night)}/answer`, body);
 }
 
 export function sendFeedback(repo: string, night: string, ids: string[], via: 'gh' | 'link') {
   return post<{ detail: NightDetail; links: { id: string; url: string }[]; errors: string[] }>(`${nightUrl(repo, night)}/feedback/send`, { ids, via });
 }
+
+// A file a question points at (its index in questions[].files), and asking the tool to show it in
+// the file manager.
+export const questionFileUrl = (repo: string, night: string, q: string, i: number) => `${nightUrl(repo, night)}/questions/${encodeURIComponent(q)}/files/${i}`;
+export const revealQuestionFile = (repo: string, night: string, q: string, i: number) => post<{ ok: true }>(`${questionFileUrl(repo, night, q, i)}/reveal`);
 
 // A night's evidence (a path relative to the night's folder), or a web address used as it is.
 export const fileUrl = (repo: string, night: string, rel: string) =>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
-import { OUTCOMES, countOutcomes, handedItem, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import type { FollowUp, FollowUpItem, NightDetail, NightSummary, Task } from '../../src/types.ts';
+import { OUTCOMES, answerLabel, countOutcomes, forTalk, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import { Phrase } from './Gate.tsx';
 import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import { Saved } from './Gate.tsx';
@@ -41,6 +42,12 @@ export function ReportPage({ detail, summary, picking, failed, onBack, onOpenDec
       )}
     </div>
   );
+}
+
+// The discuss item a held item waits on, named by its id: " (A1)".
+function talkId(f: FollowUp, item: FollowUpItem): string {
+  const talk = f.items.find((o) => o.status === 'open' && o.kind === 'discuss' && o.task === item.task);
+  return talk ? ` (${talk.id})` : '';
 }
 
 function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail: NightDetail; summary: NightSummary; onOpenDeck: (startKey?: string) => void; onDetail: (d: NightDetail) => void; onReload: () => void }) {
@@ -96,6 +103,11 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
                 <span className="min-w-[10rem] flex-1 text-white/85">
                   {i.title}
                   {i.decision_label && <span className="font-semibold text-white"> → {i.decision_label}</span>}
+                  {i.decision_label && i.question && <span className="block text-sm text-white/55">{i.question}</span>}
+                  {i.status === 'open' && i.kind !== 'discuss' && forTalk(detail.follow_up!, i) && (
+                    // Held with a point the developer wants to talk through: no night takes it on.
+                    <span className="block text-sm text-eyes/90">Waits for your talk{talkId(detail.follow_up!, i)}.</span>
+                  )}
                 </span>
                 {i.status === 'open' && detail.taken[`${n.night}/${i.id}`] ? (
                   // A night running now took it on: the agent's turn, not the developer's.
@@ -167,6 +179,25 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
     }
   };
   const rows: ReactNode[] = [];
+  // Points the developer wants to talk through: no night acts on them, a session with them does.
+  const talks = f ? f.items.filter((i) => i.status === 'open' && i.kind === 'discuss') : [];
+  if (talks.length) {
+    rows.push(
+      <div key="d" className="flex flex-wrap items-start gap-x-4 gap-y-3 px-4 py-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="question" className="size-5" strokeWidth={2.4} /></span>
+        <div className="min-w-[14rem] flex-1">
+          <div className="font-semibold">{talks.length === 1 ? '1 point to talk through' : `${talks.length} points to talk through`}</div>
+          <ul className="mt-1 space-y-1 text-sm text-white/65">
+            {talks.map((i) => (
+              <li key={i.id}>{i.question ?? i.title}{i.owner_note && <span className="text-white/85"> · your note: {i.owner_note}</span>}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-sm text-white/55">{talks.length === 1 ? 'No night works on this' : 'No night works on these'}. Open Claude Code in this folder and say:</p>
+          <div className="mt-2 sm:max-w-sm"><Phrase text="work on the follow-up" hint="now, with you there" /></div>
+        </div>
+      </div>,
+    );
+  }
   if (n.questions.length) {
     rows.push(
       <div key="q" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
@@ -220,7 +251,7 @@ function TaskRow({ task: t, onOpen }: { task: Task; onOpen: () => void }) {
       </Pill>
     ),
     t.blocked_by && <Pill key="b" className="!bg-eyes/20 !text-eyes"><Icon name="question" className="size-3" /> {t.blocked_by}</Pill>,
-    t.follow_up && <Pill key="f">from {t.follow_up}</Pill>,
+    refsOf(t).length > 0 && <Pill key="f">from {refsOf(t).join(', ')}</Pill>,
     t.unplanned && <Pill key="u">unplanned</Pill>,
   ].filter(Boolean);
   return (
@@ -300,7 +331,7 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
                   <Icon name="question" className="size-5 shrink-0 text-[var(--accent)]" />
                   <span className="min-w-0 flex-1">
                     <span className="block">{q.ask}</span>
-                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${q.options.find((o) => o.id === q.answer)?.label ?? q.answer}` : isOpenQuestionIn(q, detail.follow_up, detail.taken) ? 'open' : 'locked'}</span>
+                    <span className="block text-xs text-white/50">{q.answer !== null ? `→ ${answerLabel(q)}` : isOpenQuestionIn(q, detail.follow_up, detail.taken) ? 'open' : 'locked'}</span>
                   </span>
                 </button>
               ))}

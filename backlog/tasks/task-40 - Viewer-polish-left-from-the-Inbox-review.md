@@ -4,7 +4,7 @@ title: Viewer polish left from the Inbox review
 status: Queued
 assignee: []
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-28 13:10'
+updated_date: '2026-09-28 13:38'
 labels:
   - viewer
 dependencies: []
@@ -41,5 +41,8 @@ From TASK-32 round 1: reduced motion still runs pop-in, the ring's glow and tran
 
 From TASK-32 round 2: after a failed gate Save the focus returns behind an open explainer; the ring size follows a resize only on the next step; the ring's centre label is crowded at 390; the gate's Save wraps to two lines beside its ?; the Answer (note) and Report (file) icons look alike; the stopped-early ? sits 2 px low at 1440; step 2 of the explainer still scrolls on a phone.
 
+From file shapes round 1: the media viewer's header wraps into blobs at 390 (buttons, close, caption dropped); a file deleted after its question shows a broken image instead of 'file not found'; with three files a question's options start below the fold.
+
 At 768 px the header's version and proposals pill wrap to a second row under the tabs (seen in TASK-31 round 2 shots).
+From file shapes round 5: while a night runs and has taken the only plannable item, the Report's next line says 'start night shift' although only a talk with the developer is left (onlyDiscussLeft ignores items a running night took); the state 'Needs answers' reads oddly when every question is answered and only a talk waits (a wording like 'Needs you').
 <!-- SECTION:NOTES:END -->

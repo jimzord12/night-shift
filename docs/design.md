@@ -164,6 +164,17 @@ Left out on purpose: diffs (link the commit), tables, charts, headings.
   history/follow-ups/2026-09-26-a.json
 ```
 
+**Version 2 of the shapes** (D24): `night-shift/plan@2`, `night@2` and
+`follow-up@2` add a task that follows several follow-up items, questions
+that carry files, and the "let's discuss" answer with its `discuss` item.
+Version 1 files stay valid and read as they are; the tool writes version 2.
+An older release refuses a version 2 file rather than misread it. One
+limit: the `Viewer` never changes a night file's `schema`, so a `night@1`
+file answered "let's discuss" by a new `Viewer` still says `@1`; an older
+release then lists the answer as a problem ("not an option") and may
+build a follow-up that treats it as a decision. Run one release against a
+repository's nights at a time.
+
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
 git ignores except `.night-shift/history/`. At close, the night file is copied
@@ -186,7 +197,7 @@ The agent's promise. `source` is free text so it fits any workflow.
 
 ```json
 {
-  "schema": "night-shift/plan@1",
+  "schema": "night-shift/plan@2",
   "night": "2026-09-26-a",
   "started_at": "2026-09-26T23:10:00+03:00",
   "tasks": [
@@ -223,16 +234,21 @@ stands on its own in history. The agent writes `summary`, `tasks`,
 `questions` and `feedback`; the tool writes `status` and `metrics`; the
 Viewer writes only `questions[].answer`, `questions[].note` and
 `feedback[].sent`. A metric Claude Code did not provide is `null` and shows
-as "unknown". An abridged example (the schema has every field):
+as "unknown". `summary` is the headline on the Inbox card: one sentence on
+one line, at most 200 characters, checked at close (older nights keep
+longer ones). A question may carry `files` (paths inside the repository,
+with an optional caption); the Viewer shows them and opens the file manager
+on one. An answer is an option id, `"discuss"` (with a note), or `null`. An
+abridged example (the schema has every field):
 
 ```json
 {
-  "schema": "night-shift/night@1",
+  "schema": "night-shift/night@2",
   "night": "2026-09-26-a",
   "status": "complete",
   "started_at": "2026-09-26T23:10:00+03:00",
   "ended_at": "2026-09-27T04:22:00+03:00",
-  "summary": "PDF invoices shipped. Safari login blocked on your decision. Framework upgrade half done.",
+  "summary": "PDF invoices shipped; Safari login waits for your decision.",
   "tasks": [
     {
       "id": "T1", "title": "Add PDF invoices to the checkout", "source": "backlog TASK-42",
@@ -309,7 +325,7 @@ it up, in a night or by day, does the digging for context.
 
 ```json
 {
-  "schema": "night-shift/follow-up@1",
+  "schema": "night-shift/follow-up@2",
   "id": "2026-09-26-a",
   "from_night": "2026-09-26-a",
   "created_at": "2026-09-27T08:40:00+03:00",
@@ -332,9 +348,13 @@ it up, in a night or by day, does the digging for context.
 }
 ```
 
-- Item kinds: `decision`, `unfinished`, and `waiting` (a question the
+- Item kinds: `decision`, `unfinished`, `waiting` (a question the
   developer did not answer; the next agent plans it, asks again instead of
-  guessing, and records it `blocked` if it still needs the answer). Once
+  guessing, and records it `blocked` if it still needs the answer), and
+  `discuss` (the developer answered "let's discuss" with a note: no night
+  plans or skips it, nor the other open items of its task; a day session
+  raises it with them first, and while only those items are open the
+  night is the developer's turn). Once
   it is asked again or worked on, the old copy of the question is locked in
   the Viewer: the answer belongs where the question is open now.
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a
@@ -343,8 +363,9 @@ it up, in a night or by day, does the digging for context.
   carries it from here. A task left `not_started` leaves the item `open`.
 - The developer may fix things outside Night Shift, so statuses can go
   stale. The next plan therefore checks every open item against the code
-  before linking it: a task with `follow_up`, or a `skipped_follow_ups`
-  entry with a reason.
+  before linking it: a task with `follow_up` (one ref, or a list when one
+  piece of work settles several items), or a `skipped_follow_ups` entry
+  with a reason.
 
 ## Skills
 

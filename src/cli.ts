@@ -20,7 +20,7 @@ const USAGE = `night-shift — unattended agent work, read in the morning
 
 For agents (JSON with --file .night-shift/input.json, on stdin, or with --json '<json>'):
   night-shift status                          where the open night stands, and the next step
-  night-shift start                           open a night from a plan (night-shift/plan@1)
+  night-shift start                           open a night from a plan (night-shift/plan@2)
   night-shift record                          record one task's outcome, checks and evidence
   night-shift ask                             add a question for the developer
   night-shift feedback                        log friction with Night Shift itself

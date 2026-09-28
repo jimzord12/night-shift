@@ -5,21 +5,30 @@ import { Icon, NightBadge, STATUS, StoppedEarly, dollars, minutes, nightTitle } 
 // ---------------------------------------------------------------- next night
 
 // Each item's kind, coloured by whose turn it is: a decision or unfinished work is the agent's
-// (blue); a question still without an answer is asked again, so it is yours (amber).
+// (blue); a question still without an answer is asked again, and a point to discuss waits for a day
+// session with you, so both are yours (amber).
 export const KIND: Record<FollowUpItem['kind'], { label: string; color: string }> = {
   decision: { label: 'Your decision', color: 'var(--color-agent)' },
   unfinished: { label: 'Unfinished', color: 'var(--color-agent)' },
   waiting: { label: 'Needs your answer', color: 'var(--color-eyes)' },
+  // Only a day session with you works on it, so it is yours too.
+  discuss: { label: "Let's discuss", color: 'var(--color-eyes)' },
 };
 
 // What the next night in each repository will pick up: every open follow-up item, per repository,
 // grouped by the night it came from (D24 keeps one follow-up per night).
+// The discuss item a held item waits on, named by its id: " (A1)".
+function talkAbout(list: NextNightItem[], item: FollowUpItem): string {
+  const talk = list.find((x) => x.item.kind === 'discuss' && x.item.task === item.task);
+  return talk ? ` (${talk.item.id})` : '';
+}
+
 export function NextNightView({ next, onPick }: { next: NextNight | null; onPick: (repo: string, night: string) => void }) {
   if (!next) return <div className="py-24 text-center text-white/40">Loading what is scheduled…</div>;
   if (!next.repos.length) return <Empty icon="moon" text="Nothing is scheduled. When you save a night's unfinished work or answers for the next agent, the items show here until an agent finishes them." />;
   return (
     <div className="space-y-8">
-      <p className="text-white/60">What the next night in each repository will pick up. It starts when you tell an agent there: “start night shift” (or “work on the follow-up” by day).</p>
+      <p className="text-white/60">What the next night in each repository will pick up, and what waits for your talk first. It starts when you tell an agent there: “start night shift” (or “work on the follow-up” by day).</p>
       {next.repos.map(({ repo, items, problems }) => {
         const groups = new Map<string, NextNightItem[]>();
         for (const i of items) groups.set(i.from_night, [...(groups.get(i.from_night) ?? []), i]);
@@ -36,7 +45,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                     From the {nightTitle(night)} <Icon name="right" className="inline size-3.5 align-[-0.15em]" />
                   </button>
                   <ul className="space-y-3">
-                    {list.map(({ ref, item }) => {
+                    {list.map(({ ref, item, held }) => {
                       const k = KIND[item.kind];
                       return (
                         <li key={ref} className="flex min-w-0 gap-3">
@@ -50,6 +59,8 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                             {!item.decision_label && item.question && <div className="mt-0.5 text-sm text-white/60">{item.question}</div>}
                             {item.owner_note && <div className="mt-0.5 text-sm text-white/60">Your note: {item.owner_note}</div>}
                             {item.left && item.left.length > 0 && <div className="mt-0.5 text-sm text-white/55">Still to do: {item.left.join(' · ')}</div>}
+                            {item.kind === 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">No night works on this: talk it through with an agent, with you there (&ldquo;work on the follow-up&rdquo;).</div>}
+                            {held && item.kind !== 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">Waits for your talk{talkAbout(list, item)}.</div>}
                           </div>
                         </li>
                       );

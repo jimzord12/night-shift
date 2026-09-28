@@ -74,7 +74,7 @@ test('outcome rules are enforced and nothing is written when a record is refused
   refused(() => ask(repo, { ask: 'Which?', options: [{ id: 'opt1', label: 'One' }, { id: 'opt2', label: 'Two' }], recommended: 'opt1' }), /question was not added/);
   refused(() => ask(repo, { ask: 'Which?', options: 'abcdefg'.split('').map((l) => ({ label: l })), recommended: 'a' }), /question was not added/);
   refused(() => feedback(repo, { title: 'x'.repeat(5000), body: 'too long a title' }), /feedback was not logged/);
-  refused(() => close(repo, 'x'.repeat(5000)), /night was not closed: \/summary/);
+  refused(() => close(repo, 'x'.repeat(5000)), /one sentence of at most 200 characters/);
   // Malformed input is a refusal that names what to send, never a crash.
   refused(() => record(repo, null as never), /send one JSON object/);
   refused(() => record(repo, { unplanned: true, title: 5 as never, outcome: 'done' }), /unplanned task needs a title/);
