@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { TASKS, gitRepo, plan, session } from './helpers.ts';
-import { ask, start } from '../src/night.ts';
+import { ask, start, decide } from '../src/night.ts';
 import { readNotify } from '../src/notify.ts';
 import { registerRepo } from '../src/store.ts';
 
@@ -42,9 +42,10 @@ test('notifications: on, a closed night and a night ended by the session hook ea
 
   const first = start(repo, plan(TASKS), session(), new Date('2026-09-26T23:10:00')).night.night;
   ask(repo, { task: 'T2', ask: 'Which login fix?', options: [{ label: 'Relax the cookie' }, { label: 'Own-domain login' }], recommended: 'a' });
+  decide(repo, { task: 'T1', decision: 'Keep the login cookie at 14 days', why: 'The task did not say.' });
   const closed = run(repo, ['close', '--summary', 'Login waits for your decision.']);
   assert.match(closed.stdout, /Notified: blog: night finished\./);
-  assert.deepEqual(r.seen(), [`blog: night finished | 1 question for you · 3 not started | http://127.0.0.1:4790/#/night/${id}/${first}`]);
+  assert.deepEqual(r.seen(), [`blog: night finished | 1 question, 1 decision for you · 3 not started | http://127.0.0.1:4790/#/night/${id}/${first}`]);
 
   // The session ends without a close: the hook marks the night interrupted and says so.
   const second = start(repo, plan(TASKS), session('session-2'), new Date('2026-09-27T23:10:00')).night.night;

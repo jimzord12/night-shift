@@ -426,7 +426,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             )}
 
             <div className="mt-4">
-              {lock ? (
+              {item.decision && draft.answer !== TALK && !lock ? null : lock ? (
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
                 <>

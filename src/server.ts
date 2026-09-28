@@ -274,7 +274,8 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
     if (b.review !== null && b.review !== undefined && b.review !== 'ok' && b.review !== 'disagree') throw new StoreError('a review is "ok" or "disagree"');
     if (b.review === 'disagree' && !b.note?.trim()) throw new StoreError('a disagreement needs a note: what the next agent should do instead');
     d.review = b.review ?? null;
-    d.note = b.note?.trim() ? b.note.trim() : null;
+    // A note is what the next agent should do instead: it belongs to a disagreement only.
+    d.note = d.review === 'disagree' && b.note?.trim() ? b.note.trim() : null;
     if (d.review) d.reviewed_at = localIso(new Date());
     else delete d.reviewed_at;
     const followUp = followDecision(repo.path, r.night, d);

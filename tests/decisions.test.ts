@@ -54,7 +54,9 @@ test('decisions the agent took keep the night in the developer\'s turn until rev
   assert.deepEqual([s.questions_open, s.decisions_open, ownerState(s)], [0, 2, 'needs_answers']);
   // A disagreement needs a note; an ok does not.
   assert.equal((await review(app, repo, ref.id, id, 'AD1', { review: 'disagree' })).status, 400);
-  assert.equal((await review(app, repo, ref.id, id, 'AD2', { review: 'ok' })).status, 200);
+  // A note kept with "fine" would reach no agent: it is not stored.
+  assert.equal((await review(app, repo, ref.id, id, 'AD2', { review: 'ok', note: 'Ask me before adding a dependency.' })).status, 200);
+  assert.equal(loadNight(repo, id).night.agent_decisions![1].note, null);
   assert.equal((await review(app, repo, ref.id, id, 'AD1', { review: 'disagree', note: 'Use the browser print to PDF; no library.' })).status, 200);
   s = await summary(app, ref.id, id);
   assert.deepEqual([s.decisions_open, ownerState(s)], [0, 'ready_to_save']);
@@ -134,7 +136,7 @@ test('a disagreement a later night carried unfinished keeps the decision and the
   close(repo, 'Ran out of time.', new Date('2026-09-28T04:00:00'));
   assert.equal(readFollowUp(repo, id).items[1].status, 'carried');
   const f = createFollowUp(repo, loadNight(repo, next).night);
-  assert.deepEqual(f.items.map((i) => [i.kind, i.task, i.question, i.owner_note]), [['disagreed', 'T2', 'Keep the login cookie at 14 days', 'Seven days.']]);
+  assert.deepEqual(f.items.map((i) => [i.kind, i.task, i.question, i.owner_note, i.left]), [['disagreed', 'T2', 'Keep the login cookie at 14 days', 'Seven days.', ['failed: the cookie is not changed yet', 'Login lands on the account page']]]);
 });
 
 test('a version 2 night file with agent decisions is reported, not read as version 3', () => {

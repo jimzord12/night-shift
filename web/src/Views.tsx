@@ -58,7 +58,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                               <span className="rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${k.color} 75%, white)`, background: `color-mix(in srgb, ${k.color} 18%, transparent)` }}>{k.label}</span>
                             </div>
                             {item.decision_label && <div className="mt-0.5 text-sm text-white/70">{item.question ? `${item.question} ` : ''}<span className="font-semibold text-white/85">→ {item.decision_label}</span></div>}
-                            {!item.decision_label && item.question && <div className="mt-0.5 text-sm text-white/60">{item.question}</div>}
+                            {!item.decision_label && item.question && <div className="mt-0.5 text-sm text-white/60">{item.kind === 'disagreed' ? `The agent decided: ${item.question}` : item.question}</div>}
                             {item.owner_note && <div className="mt-0.5 text-sm text-white/60">Your note: {item.owner_note}</div>}
                             {item.left && item.left.length > 0 && <div className="mt-0.5 text-sm text-white/55">Still to do: {item.left.join(' · ')}</div>}
                             {item.kind === 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">No night works on this: talk it through with an agent, with you there (&ldquo;work on the follow-up&rdquo;).</div>}

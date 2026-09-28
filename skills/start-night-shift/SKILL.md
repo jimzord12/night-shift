@@ -28,8 +28,8 @@ the repository: Claude Code blocks both.
 ```
 
 If a night is already open in this session, continue it; do not start
-another. The status also lists open follow-up items: decisions and
-unfinished work the developer handed back after an earlier night, and
+another. The status also lists open follow-up items: decisions,
+disagreements and unfinished work the developer handed back after an earlier night, and
 which feedback of earlier nights was sent to GitHub (with the issue) and
 which still awaits the developer.
 
@@ -47,12 +47,11 @@ wording) and record the task `blocked`; not asked again, it stays open
 where it was asked. Skip a `waiting` item only when the question no
 longer matters: a skipped question is closed. A `disagreed` item is a
 decision an earlier agent took that the developer disagrees with;
-`owner_note` says what they want instead: plan it and redo that part their
-way. A
-`discuss` item is one the developer wants to talk through: leave it out
-of the plan entirely, together with the other open items of the same task
-(the tool refuses planning or skipping them); a day session raises them
-with the developer.
+`owner_note` says what they want instead: plan it and redo that part
+their way. A `discuss` item is one the developer wants to talk through:
+leave it out of the plan entirely, together with the other open items of
+the same task (the tool refuses planning or skipping them); a day session
+raises them with the developer.
 
 ## 3. The plan: your promise
 
@@ -134,10 +133,10 @@ night's folder and must be inside its `evidence/` folder.
 Work you did but did not plan: record it with `"unplanned": true`, a
 `title` and a `why`.
 
-**Never guess a decision that belongs to the developer.** Ask, then move on
-to the next task:
-
-Write to `.night-shift/input.json`:
+**A choice that belongs to the developer is never taken silently.** When
+the task cannot go on without it, ask, then move on to the next task;
+otherwise take it, record it with `decide` (below) and carry on. To ask,
+write to `.night-shift/input.json`:
 
 ```json
 {
@@ -168,9 +167,10 @@ developer may also answer "let's discuss" with a note: that becomes a
 
 **Record every decision you take on the developer's behalf**, when you
 take it: a choice between options, a default you filled in where the task
-left it open, a step you would otherwise have asked about but could not
-wait for. Not routine technical choices the developer would never think
-about. Write to `.night-shift/input.json`:
+left it open, a step you would otherwise have asked about. Not routine
+technical choices the developer would never think about. Write to
+`.night-shift/input.json` (`task` may be `null` for a decision about no
+particular task):
 
 ```json
 {
@@ -180,11 +180,15 @@ about. Write to `.night-shift/input.json`:
 }
 ```
 
-then run `{{cli}} decide --file .night-shift/input.json`. `decision` is one
-sentence on what you chose; `why` says what the developer needs to judge
-it. The developer reviews each in the Viewer: fine, or "I disagree" with a
-note that reaches the next agent. When a choice is theirs to make and the
-task cannot go on without it, ask instead.
+then run:
+
+```bash
+{{cli}} decide --file .night-shift/input.json
+```
+
+`decision` is one sentence on what you chose; `why` says what the
+developer needs to judge it. The developer reviews each in the Viewer:
+fine, or "I disagree" with a note that reaches the next agent.
 
 ## 5. Friction with Night Shift itself
 

@@ -212,7 +212,10 @@ test("the day skill raises discuss items first; the night skill leaves them out 
   const day = fs.readFileSync('skills/do-night-shift-follow-up/SKILL.md', 'utf8');
   assert.match(day, /Raise every `discuss` item with the developer first, before any other\nwork/);
   const night = fs.readFileSync('skills/start-night-shift/SKILL.md', 'utf8');
-  assert.match(night, /A\n`discuss` item is one the developer wants to talk through: leave it out\nof the plan entirely/);
+  assert.match(night, /A `discuss` item is one the developer wants to talk through:\nleave it out of the plan entirely/);
+  // D31: every decision taken on the developer's behalf is recorded, never taken silently.
+  assert.match(night, /\*\*Record every decision you take on the developer's behalf\*\*/);
+  assert.match(night, /\{\{cli\}\} decide --file \.night-shift\/input\.json/);
   assert.match(night, /close with \*\*one\nsentence\*\*/);
   assert.match(night, /"schema": "night-shift\/plan@2"/);
 });

@@ -1,13 +1,14 @@
 ---
 name: do-night-shift-follow-up
-description: Work through a Night Shift follow-up by day - the decisions the developer made and the unfinished work from a night - and mark each item done or skipped. Use when the user says "work on the follow-up", "do the night shift follow-up", "pick up the follow-up", or asks you to act on the answers they gave to a night's questions.
+description: Work through a Night Shift follow-up by day - the decisions the developer made, the agent decisions they disagree with, and the unfinished work from a night - and mark each item done or skipped. Use when the user says "work on the follow-up", "do the night shift follow-up", "pick up the follow-up", or asks you to act on the answers they gave to a night's questions.
 ---
 
 # Do a Night Shift follow-up
 
 After a night, the developer answers its questions in the Night Shift Viewer
 and creates a follow-up: one item per unfinished task, with the decision
-they made, plus decisions about no particular task. This skill works those
+they made, plus decisions about no particular task and each decision an
+agent took that they disagree with. This skill works those
 items outside a night, with the developer around.
 
 Run the tool as: `{{cli}}`

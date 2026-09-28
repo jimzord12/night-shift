@@ -115,7 +115,7 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
                   {i.kind === 'disagreed' && (
                     <span className="block text-sm text-white/55">
                       The agent decided: {i.question}
-                      {i.owner_note && <span className="block text-white/80">Your note: {i.owner_note}</span>}
+                      {i.owner_note && <span className={`block ${takenBack(i) ? 'text-white/40' : 'text-white/80'}`}>Your note: {i.owner_note}</span>}
                     </span>
                   )}
                   {i.status === 'open' && i.kind !== 'discuss' && forTalk(detail.follow_up!, i) && (
@@ -253,7 +253,7 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="forward" className="size-5" strokeWidth={2.4} /></span>
         <div className="min-w-[14rem] flex-1">
           <div className="flex items-center gap-2 font-semibold">Save for the next agent <HelpDot step="save" term="Save for the next agent" /></div>
-          <div className="text-sm text-white/55">{[pending ? `${pending} unfinished task${pending === 1 ? '' : 's'}` : '', n.questions.length ? `${n.questions.length} question${n.questions.length === 1 ? '' : 's'}` : '', disagreed(n).length ? `${disagreed(n).length} disagreement${disagreed(n).length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. {openQ || decisionsOpen(n) ? `${[openQ && 'Answer', decisionsOpen(n) && 'review'].filter(Boolean).join(' and ')} what you can first; nothing` : 'Nothing'} runs until you start an agent.</div>
+          <div className="text-sm text-white/55">{[pending ? `${pending} unfinished task${pending === 1 ? '' : 's'}` : '', n.questions.length ? `${n.questions.length} question${n.questions.length === 1 ? '' : 's'}` : '', disagreed(n).length ? `${disagreed(n).length} disagreement${disagreed(n).length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ')}. {openQ || decisionsOpen(n) ? `${openQ ? 'Answer' : 'Review'}${openQ && decisionsOpen(n) ? ' and review' : ''} what you can first; nothing` : 'Nothing'} runs until you start an agent.</div>
         </div>
         <button onClick={() => void create()} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:brightness-110 disabled:opacity-60">
           {busy ? 'Saving…' : 'Save'}

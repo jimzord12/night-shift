@@ -242,9 +242,9 @@ stands on its own in history. The agent writes `summary`, `tasks`,
 and `feedback[].sent`. An agent decision (`night-shift decide`, D31) is a
 decision the agent took on the developer's behalf: `decision`, `why`, the
 task; the developer reviews it as fine or disagrees with a note, and a
-disagreement becomes a `disagreed` follow-up item. Unreviewed decisions keep
-the night in the developer's turn. A metric Claude Code did not provide is `null` and shows
-as "unknown". `summary` is the headline on the Inbox card: one sentence on
+disagreement becomes a `disagreed` follow-up item. Unreviewed decisions
+keep the night in the developer's turn. A metric Claude Code did not
+provide is `null` and shows as "unknown". `summary` is the headline on the Inbox card: one sentence on
 one line, at most 200 characters, checked at close (older nights keep
 longer ones). A question may carry `files` (paths inside the repository,
 with an optional caption); the Viewer shows them and opens the file manager
@@ -253,7 +253,7 @@ abridged example (the schema has every field):
 
 ```json
 {
-  "schema": "night-shift/night@2",
+  "schema": "night-shift/night@3",
   "night": "2026-09-26-a",
   "status": "complete",
   "started_at": "2026-09-26T23:10:00+03:00",
@@ -335,7 +335,7 @@ it up, in a night or by day, does the digging for context.
 
 ```json
 {
-  "schema": "night-shift/follow-up@2",
+  "schema": "night-shift/follow-up@3",
   "id": "2026-09-26-a",
   "from_night": "2026-09-26-a",
   "created_at": "2026-09-27T08:40:00+03:00",
@@ -364,7 +364,10 @@ it up, in a night or by day, does the digging for context.
   `discuss` (the developer answered "let's discuss" with a note: no night
   plans or skips it, nor the other open items of its task; a day session
   raises it with them first, and while only those items are open the
-  night is the developer's turn). Once
+  night is the developer's turn), and `disagreed` (the developer disagrees
+  with an agent decision: `question` holds the decision, `owner_note` what
+  they want instead, `agent_decision` its id; the next agent redoes that
+  part). Once
   it is asked again (word for word), or its task ends done or skipped, the
   old copy of the question is locked in the Viewer: the answer belongs
   where the question is open now. A night that works on the task without
@@ -414,9 +417,10 @@ One local web app for every registered repository, opened with one command
 from any folder. Screens:
 
 1. **Inbox** (D24; the home page, `#/`): at a glance, the questions
-   waiting for the developer, the nights that need them and the items
-   scheduled for the next night; **Start my morning**, one deck through
-   every open question across repositories; one card per night that is
+   and agent decisions waiting for the developer, the nights that need
+   them and the items scheduled for the next night; **Start my morning**,
+   one deck through every open question across repositories, then every
+   agent decision to review (D31); one card per night that is
    Running or the developer's turn (repository, date, its `Owner state`
    with a small step track, a one-line result, the non-zero outcome counts, the grey stopped-early
    line, and one next-step button: Answer N questions, Save for the next
@@ -433,15 +437,19 @@ from any folder. Screens:
    phrase to say where an agent is next (TASK-27), the non-zero outcome
    counts, duration, cost, sub-agents); **What needs
    you** (the questions as one row with a small ring, opening the deck;
+   the agent decisions to review as another, opening only them;
    **Save for the next agent**, which writes the `Follow-up file`); the
-   items saved for the next agent; **What happened**, one row per task
-   (open one for its checks, questions and proof); feedback with tick
+   agent decisions with their reviews; the items saved for the next
+   agent; **What happened**, one row per task (open one for its checks,
+   questions, decisions and proof); feedback with tick
    boxes and **Send to GitHub**. Opening a night marks it read; a night
    opened while it ran is unread again once it ends.
 3. **The question deck** (over any page): one question per screen, the
-   recommendation preselected. It ends on the **gate** (TASK-28): for each
-   night it walked that is not saved yet, the answers and the unfinished
-   work with one **Save for the next agent**; once saved, a confirmation
+   recommendation preselected; after the questions, one card per agent
+   decision to review: Enter keeps it, D disagrees with a note (D31). It
+   ends on the **gate** (TASK-28): for each night it walked that is not
+   saved yet, the answers, the disagreements and the unfinished work with
+   one **Save for the next agent**; once saved, a confirmation
    that nothing runs until the developer starts an agent, with the
    phrases to copy ("start night shift", "work on the follow-up") and the
    folder to say them in; a night still running is named instead, to be

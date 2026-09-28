@@ -443,7 +443,7 @@ night file's `agent_decisions`. The owner reviews them in Start my morning,
 as cards after the questions: Enter keeps a decision ("Fine, keep it"), D
 disagrees with a note. A disagreement becomes a `disagreed` follow-up item
 the next agent is told about. Unreviewed decisions keep the night in the
-owner's turn (Needs answers), and the Inbox counts them. They also show on
+owner's turn (Needs answers, amending D24), and the Inbox counts them. They also show on
 the Night Report, per task and in their own section. Night and follow-up
 files go to version 3. **Why:** the owner wants to see, reliably and in one
 place, what an agent chose for them while reviewing work (TASK-46); both
