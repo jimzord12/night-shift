@@ -8,13 +8,35 @@ import type { Feedback } from './types.ts';
 export const ISSUES_REPO = () => process.env.NIGHT_SHIFT_ISSUES_REPO || 'jimzord12/night-shift';
 const GH = () => process.env.NIGHT_SHIFT_GH || 'gh';
 
+// NIGHT_SHIFT_GH may name another gh, or a JavaScript file that stands in for it (run with node).
 function gh(args: string[]) {
-  return spawnSync(GH(), args, { encoding: 'utf8', windowsHide: true, timeout: 30_000 });
+  const cmd = GH();
+  const [bin, all] = /\.m?js$/.test(cmd) ? [process.execPath, [cmd, ...args]] : [cmd, args];
+  return spawnSync(bin, all, { encoding: 'utf8', windowsHide: true, timeout: 30_000 });
 }
 
 export function ghReady(): boolean {
   const r = gh(['auth', 'status']);
   return !r.error && r.status === 0;
+}
+
+// Open proposals on the Night Shift Repo (TASK-35): feedback sent from any Adopter that nobody has
+// closed yet. Null when gh is missing or not logged in: the Viewer then shows nothing.
+export interface Proposals {
+  open: number;
+  url: string;
+}
+
+export function openProposals(): Proposals | null {
+  if (!ghReady()) return null;
+  const r = gh(['issue', 'list', '--repo', ISSUES_REPO(), '--label', 'proposal', '--state', 'open', '--limit', '200', '--json', 'number']);
+  if (r.error || r.status !== 0) return null;
+  try {
+    const list = JSON.parse(r.stdout) as unknown[];
+    return { open: Array.isArray(list) ? list.length : 0, url: `https://github.com/${ISSUES_REPO()}/issues?q=${encodeURIComponent('is:issue is:open label:proposal')}` };
+  } catch {
+    return null;
+  }
 }
 
 export function issueTitle(f: Feedback): string {

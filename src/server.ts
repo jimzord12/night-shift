@@ -8,7 +8,8 @@ import path from 'node:path';
 import { Hono } from 'hono';
 import { contentType, insideDir } from './files.ts';
 import { createFollowUp, followAnswer } from './followup.ts';
-import { ISSUES_REPO, createIssue, ghReady, newIssueUrl } from './github.ts';
+import { ISSUES_REPO, createIssue, ghReady, newIssueUrl, openProposals } from './github.ts';
+import type { Proposals } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
@@ -233,6 +234,14 @@ export function createApp({ version, port }: AppOptions): Hono {
   });
 
   app.get('/api/gh', (c) => c.json({ ready: ghReady(), repo: ISSUES_REPO() }));
+
+  // The header's count of open proposals: asked of gh at most every five minutes, and never
+  // blocking the page (null when gh is missing).
+  let proposals: { at: number; value: Proposals | null } | null = null;
+  app.get('/api/proposals', (c) => {
+    if (!proposals || Date.now() - proposals.at > 5 * 60_000) proposals = { at: Date.now(), value: openProposals() };
+    return c.json(proposals.value);
+  });
 
   // Sends ticked feedback entries: with gh when it is ready, else hands back pre-filled links.
   app.post('/api/nights/:repo/:night/feedback/send', async (c) => {

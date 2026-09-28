@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { DEAD_PID, TASKS, evidenceFile, gitRepo, plan, session } from './helpers.ts';
 import { createApp } from '../src/server.ts';
@@ -314,4 +315,31 @@ test('a foreign Host is refused when the port is known', async () => {
   assert.equal((await app.request('http://evil.example/api/overview')).status, 403);
   assert.equal((await app.request('http://127.0.0.1:4747/api/overview')).status, 200);
   assert.equal((await app.request('http://localhost:4747/api/nope')).status, 404);
+});
+
+// A stand-in for the GitHub CLI: a real process that answers the two calls the server makes.
+function fakeGh(issues: number | 'logged-out'): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-gh-'));
+  const script = path.join(dir, 'gh.mjs');
+  fs.writeFileSync(script, `const [cmd] = process.argv.slice(2);\nif (cmd === 'auth') process.exit(${issues === 'logged-out' ? 1 : 0});\nif (cmd === 'issue') { console.log(JSON.stringify(Array.from({ length: ${issues === 'logged-out' ? 0 : issues} }, (_, i) => ({ number: i + 1 })))); process.exit(0); }\nprocess.exit(2);\n`);
+  return script;
+}
+
+test('proposals: the count of open proposal issues with a link, and nothing when gh is missing or logged out', async () => {
+  const before = process.env.NIGHT_SHIFT_GH;
+  try {
+    process.env.NIGHT_SHIFT_GH = fakeGh(1);
+    const one = (await (await createApp({ version: 'test' }).request('/api/proposals')).json()) as { open: number; url: string };
+    assert.equal(one.open, 1);
+    assert.equal(one.url, 'https://github.com/jimzord12/night-shift/issues?q=is%3Aissue%20is%3Aopen%20label%3Aproposal');
+    process.env.NIGHT_SHIFT_GH = fakeGh('logged-out');
+    assert.equal(await (await createApp({ version: 'test' }).request('/api/proposals')).json(), null);
+    process.env.NIGHT_SHIFT_GH = path.join(os.tmpdir(), 'no-such-gh-here');
+    const missing = await createApp({ version: 'test' }).request('/api/proposals');
+    assert.equal(missing.status, 200);
+    assert.equal(await missing.json(), null);
+  } finally {
+    if (before === undefined) delete process.env.NIGHT_SHIFT_GH;
+    else process.env.NIGHT_SHIFT_GH = before;
+  }
 });
