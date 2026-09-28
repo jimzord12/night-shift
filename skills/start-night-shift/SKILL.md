@@ -169,9 +169,8 @@ developer may also answer "let's discuss" with a note: that becomes a
 take it: a choice between options, a default you filled in where the task
 left it open, a step you would have asked about if the developer were
 here. Not routine technical choices the developer would never think
-about. Write to
-`.night-shift/input.json` (`task` may be `null` for a decision about no
-particular task):
+about. Write to `.night-shift/input.json` (`task` may be `null` for a
+decision about no particular task):
 
 ```json
 {
