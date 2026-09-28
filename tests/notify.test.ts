@@ -58,3 +58,20 @@ test('notifications: on, a closed night and a night ended by the session hook ea
   run(repo, ['close', '--summary', 'Quiet night.']);
   assert.equal(r.seen().length, 2);
 });
+
+test('notifications: a failing notification never fails the close or the session hook', () => {
+  const repo = gitRepo('api');
+  const failing = `"${process.execPath}" -e "process.exit(3)"`;
+  assert.equal(run(repo, ['notify', 'on', '--command', failing]).status, 0);
+  start(repo, plan(TASKS), session(), new Date('2026-09-26T23:10:00'));
+  const closed = run(repo, ['close', '--summary', 'Nothing shipped.']);
+  assert.equal(closed.status, 0, closed.stderr);
+  assert.match(closed.stdout, /The notify command failed \(exit 3\)/);
+  assert.doesNotMatch(closed.stdout, /Notified/);
+  start(repo, plan(TASKS), session('session-2'), new Date('2026-09-27T23:10:00'));
+  const hook = run(repo, ['meter'], JSON.stringify({ session_id: 'session-2', cwd: repo }));
+  assert.equal(hook.status, 0, hook.stderr);
+  assert.match(hook.stdout, /closed as interrupted.*The notify command failed \(exit 3\)/);
+  const test = run(repo, ['notify', 'test']);
+  assert.equal(test.status, 1);
+});

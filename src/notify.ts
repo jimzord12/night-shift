@@ -83,6 +83,7 @@ async function ensureViewer(port: number): Promise<void> {
   });
   if (up) return;
   const cli = fileURLToPath(new URL('./cli.ts', import.meta.url));
+  fs.mkdirSync(installRoot(), { recursive: true });
   // Started from the install folder, so the long-lived Viewer never holds a repository's folder.
   spawn(process.execPath, [cli, 'view', '--port', String(port)], { cwd: installRoot(), detached: true, stdio: 'ignore', windowsHide: true })
     .on('error', () => {})
@@ -96,16 +97,21 @@ const xml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 // failure is reported rather than lost; returns the reason, or null when it was shown.
 function toast(title: string, text: string, url: string): string | null {
   const body = `<toast activationType="protocol" launch="${xml(url)}"><visual><binding template="ToastGeneric"><text>${xml(title)}</text><text>${xml(text)}</text></binding></visual><actions><action content="Open the report" activationType="protocol" arguments="${xml(url)}"/></actions></toast>`;
+  // Progress records off and errors as one plain line, so a failure reads as its reason.
   const script = [
+    "$ProgressPreference = 'SilentlyContinue'",
+    'try {',
     '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null',
     '[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null',
     `$x = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(body, 'utf8').toString('base64')}'))`,
     '$d = New-Object Windows.Data.Xml.Dom.XmlDocument',
     '$d.LoadXml($x)',
     "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($d))",
+    '} catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }',
   ].join('\n');
+  fs.mkdirSync(installRoot(), { recursive: true });
   const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { cwd: installRoot(), encoding: 'utf8', timeout: 15_000, windowsHide: true });
   if (r.error) return r.error.message;
-  if (r.status !== 0) return (r.stderr || '').replace(/#< CLIXML[\s\S]*?(?=\r?\n|$)/, '').trim().split('\n').slice(-2).join(' ').slice(0, 300) || `exit ${r.status}`;
+  if (r.status !== 0) return (r.stderr || '').trim().split(/\r?\n/)[0]?.slice(0, 300) || `exit ${r.status}`;
   return null;
 }

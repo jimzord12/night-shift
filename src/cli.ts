@@ -275,8 +275,9 @@ async function commandNotify(p: Parsed): Promise<number> {
   }
   if (sub === 'on' || sub === 'off') s.enabled = sub === 'on';
   else if (sub === 'test') {
-    console.log(await raise(s, 'Night Shift: a test notification', 'A click opens the Viewer', `http://127.0.0.1:${s.port}/`));
-    return 0;
+    const result = await raise(s, 'Night Shift: a test notification', 'A click opens the Viewer', `http://127.0.0.1:${s.port}/`);
+    console.log(result);
+    return result.startsWith('Notified') ? 0 : 1;
   } else if (sub !== undefined) throw new UsageError(`unknown notify command "${sub}"; use on, off or test`);
   if (sub !== undefined || p.flags.port !== undefined || p.flags.command !== undefined) writeNotify(s);
   console.log(`Notifications are ${s.enabled ? 'on' : 'off'}: when a night ends, ${s.enabled ? 'a notification links to its report' : 'nothing is raised'} (Viewer port ${s.port}${s.command ? `, command: ${s.command}` : ''}).`);
