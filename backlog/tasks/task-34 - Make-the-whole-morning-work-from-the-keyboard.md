@@ -4,7 +4,7 @@ title: Make the whole morning work from the keyboard
 status: Active
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 17:05'
+updated_date: '2026-09-28 17:15'
 labels:
   - viewer
 dependencies:
@@ -44,4 +44,6 @@ Review round 1 (docs/work/TASK-34/reviews/01-*): code PASS, design PASS, visual 
 Review round 2 (02-*): design PASS, code FINDINGS, visual FINDINGS. Dispositions: code F1 and visual V8 fixed (Enter on a link the keyboard reached, the file's Open, presses it). Code F2 fixed (Enter on a focused answer option saves that option; on let's discuss with no note it picks it and puts the cursor in the note, as D does). Code F3 fixed (a link or button presses itself on Enter only when it holds the keyboard focus, :focus-visible; a clicked one leaves Enter to Save); not covered by a test, the browser test drives the keyboard only. Code F4 fixed (the test focuses Compact while Detailed is picked and asserts Compact). Code F5 fixed (Enter on an option's thumbnail opens it). Removing the option or the link rule fails the keyboard test. No action: code F6, design D3, D4. To TASK-40: visual V9 (a Not now in a night saved earlier is not named on the gate).
 
 Review round 3 (03-*): code FINDINGS, visual FINDINGS. Dispositions: visual V10 and code F2 fixed (the deck remembers whether the focus came from a click, pointerdown, cleared by Tab; a clicked button or link leaves Enter to Save; :focus-visible dropped, Chromium marks a clicked button focus-visible on keydown; the round-2 F3 disposition was wrong, this replaces it). Visual V11 and code F1 fixed (a number key moves the focus to the option it picked, so Enter saves the checked answer). Visual V12 fixed (Save's hint returns to Enter when the question changes). New browser test: click an option then 2 then Enter, click use it then Enter, focus one option then 2 then Enter; removing either fix fails it. No action: code N1 (Enter during a save is swallowed), N2 (after a conflict a second Enter saves the kept draft; as before this change), N3 (WebKit).
+
+Review round 4 (04-*): visual PASS, code FINDINGS. Dispositions: code F1 fixed (the mixed test clicks use it, Tabs to Not now, presses Enter and asserts the question stays unanswered; removing the Tab reset fails it). Code F2 fixed (a clicked thumbnail leaves Enter to Save, like a clicked button). No action: N1 (a keyboard-reached progress segment keeps the focus; with TASK-40 V5), N2 (a rare stale Ctrl+Enter hint after the gate). To TASK-40: visual V13 (the focus ring on the cream footer buttons is hard to see).
 <!-- SECTION:NOTES:END -->

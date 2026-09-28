@@ -149,7 +149,17 @@ test('mouse and keyboard together: Enter saves what the screen shows as chosen',
     await deck.getByRole('button', { name: /^Compact/ }).click();
     await page.keyboard.press('2');
     await page.keyboard.press('Enter');
+    // After a click, a Tab hands Enter back to the control it reaches: Not now leaves the question.
+    await deck.getByRole('heading', { name: 'Which login fix?' }).waitFor();
+    await deck.getByRole('button', { name: 'use it' }).click();
+    await deck.getByRole('button', { name: /Not now/ }).focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Enter');
     // A click on "use it" leaves Enter to Save.
+    await deck.getByRole('heading', { name: 'Upgrade now or after the release?' }).waitFor();
+    assert.equal(loadNight(repo, id).night.questions[1].answer, null);
+    await page.keyboard.press('ArrowLeft');
     await deck.getByRole('heading', { name: 'Which login fix?' }).waitFor();
     await deck.getByRole('button', { name: 'use it' }).click();
     await page.keyboard.press('Enter');

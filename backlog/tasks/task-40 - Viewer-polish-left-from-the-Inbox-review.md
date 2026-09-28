@@ -47,4 +47,5 @@ At 768 px the header's version and proposals pill wrap to a second row under the
 From file shapes round 5: while a night runs and has taken the only plannable item, the Report's next line says 'start night shift' although only a talk with the developer is left (onlyDiscussLeft ignores items a running night took); the state 'Needs answers' reads oddly when every question is answered and only a talk waits (a wording like 'Needs you').
 From TASK-34 round 1: in the deck, Esc twice closes it and drops a typed note without a word; Tab can leave the deck for the page behind, and after Esc the focus does not return to the button that opened it; the question order can differ between two loads of the same data; the n / m counter counts answered questions but reads like a position.
 From TASK-34 round 2: a question left with Not now in a night saved earlier is not named on the gate (it says only that the answers reach the next agent).
+From TASK-34 round 4: the focus ring on the deck's cream footer buttons (Not now, Previous, Next) is the browser's thin outline, hard to see; give them an accent focus-visible ring.
 <!-- SECTION:NOTES:END -->

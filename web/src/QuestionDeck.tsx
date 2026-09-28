@@ -202,7 +202,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       // because it was clicked leaves Enter to Save.
       const t = e.target instanceof HTMLElement && e.target !== scroller.current && scroller.current?.contains(e.target) ? e.target : null;
       if (e.key === 'Enter' && !e.ctrlKey && t) {
-        if (t.matches('[role=button]:not(button)')) {
+        if (t.matches('[role=button]:not(button)') && !clicked.current) {
           e.preventDefault();
           return t.click();
         }
