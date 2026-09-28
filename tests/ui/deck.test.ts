@@ -107,6 +107,7 @@ test('a whole morning without the mouse: accept, discuss one, save', async () =>
     await page.keyboard.type('Does the upgrade change the login?');
     await page.keyboard.press('Control+Enter');
     await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
+    await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
     // S saves for the next agent, by the key's place (here a Greek layout); then Enter leaves.
     await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'σ', code: 'KeyS' })));
     await deck.getByRole('heading', { name: 'All clear' }).waitFor({ timeout: 10_000 });
@@ -242,12 +243,75 @@ test('a morning reviews the decisions the agent took, after the questions (D31)'
     await page.keyboard.press('Control+Enter');
     await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
     await deck.getByText('You disagree: Seven days: the client asked for it.').waitFor();
+    await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
     await page.keyboard.press('s');
     await deck.getByRole('heading', { name: 'All clear' }).waitFor({ timeout: 10_000 });
 
     const n = loadNight(repo, id).night;
     assert.deepEqual(n.agent_decisions!.map((d) => [d.review, d.note]), [['ok', null], ['disagree', 'Seven days: the client asked for it.']]);
     assert.deepEqual(readFollowUp(repo, id).items.map((i) => [i.kind, i.task]), [['decision', 'T1'], ['disagreed', 'T2']]);
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
+
+test('saving one night on the gate never saves the next one before it is seen (TASK-48)', async () => {
+  const nights = ['gate-a', 'gate-b'].map((name, i) => {
+    const repo = gitRepo(name);
+    const id = start(repo, plan(TASKS.slice(1, 2)), session(name, DEAD_PID), new Date(`2026-09-2${6 + i}T23:10:00`)).night.night;
+    ask(repo, { task: 'T2', ask: `Which login fix for ${name}?`, options: [{ label: 'Relax the cookie' }, { label: 'Own-domain login' }], recommended: 'a' });
+    record(repo, { task: 'T2', outcome: 'blocked', checks: [false], blocked_by: 'Q1' });
+    close(repo, 'Login waits for you.');
+    recover(repo);
+    registerRepo(repo);
+    return { repo, id };
+  });
+  const saved = () => nights.map(({ repo, id }) => fs.existsSync(path.join(repo, '.night-shift', 'follow-ups', `${id}.json`)));
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(`http://127.0.0.1:${port}/#/`);
+    await page.getByRole('button', { name: /Start my morning/ }).click();
+    const deck = page.locator('div.sky.fixed');
+    // Other tests' nights may share the Inbox: answer every question the deck holds.
+    for (let i = 0; i < 20 && !(await deck.getByRole('heading', { name: 'One step left' }).count()); i++) {
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(250);
+    }
+    await deck.getByRole('heading', { name: 'One step left' }).waitFor({ timeout: 10_000 });
+    const ours = /^gate-[ab]$/;
+    // Save the cards before ours, if any, the way the developer would: one at a time.
+    while (!ours.test((await deck.locator('section h3').first().textContent()) ?? '')) {
+      await deck.locator('[data-gate-save]:not(:disabled)').click();
+      await page.waitForTimeout(700);
+    }
+    assert.deepEqual(saved(), [false, false]);
+    // Enter saves the first of ours; a second Enter and an S right after it land on the gate while
+    // it waits, and save nothing.
+    await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
+    await page.keyboard.press('Enter');
+    // The keys come once the saved night shows as saved, when the next card is on the screen.
+    await deck.getByText(/Saved for the next agent: gate-/).first().waitFor();
+    // The second Enter is held down.
+    await page.keyboard.down('Enter');
+    await page.keyboard.press('s');
+    await page.waitForTimeout(300);
+    assert.equal(saved().filter(Boolean).length, 1);
+    // A held Enter (the key's auto-repeat) saves nothing once the next Save is ready.
+    await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(300);
+    assert.equal(saved().filter(Boolean).length, 1);
+    await page.keyboard.up('Enter');
+    // A fresh press saves the next night as usual.
+    await page.keyboard.press('Enter');
+    for (let i = 0; i < 40 && !saved().every(Boolean); i++) await page.waitForTimeout(100);
+    assert.deepEqual(saved(), [true, true]);
   } finally {
     await browser.close();
     server.close();
