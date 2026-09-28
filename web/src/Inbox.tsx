@@ -128,7 +128,7 @@ function Stat({ value, label, color, onClick }: { value: number; label: string; 
 function NightCard({ n, now, name, delay, onOpen, onAnswer }: { n: NightSummary; now: number; name: string; delay: number; onOpen: () => void; onAnswer: () => void }) {
   const state = ownerState(n);
   const step =
-    state === 'needs_answers' && n.questions_open === 0 ? { label: 'Discuss: work on the follow-up', act: onOpen }
+    state === 'needs_answers' && n.questions_open === 0 ? { label: 'Talk it through', act: onOpen }
       : state === 'needs_answers' ? { label: `Answer ${n.questions_open} question${n.questions_open === 1 ? '' : 's'}`, act: onAnswer }
       : state === 'ready_to_save' ? { label: 'Save for the next agent', act: onOpen }
         : state === 'running' ? { label: 'Watch it run', act: onOpen }

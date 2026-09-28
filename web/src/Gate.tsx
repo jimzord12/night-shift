@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { answerLabel, followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
+import { DISCUSS, answerLabel, followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
 import type { NightDetail } from '../../src/types.ts';
 import { ApiError, createFollowUp } from './api.ts';
 import { Icon, nightTitle } from './ui.tsx';
@@ -148,7 +148,7 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
             const label = answerLabel(q);
             return (
               <li key={q.id} className="flex gap-2">
-                <Icon name={label ? 'check' : 'question'} className={`mt-0.5 size-4 shrink-0 ${label ? 'text-shipped' : 'text-eyes'}`} strokeWidth={2.6} />
+                <Icon name={label && q.answer !== DISCUSS ? 'check' : 'question'} className={`mt-0.5 size-4 shrink-0 ${label && q.answer !== DISCUSS ? 'text-shipped' : 'text-eyes'}`} strokeWidth={2.6} />
                 <span className="min-w-0">
                   <span className="text-white/60">{q.ask}</span>{' '}
                   {label ? <span className="font-medium text-white">{label}</span> : <span className="text-eyes">{isOpenQuestionIn(q, d.follow_up, d.taken) ? 'not answered: the next agent asks again' : 'settled elsewhere'}</span>}
@@ -199,7 +199,7 @@ export function Saved({ detail: d, flat = false }: { detail: NightDetail; flat?:
   );
 }
 
-function Phrase({ text, hint, path = false }: { text: string; hint: string; path?: boolean }) {
+export function Phrase({ text, hint, path = false }: { text: string; hint: string; path?: boolean }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {

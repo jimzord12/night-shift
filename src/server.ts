@@ -41,10 +41,10 @@ function safeDecode(s: string): string | null {
   }
 }
 
-// Media the Viewer shows inline. HTML is shown too, but only as a sandboxed document with an
+// Media the Viewer shows inline, plain text (notes, Markdown) included. HTML is shown too, but only as a sandboxed document with an
 // opaque origin (scripts may run, yet it can never read or act on this app); anything else
 // (scripts, archives, unknown types) downloads instead.
-const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|application\/pdf|video\/(mp4|webm|quicktime))$/;
+const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|application\/pdf|video\/(mp4|webm|quicktime)|text\/plain)$/;
 const HTML = /^text\/html\b/;
 
 function fileResponse(body: Uint8Array, type: string): Response {
@@ -54,7 +54,7 @@ function fileResponse(body: Uint8Array, type: string): Response {
     headers['Content-Type'] = 'text/html; charset=utf-8';
     headers['Content-Security-Policy'] = 'sandbox allow-scripts';
   } else if (INLINE.test(bare)) {
-    headers['Content-Type'] = bare;
+    headers['Content-Type'] = bare === 'text/plain' ? 'text/plain; charset=utf-8' : bare;
     if (bare !== 'application/pdf' && !bare.startsWith('video/')) headers['Content-Security-Policy'] = 'sandbox';
   } else {
     headers['Content-Type'] = 'application/octet-stream';

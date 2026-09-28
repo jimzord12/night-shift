@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
 import { OUTCOMES, answerLabel, countOutcomes, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import { Phrase } from './Gate.tsx';
 import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import { Saved } from './Gate.tsx';
@@ -160,6 +161,25 @@ function NeedsYou({ detail, onOpenDeck, onDetail, onReload }: { detail: NightDet
     }
   };
   const rows: ReactNode[] = [];
+  // Points the developer wants to talk through: no night acts on them, a session with them does.
+  const talks = f ? f.items.filter((i) => i.status === 'open' && i.kind === 'discuss') : [];
+  if (talks.length) {
+    rows.push(
+      <div key="d" className="flex flex-wrap items-start gap-x-4 gap-y-3 px-4 py-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-eyes/15 text-eyes"><Icon name="question" className="size-5" strokeWidth={2.4} /></span>
+        <div className="min-w-[14rem] flex-1">
+          <div className="font-semibold">{talks.length === 1 ? '1 point to talk through' : `${talks.length} points to talk through`}</div>
+          <ul className="mt-1 space-y-1 text-sm text-white/65">
+            {talks.map((i) => (
+              <li key={i.id}>{i.question ?? i.title}{i.owner_note && <span className="text-white/85"> · your note: {i.owner_note}</span>}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-sm text-white/55">No night works on these. Open Claude Code in this folder, with you there, and say:</p>
+          <div className="mt-2 sm:max-w-sm"><Phrase text="work on the follow-up" hint="now, with you there" /></div>
+        </div>
+      </div>,
+    );
+  }
   if (n.questions.length) {
     rows.push(
       <div key="q" className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">

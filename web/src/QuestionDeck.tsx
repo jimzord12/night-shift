@@ -125,6 +125,11 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       setMessage("Let's discuss needs a note: what is unclear, or what you want to talk through.");
       setShowNote(true);
       setFocusNote(true);
+      // The error makes the footer taller: bring the note above it and into focus.
+      setTimeout(() => {
+        noteRef.current?.focus({ preventScroll: true });
+        noteRef.current?.scrollIntoView({ block: 'center' });
+      }, 0);
       return;
     }
     setBusy(true);
@@ -152,6 +157,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, item, draft, key, busy, savedKeys, order, index]);
 
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const qRef = useRef(q);
   qRef.current = q;
   useEffect(() => {
@@ -185,6 +191,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       const pick = qRef.current.options[n - 1];
       if (n >= 1 && pick) setDraft({ ...draft, answer: pick.id });
       if (e.key === '0') {
+        // The key picks the choice; it must not also land in the note that opens focused.
+        e.preventDefault();
         setDraft({ ...draft, answer: DISCUSS });
         setShowNote(true);
         setFocusNote(true);
@@ -331,7 +339,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               {lock ? (
                 q.note && <p className="rounded-xl bg-white/5 px-3 py-2 text-sm text-white/70">Your note: {q.note}</p>
               ) : showNote ? (
-                <textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
+                <textarea ref={noteRef} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder={draft.answer === DISCUSS ? 'What is unclear, or what do you want to talk through? (needed)' : 'A note for the agent (optional)'} rows={2} className="w-full scroll-mb-52 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" autoFocus={focusNote} onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'nearest' })} />
               ) : (
                 <button onClick={() => { setShowNote(true); setFocusNote(true); }} className="text-sm text-white/50 hover:text-white">+ add a note</button>
               )}

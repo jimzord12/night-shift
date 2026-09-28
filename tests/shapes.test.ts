@@ -183,6 +183,14 @@ test("a question's files: served from the repository and shown in the file manag
   assert.match(res.headers.get('Content-Type') ?? '', /svg/);
   assert.match(await res.text(), /<svg/);
   assert.equal((await app.request(`${base}/1`)).status, 404);
+  // Notes open as readable text, not a download.
+  fs.writeFileSync(path.join(repo, 'concepts', 'notes.md'), '# Concepts');
+  const q = loadNight(repo, night).night;
+  q.questions[0].files = [...(q.questions[0].files ?? []), { path: 'concepts/notes.md' }];
+  saveNight(repo, q);
+  const md = await app.request(`${base}/1`);
+  assert.deepEqual([md.status, md.headers.get('Content-Type'), md.headers.get('Content-Disposition')], [200, 'text/plain; charset=utf-8', null]);
+  assert.equal(await md.text(), '# Concepts');
   assert.equal((await app.request(`/api/nights/${id}/${night}/questions/Q9/files/0`)).status, 404);
   assert.equal((await app.request(`${base}/0/reveal`, { method: 'POST' })).status, 200);
   assert.deepEqual(shown, [path.join(fs.realpathSync.native(repo), 'concepts', 'a.svg')]);
