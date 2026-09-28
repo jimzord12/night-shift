@@ -92,6 +92,9 @@ export function MediaThumb({ src, className = 'h-40' }: { src: string; className
 // Drag (or hover) across the picture: the left part shows "before", the right part "after".
 export function CompareSlider({ before, after }: { before: string; after: string }) {
   const [pos, setPos] = useState(50);
+  // The after image's shape sets the box; a tall screenshot is capped at 60% of the screen height and
+  // both images are fitted inside it, uncropped.
+  const [ratio, setRatio] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const move = (clientX: number) => {
@@ -101,7 +104,8 @@ export function CompareSlider({ before, after }: { before: string; after: string
   return (
     <div
       ref={box}
-      className="relative cursor-ew-resize select-none overflow-hidden rounded-xl bg-white"
+      className="relative max-h-[60vh] w-full cursor-ew-resize select-none overflow-hidden rounded-xl bg-night-950"
+      style={{ aspectRatio: ratio ?? 16 / 10 }}
       onPointerDown={(e) => {
         dragging.current = true;
         (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -110,8 +114,8 @@ export function CompareSlider({ before, after }: { before: string; after: string
       onPointerMove={(e) => dragging.current && move(e.clientX)}
       onPointerUp={() => (dragging.current = false)}
     >
-      <img src={after} alt="after" className="block w-full" draggable={false} />
-      <img src={before} alt="before" className="absolute inset-0 block h-full w-full object-cover" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }} draggable={false} />
+      <img src={after} alt="after" className="absolute inset-0 block h-full w-full object-contain" draggable={false} onLoad={(e) => setRatio(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight || null)} />
+      <img src={before} alt="before" className="absolute inset-0 block h-full w-full bg-night-950 object-contain" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }} draggable={false} />
       <div className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_12px_#000a]" style={{ left: `${pos}%` }}>
         <div className="absolute top-1/2 left-1/2 grid size-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-night-900 shadow-lg">
           <Icon name="left" className="size-3" strokeWidth={3} />
@@ -139,8 +143,8 @@ export function BlockView({ block: b, url, onZoom }: { block: Block; url: (rel: 
     case 'image':
       return (
         <figure>
-          <button onClick={() => onZoom({ src: url(b.path), kind: 'image', title: b.caption })} className="block w-full overflow-hidden rounded-xl bg-white transition hover:scale-[1.01]">
-            <img src={url(b.path)} alt={b.caption ?? ''} className="block w-full" />
+          <button onClick={() => onZoom({ src: url(b.path), kind: 'image', title: b.caption })} className="block w-full overflow-hidden rounded-xl bg-night-950 transition hover:scale-[1.01]">
+            <img src={url(b.path)} alt={b.caption ?? ''} className="block max-h-[60vh] w-full object-contain" />
           </button>
           {caption(b.caption)}
         </figure>

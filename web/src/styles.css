@@ -196,3 +196,13 @@ kbd {
   border: 1px solid #ffffff30;
   background: #ffffff10;
 }
+
+/* Start my morning wraps to two lines on a phone: a rounded block there, a pill from sm up. */
+.cta-block {
+  border-radius: 1.5rem;
+}
+@media (min-width: 40rem) {
+  .cta-block {
+    border-radius: 9999px;
+  }
+}

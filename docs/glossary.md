@@ -24,10 +24,9 @@ name what v7 builds.
 | `Feedback` | Friction with Night Shift an agent logs in the `Night file`; the `Owner` may send it to GitHub as an issue labelled `proposal` | `feedback[]` in the `Night file` | 2026-09-26, owner |
 | `Follow-up file` | What the `Owner` hands to the next agent: unfinished tasks plus the `Owner`'s decisions | `.night-shift/follow-ups/<night id>.json`, schema `night-shift/follow-up@1` | 2026-09-26, owner |
 | `Viewer` | The local app that shows every `Night` of every registered repository | `web/` | 2026-09-26, owner |
-| `Morning` | The `Viewer`'s inbox: every `Night` whose `Owner state` is not **Done** (running, the `Owner`'s turn, or waiting for an agent); "All caught up" when none is the `Owner`'s turn; to be renamed `Inbox` (D24) | `web/src/Morning.tsx`, `inMorning` in `src/types.ts` | 2026-09-26, owner (D22) |
-| `Night Report` | The `Viewer`'s page for one `Night`, and its card in the `Inbox`: what needs the `Owner` first, then what happened; the page's title in the `Viewer`, while `Night` stays the term for the session (D24, planned) | `NightView` in `web/src/Morning.tsx` until built | 2026-09-28, owner |
+| `Night Report` | The `Viewer`'s page for one `Night`, and its card in the `Inbox`: what needs the `Owner` first, then what happened; the page's title in the `Viewer`, while `Night` stays the term for the session (D24) | `web/src/Report.tsx`, `NightCard` in `web/src/Inbox.tsx` | 2026-09-28, owner |
 | `Next night` | The `Viewer` tab listing, per repository, every open `Follow-up file` item the next `Night` there will pick up (D26) | `NextNightView` in `web/src/Views.tsx`, `GET /api/next-night` in `src/server.ts` | 2026-09-28, owner |
-| `Inbox` | The planned name of `Morning` (D24): one `Night Report` card per `Night` needing the `Owner`, each with its state and next step | `web/src/Morning.tsx` until built | 2026-09-28, owner |
+| `Inbox` | The `Viewer`'s home page (D24; was `Morning`, D22): what needs the `Owner` at a glance, **Start my morning**, one `Night Report` card per `Night` that is running or the `Owner`'s turn, and a slim strip of the rest | `web/src/Inbox.tsx`, `inMorning` in `src/types.ts` | 2026-09-28, owner |
 | `Owner state` | The one state a `Night` shows for the `Owner`, in order, the first that holds: **Running**, **New**, **Needs answers** (also, once TASK-29 adds it, a `Follow-up file` whose open items all wait for a discussion with the `Owner`), **Ready to save**, **Waiting for an agent** (days shown from two on), **Done**; coloured by whose turn it is: purple new, amber the `Owner`'s, blue an agent's, green when nothing is left (D24; replaced the `Owner` side) | `ownerState`, `OWNER_STATE` in `src/types.ts` | 2026-09-28, owner |
 | Night status | How a `Night` ended: `complete`, `interrupted`, or `open` (running, or its session gone until recovery closes it); the `Viewer` shows it only as a grey "Stopped early: N tasks never started" when it cost work (D24) | `status` in the `Night file`; `neverStarted` in `src/types.ts` | 2026-09-26, owner (D22) |
 | `Meter` | The part of the tool that reads the harness's logs and writes the metrics | docs/design.md, "Meter" | 2026-09-26, owner |
@@ -61,7 +60,8 @@ name what v7 builds.
 | `Night Shift Protocol` | 2026-09-26, owner (D20): no process is imposed; Night Shift is files of a fixed shape, a tool, two skills and the `Viewer` | none |
 | `Day Shift` | 2026-09-26, owner (D20): how the `Owner` plans stays theirs | none |
 | `Builder` | 2026-09-26, owner (D20): one agent runs a `Night` | "the agent" |
-| `Morning Review` | 2026-09-26, owner (D20) | the `Viewer`'s morning page |
+| `Morning Review` | 2026-09-26, owner (D20) | the `Inbox` |
+| `Morning` | 2026-09-28, owner (D24) | the `Inbox` |
 | `Night-ready` | 2026-09-26, owner (D20): Night Shift no longer reads a board | `Plan` |
 | `Card Header` | 2026-09-26, owner (D20) | the `Plan`'s `done_when` |
 | `Buffer` | 2026-09-26, owner (D20): no queue of cards to measure | none |

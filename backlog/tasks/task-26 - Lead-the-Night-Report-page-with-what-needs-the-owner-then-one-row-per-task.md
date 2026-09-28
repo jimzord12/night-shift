@@ -1,10 +1,11 @@
 ---
 id: TASK-26
 title: 'Lead the Night Report page with what needs the owner, then one row per task'
-status: Queued
-assignee: []
+status: Ready
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:51'
+updated_date: '2026-09-28 08:21'
 labels:
   - viewer
   - skills
@@ -23,8 +24,7 @@ D24. The report opens on the agent's summary paragraph (a wall of text the owner
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The report shows What needs you above What happened, tasks as rows, and only non-zero outcome counts (screenshot of a sample night)
-- [ ] #2 The tool refuses a summary over the headline limit with a message that says so, and the skill tells the agent to write one sentence (test)
+- [x] #1 The report shows What needs you above What happened, tasks as rows, and only non-zero outcome counts (screenshot of a sample night)
 <!-- AC:END -->
 
 ## Definition of Done
@@ -41,4 +41,6 @@ D24. The report opens on the agent's summary paragraph (a wall of text the owner
 D24: the three file-shape changes (TASK-26 summary headline, TASK-29 discuss kind, TASK-30 file references) land together as one versioned change under the AGENTS.md rule; TASK-29 carries the version change and this task ships in the same release. The summary limit applies to new nights only, so older night files stay valid.
 
 Until TASK-28 lands, What needs you shows today's Create follow-up button.
+
+2026-09-28: acceptance #2 (the one-sentence summary rule in the tool and the skill, a file-shape change) moved to its own task so the page layout could ship with TASK-25 for the owner's review.
 <!-- SECTION:NOTES:END -->
