@@ -3,6 +3,28 @@
 One entry per release tag. `npm run release vN` cuts them; tags are never
 moved.
 
+## v14 (179e4d0), 2026-09-28
+
+- Viewer: Morning is now the Inbox (D24, D27, TASK-25). It opens on
+  three numbers (questions for you, nights that need you, items for the
+  next night), a Start my morning button that walks every open question
+  across nights, one card per night that is running or your turn with its
+  next step (Answer N questions, Save for the next agent, Read the
+  report), and a slim strip for nights waiting for an agent or settled.
+  No night opens until you pick one.
+- Viewer: a night opens on its own Night Report page with ← Inbox and its
+  own address, so the browser's Back works (TASK-26). It leads with what
+  needs you and what was saved for the next agent, then one row per task;
+  duration, cost and sub-agents show only when measured.
+- Viewer: the navigation is Inbox, Next night and History; the Questions
+  and Trends tabs are gone.
+- Viewer: before/after images and single images fit the task drawer
+  (at most 60% of the window high); sections have clearer headings and
+  borders.
+- Viewer: a night that cannot be loaded says why on its page every time
+  it is opened; one that fails in the background is named on the Inbox
+  with a Reload button, and Start my morning counts only what it can show.
+
 ## v13 (df40077), 2026-09-28
 
 - Viewer: every night shows one state, coloured by whose turn it is

@@ -1,11 +1,11 @@
 ---
 id: TASK-26
 title: 'Lead the Night Report page with what needs the owner, then one row per task'
-status: Ready
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 08:21'
+updated_date: '2026-09-28 08:23'
 labels:
   - viewer
   - skills
@@ -29,10 +29,10 @@ D24. The report opens on the agent's summary paragraph (a wall of text the owner
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -44,3 +44,9 @@ Until TASK-28 lands, What needs you shows today's Create follow-up button.
 
 2026-09-28: acceptance #2 (the one-sentence summary rule in the tool and the skill, a file-shape change) moved to its own task so the page layout could ship with TASK-25 for the owner's review.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Shipped in v14 (merge 179e4d0). Review: 3 rounds of code, design and visual reviewers, all PASS in round 3 (docs/work/TASK-25/reviews/); round 3's Minor notes fixed after the pass and checked in a real browser (.local/evidence/2026-09-28-owner-states/r3-fix-walk/). npm run check passes on main (33 tests, build). Evidence: screenshots at 1440, 390 and 360 on synthetic samples (inbox-r3, visual-inbox-r3). Unverified: the owner's own look on real nights. Deferred polish: TASK-40.
+<!-- SECTION:FINAL_SUMMARY:END -->
