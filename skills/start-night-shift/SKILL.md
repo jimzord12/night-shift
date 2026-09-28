@@ -45,7 +45,10 @@ follow it. A `waiting` item has no answer yet: plan it, and if it still
 needs the answer, ask it again word for word (step 4; the tool matches the
 wording) and record the task `blocked`; not asked again, it stays open
 where it was asked. Skip a `waiting` item only when the question no
-longer matters: a skipped question is closed. A
+longer matters: a skipped question is closed. A `disagreed` item is a
+decision an earlier agent took that the developer disagrees with;
+`owner_note` says what they want instead: plan it and redo that part their
+way. A
 `discuss` item is one the developer wants to talk through: leave it out
 of the plan entirely, together with the other open items of the same task
 (the tool refuses planning or skipping them); a day session raises them
@@ -162,6 +165,26 @@ them** in `files` (paths inside the repository), so the developer sees
 them instead of hunting for them; the Viewer offers Show in folder. The
 developer may also answer "let's discuss" with a note: that becomes a
 `discuss` item for a day session, never for a night.
+
+**Record every decision you take on the developer's behalf**, when you
+take it: a choice between options, a default you filled in where the task
+left it open, a step you would otherwise have asked about but could not
+wait for. Not routine technical choices the developer would never think
+about. Write to `.night-shift/input.json`:
+
+```json
+{
+  "task": "T1",
+  "decision": "Generate invoices with pdfkit",
+  "why": "It streams large invoices; jsPDF holds them in memory. Both have the same licence."
+}
+```
+
+then run `{{cli}} decide --file .night-shift/input.json`. `decision` is one
+sentence on what you chose; `why` says what the developer needs to judge
+it. The developer reviews each in the Viewer: fine, or "I disagree" with a
+note that reaches the next agent. When a choice is theirs to make and the
+task cannot go on without it, ask instead.
 
 ## 5. Friction with Night Shift itself
 

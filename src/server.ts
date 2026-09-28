@@ -1,7 +1,7 @@
 // The Viewer's local HTTP app: a JSON API over the nights of every registered repository, plus the
 // built web app from web/dist. Bound to 127.0.0.1 by the CLI; it has no login because nothing but
-// this machine can reach it. It writes only answers, notes, `sent`, follow-up files (once per
-// night) and its own read marks.
+// this machine can reach it. It writes only answers, notes, reviews of agent decisions, `sent`,
+// follow-up files (once per night) and its own read marks.
 
 import fs from 'node:fs';
 import path from 'node:path';

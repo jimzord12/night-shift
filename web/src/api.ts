@@ -35,6 +35,11 @@ export function postAnswer(repo: string, night: string, body: { question: string
   return post<NightDetail>(`${nightUrl(repo, night)}/answer`, body);
 }
 
+// The developer's review of a decision the agent took (D31).
+export function postReview(repo: string, night: string, body: { decision: string; review: 'ok' | 'disagree' | null; note: string; baseHash: string; was: { review: 'ok' | 'disagree' | null; note: string | null } }) {
+  return post<NightDetail>(`${nightUrl(repo, night)}/decision`, body);
+}
+
 export function sendFeedback(repo: string, night: string, ids: string[], via: 'gh' | 'link') {
   return post<{ detail: NightDetail; links: { id: string; url: string }[]; errors: string[] }>(`${nightUrl(repo, night)}/feedback/send`, { ids, via });
 }

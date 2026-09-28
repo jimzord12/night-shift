@@ -175,6 +175,11 @@ release then lists the answer as a problem ("not an option") and may
 build a follow-up that treats it as a decision. Run one release against a
 repository's nights at a time.
 
+**Version 3** (D31): `night@3` adds `agent_decisions` and `follow-up@3` the
+`disagreed` item kind (with `agent_decision`, the decision it comes from).
+The plan stays at version 2. Older files read as they are; a night started
+by an older release cannot record a decision (the tool says so).
+
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
 git ignores except `.night-shift/history/`. At close, the night file is copied
@@ -231,9 +236,14 @@ The agent's promise. `source` is free text so it fits any workflow.
 
 The single record of the night. Start copies the plan's tasks in, so the file
 stands on its own in history. The agent writes `summary`, `tasks`,
-`questions` and `feedback`; the tool writes `status` and `metrics`; the
-Viewer writes only `questions[].answer`, `questions[].note` and
-`feedback[].sent`. A metric Claude Code did not provide is `null` and shows
+`questions`, `agent_decisions` and `feedback`; the tool writes `status` and
+`metrics`; the Viewer writes only `questions[].answer`, `questions[].note`,
+`agent_decisions[].review`, `agent_decisions[].note` (with `reviewed_at`)
+and `feedback[].sent`. An agent decision (`night-shift decide`, D31) is a
+decision the agent took on the developer's behalf: `decision`, `why`, the
+task; the developer reviews it as fine or disagrees with a note, and a
+disagreement becomes a `disagreed` follow-up item. Unreviewed decisions keep
+the night in the developer's turn. A metric Claude Code did not provide is `null` and shows
 as "unknown". `summary` is the headline on the Inbox card: one sentence on
 one line, at most 200 characters, checked at close (older nights keep
 longer ones). A question may carry `files` (paths inside the repository,

@@ -36,19 +36,23 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
   const cards = inbox.filter(isCard);
   const strip = inbox.filter((n) => !isCard(n));
   const questions = overview.nights.reduce((sum, n) => sum + n.questions_open, 0);
-  // What Start my morning can actually walk: the questions of the nights that loaded.
+  // Decisions the agents took for the developer, not reviewed yet (D31).
+  const decisions = overview.nights.reduce((sum, n) => sum + n.decisions_open, 0);
+  // What Start my morning can actually walk: the questions and decisions of the nights that loaded.
   const missing = unloaded.reduce((sum, u) => sum + u.count, 0);
-  const reachable = questions - missing;
   const failedKeys = new Set(unloaded.map((u) => `${u.repo}/${u.night}`));
-  const questionRepos = new Set(overview.nights.filter((n) => n.questions_open > 0 && !failedKeys.has(`${n.repo}/${n.id}`)).map((n) => n.repo)).size;
+  const questionRepos = new Set(overview.nights.filter((n) => (n.questions_open > 0 || n.decisions_open > 0) && !failedKeys.has(`${n.repo}/${n.id}`)).map((n) => n.repo)).size;
   const estimate = morningEstimate(overview.nights.filter((n) => !failedKeys.has(`${n.repo}/${n.id}`)));
+  const reachable = estimate.questions + estimate.decisions;
+  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
   const yours = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
   const last = overview.nights[0];
 
   return (
     <div className="space-y-6">
-      <section aria-label="At a glance" className="grid grid-cols-3 gap-2 sm:gap-3">
+      <section aria-label="At a glance" className={`grid gap-2 sm:gap-3 ${decisions ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
         <Stat value={questions} label={questions === 1 ? 'question for you' : 'questions for you'} color="var(--color-eyes)" onClick={reachable && questionsReady ? onStartMorning : undefined} />
+        {decisions > 0 && <Stat value={decisions} label={decisions === 1 ? 'decision to review' : 'decisions to review'} color="var(--color-eyes)" onClick={reachable && questionsReady ? onStartMorning : undefined} />}
         <Stat value={yours} label={yours === 1 ? 'night needs you' : 'nights need you'} color="var(--color-eyes)" />
         <Stat value={scheduled} label="for the next night" color="var(--color-agent)" onClick={onNext} />
       </section>
@@ -59,7 +63,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
           <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
           <span className={`font-semibold ${questionsReady ? 'whitespace-nowrap' : ''}`}>{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
           <span className="text-sm text-white/80 sm:text-base">
-            {reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
+            {[estimate.questions && plural(estimate.questions, 'question'), estimate.decisions && plural(estimate.decisions, 'decision')].filter(Boolean).join(', ')}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
             {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`}
             {/* Its own line when the button stacks; after a dot when it is one row. */}
             <span className="block whitespace-nowrap lg:inline"><span className="hidden lg:inline"> · </span>about {estimate.minutes} min</span>
@@ -69,7 +73,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
       {unloaded.length > 0 && (
         <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-broken/15 px-4 py-3 text-sm text-broken">
           <span>
-            {[...new Set(unloaded.map((u) => repoName(overview, u.repo)))].join(', ')} could not be loaded, so {missing} question{missing === 1 ? ' is' : 's are'} not in Start my morning.
+            {[...new Set(unloaded.map((u) => repoName(overview, u.repo)))].join(', ')} could not be loaded, so {missing} question{missing === 1 ? ' or decision is' : 's or decisions are'} not in Start my morning.
           </span>
           <button onClick={onReload} className="rounded-full border border-broken/40 bg-broken/15 px-3 py-0.5 font-semibold hover:bg-broken/25">Reload</button>
         </p>
@@ -135,7 +139,9 @@ function Stat({ value, label, color, onClick }: { value: number; label: string; 
 function NightCard({ n, now, name, delay, onOpen, onAnswer }: { n: NightSummary; now: number; name: string; delay: number; onOpen: () => void; onAnswer: () => void }) {
   const state = ownerState(n);
   const step =
-    state === 'needs_answers' && n.questions_open === 0 ? { label: 'Talk it through', act: onOpen }
+    state === 'needs_answers' && n.questions_open === 0 && n.decisions_open === 0 ? { label: 'Talk it through', act: onOpen }
+      : state === 'needs_answers' && n.questions_open === 0 ? { label: `Review ${n.decisions_open} decision${n.decisions_open === 1 ? '' : 's'}`, act: onAnswer }
+      : state === 'needs_answers' && n.decisions_open > 0 ? { label: `Answer ${n.questions_open} · review ${n.decisions_open}`, act: onAnswer }
       : state === 'needs_answers' ? { label: `Answer ${n.questions_open} question${n.questions_open === 1 ? '' : 's'}`, act: onAnswer }
       : state === 'ready_to_save' ? { label: 'Save for the next agent', act: onOpen }
         : state === 'running' ? { label: 'Watch it run', act: onOpen }

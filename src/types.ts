@@ -332,6 +332,13 @@ export const agentDecisions = (n: Night): AgentDecision[] => n.agent_decisions ?
 export const decisionsOpen = (n: Night) => agentDecisions(n).filter((d) => d.review === null).length;
 export const disagreed = (n: Night) => agentDecisions(n).filter((d) => d.review === 'disagree');
 
+// The follow-up item a disagreement was handed over as, if any. One the developer took back is
+// skipped with TAKEN_BACK and may be reopened; any other settled item is final.
+export const TAKEN_BACK = 'the developer took the disagreement back';
+export const disagreementItem = (f: FollowUp | null | undefined, d: Pick<AgentDecision, 'id'>): FollowUpItem | undefined =>
+  f?.items.find((i) => i.kind === 'disagreed' && i.agent_decision === d.id);
+export const takenBack = (i: FollowUpItem) => i.status === 'skipped' && i.resolved?.by === 'day' && i.resolved.reason === TAKEN_BACK;
+
 // A closed night with work, questions or disagreements for the next agent and no follow-up yet:
 // the developer still has to hand it over.
 export const needsHandOver = (n: Night, f: FollowUp | null | undefined) => n.status !== 'open' && !f && (unfinishedTasks(n) > 0 || n.questions.length > 0 || disagreed(n).length > 0);

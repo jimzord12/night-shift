@@ -36,6 +36,9 @@ Each item has a `kind`:
   says what remains.
 - `waiting`: a question still without an answer. Ask the developer now,
   in the conversation, before working on it.
+- `disagreed`: a decision an earlier agent took on the developer's behalf
+  (`question`) that they disagree with; `owner_note` says what they want
+  instead. Redo that part their way.
 
 ## 2. Check before you fix
 

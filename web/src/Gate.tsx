@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { DISCUSS, answerLabel, followUpOpen, forTalk, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
+import { DISCUSS, agentDecisions, answerLabel, followUpOpen, forTalk, isOpenQuestionIn, needsHandOver, unfinishedList } from '../../src/types.ts';
 import type { NightDetail } from '../../src/types.ts';
 import { ApiError, createFollowUp } from './api.ts';
 import { Icon, nightTitle } from './ui.tsx';
@@ -157,6 +157,19 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
               </li>
             );
           })}
+        </ul>
+      )}
+      {agentDecisions(d.night).length > 0 && (
+        <ul className="mt-3 space-y-1.5 text-sm">
+          {agentDecisions(d.night).map((x) => (
+            <li key={x.id} className="flex gap-2">
+              <Icon name={x.review === 'ok' ? 'check' : 'compass'} className={`mt-0.5 size-4 shrink-0 ${x.review === 'ok' ? 'text-shipped' : x.review === 'disagree' ? 'text-agent' : 'text-eyes'}`} strokeWidth={2.6} />
+              <span className="min-w-0">
+                <span className="text-white/60">The agent decided: {x.decision}</span>{' '}
+                {x.review === 'ok' ? <span className="font-medium text-white">Fine</span> : x.review === 'disagree' ? <span className="font-medium text-white">You disagree: the next agent revisits it</span> : <span className="text-eyes">not reviewed yet</span>}
+              </span>
+            </li>
+          ))}
         </ul>
       )}
       {tasks.length > 0 && (

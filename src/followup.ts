@@ -2,7 +2,7 @@
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
 import type { AgentDecision, FollowUp, FollowUpItem, Night, Question, Task } from './types.ts';
-import { DISCUSS, FOLLOW_UP_SCHEMA, handedItem, refsOf } from './types.ts';
+import { DISCUSS, FOLLOW_UP_SCHEMA, TAKEN_BACK, disagreementItem, handedItem, refsOf, takenBack } from './types.ts';
 import { StoreError, followUpFile, listFollowUpIds, listNightIds, loadNight, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
 
@@ -139,7 +139,7 @@ function disagreement(n: Night, d: AgentDecision): Omit<FollowUpItem, 'id' | 'st
 export function followDecision(repo: string, n: Night, d: AgentDecision, now = new Date()): FollowUp | null {
   if (!fs.existsSync(followUpFile(repo, n.night))) return null;
   const f = readFollowUp(repo, n.night);
-  const item = f.items.find((i) => i.kind === 'disagreed' && i.agent_decision === d.id);
+  const item = disagreementItem(f, d);
   if (item) {
     const ref = `${n.night}/${item.id}`;
     for (const id of listNightIds(repo)) {
@@ -153,8 +153,7 @@ export function followDecision(repo: string, n: Night, d: AgentDecision, now = n
         throw new StoreError(`night ${id} is working on this right now (${ref}); change the review after it closes`, 409);
       }
     }
-    const takenBack = item.status === 'skipped' && item.resolved?.by === 'day' && item.resolved.reason === TAKEN_BACK;
-    if (item.status !== 'open' && !takenBack) {
+    if (item.status !== 'open' && !takenBack(item)) {
       const by = item.resolved?.by === 'day' ? 'by day' : `in night ${item.resolved?.by ?? '?'}`;
       throw new StoreError(`the disagreement was already worked on ${by} (${ref} is ${item.status}); the review can no longer change`, 409);
     }
@@ -176,8 +175,6 @@ export function followDecision(repo: string, n: Night, d: AgentDecision, now = n
   f.items.push({ id: `A${next}`, status: 'open', ...disagreement(n, d) });
   return f;
 }
-
-const TAKEN_BACK = 'the developer took the disagreement back';
 
 export interface OpenItem {
   ref: string;
