@@ -279,3 +279,40 @@ test('git: the ignore lines replace an old bare entry; a history commit never ta
   assert.equal(git(repo, 'show', '--name-only', '--format=', 'HEAD').trim(), '.night-shift/history/x.json');
   assert.match(git(repo, 'status', '--porcelain'), /^A {2}work\.txt/m);
 });
+
+test('a history commit refused by a pre-commit hook keeps the hook\'s reason and its full output (GitHub #5)', () => {
+  const repo = gitRepo();
+  const id = start(repo, plan(TASKS), session(), NOW).night.night;
+  record(repo, { task: 'T1', outcome: 'failed', checks: [false, false], why: 'The PDF library crashes' });
+  const hook = path.join(repo, '.git', 'hooks', 'pre-commit');
+  const noise = Array.from({ length: 20 }, (_, i) => `echo "test ${i + 1} passed"`).join('\n');
+  fs.writeFileSync(hook, `#!/bin/sh\necho "running 21 tests"\n${noise}\necho "not ok 21 - export waits for the queue (timeout 5000 ms)" >&2\necho "husky - pre-commit script failed (code 1)" >&2\nexit 1\n`, { mode: 0o755 });
+  const c = close(repo, 'Invoices failed on the PDF library.', new Date('2026-09-27T04:22:00'));
+  assert.match(c.message, /git commit failed:\n(?: {2}test \d+ passed\n)+ {2}not ok 21 - export waits for the queue \(timeout 5000 ms\)\n {2}husky - pre-commit script failed \(code 1\)/);
+  const file = path.join(repo, '.night-shift', 'nights', id, 'history-commit.log');
+  assert.ok(c.message.includes(`Full output: ${file}.`));
+  const log = fs.readFileSync(file, 'utf8');
+  assert.match(log, /running 21 tests/);
+  assert.match(log, /test 1 passed/);
+  assert.match(log, /husky - pre-commit script failed/);
+});
+
+test('status says which feedback was sent to GitHub and which awaits the developer (GitHub #6)', () => {
+  const repo = gitRepo();
+  const first = start(repo, plan(TASKS), session(), NOW).night.night;
+  feedback(repo, { kind: 'tool-bug', title: 'Hook output lost', body: 'Only the last line is kept.' });
+  feedback(repo, { kind: 'bad-fit', title: 'One follow-up per task', body: 'The plan was refused.' });
+  close(repo, 'Two notes for the tool.', new Date('2026-09-27T04:22:00'));
+  // The Viewer's write after Send to GitHub (the only writer of `sent`).
+  const n = loadNight(repo, first).night;
+  n.feedback[0].sent = { at: '2026-09-27T09:00:00+03:00', via: 'gh', url: 'https://github.com/owner/night-shift/issues/5' };
+  saveNight(repo, n);
+  const idle = status(repo);
+  assert.match(idle, /No night is open/);
+  assert.ok(idle.includes(`${first}: F1 sent (#5 https://github.com/owner/night-shift/issues/5), F2 awaiting the developer`));
+  start(repo, plan(TASKS), session(), new Date('2026-09-27T23:10:00'));
+  feedback(repo, { kind: 'other', title: 'Nice', body: 'The deck works.' });
+  const open = status(repo);
+  assert.match(open, /^Feedback: F1 awaiting the developer$/m);
+  assert.match(open, /Feedback of earlier nights:\n {2}.*F1 sent \(#5 .*\), F2 awaiting the developer/);
+});

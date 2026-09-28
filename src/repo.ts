@@ -51,7 +51,12 @@ export const isTracked = (repo: string, rel: string) => isGitRepo(repo) && git(r
 export interface CommitResult {
   committed: boolean;
   message: string;
+  // Everything git and its hooks printed, when the commit was refused.
+  output?: string;
 }
+
+// The last lines a refused commit printed: the hook's reason sits there, above git's own last line.
+const tail = (out: string, lines = 6) => out.trim().split('\n').map((l) => l.trimEnd()).filter(Boolean).slice(-lines).join('\n  ');
 
 // Commits only `rel` (a path inside the repository), whatever else is staged or changed, so the
 // developer's own work is never swept into a Night Shift commit. Git hooks run as usual.
@@ -62,6 +67,9 @@ export function commitPath(repo: string, rel: string, message: string): CommitRe
   const diff = git(repo, ['diff', '--cached', '--quiet', '--', rel]);
   if (diff.status === 0) return { committed: false, message: 'history already up to date' };
   const commit = git(repo, ['commit', '-m', message, '--only', '--', rel]);
-  if (commit.status !== 0) return { committed: false, message: `git commit failed: ${(commit.stderr || commit.stdout).trim().split('\n').slice(-1)[0]}` };
+  if (commit.status !== 0) {
+    const output = [commit.stdout, commit.stderr].filter((s) => s?.trim()).join('\n');
+    return { committed: false, message: `git commit failed:\n  ${tail(output)}`, output };
+  }
   return { committed: true, message: 'history committed' };
 }
