@@ -4,6 +4,7 @@ import { followUpOpen, isOpenQuestionIn, needsHandOver, unfinishedList } from '.
 import type { NightDetail } from '../../src/types.ts';
 import { ApiError, createFollowUp } from './api.ts';
 import { Icon, nightTitle } from './ui.tsx';
+import { HelpDot } from './Explainer.tsx';
 
 export const nightKey = (d: NightDetail) => `${d.repo.id}/${d.night.night}`;
 
@@ -166,9 +167,12 @@ function SaveCard({ detail: d, first, onSaved, onConflict }: { detail: NightDeta
         </div>
       )}
       {error && <div className="mt-3 rounded-xl bg-broken/15 px-3 py-2 text-sm text-broken">{error}</div>}
-      <button ref={button} onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta mt-4 inline-flex w-full items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:w-auto">
-        <Icon name="forward" className="size-4" strokeWidth={2.6} /> {busy ? 'Saving…' : 'Save for the next agent'}
-      </button>
+      <div className="mt-4 flex items-center gap-3">
+        <button ref={button} onClick={() => void save()} disabled={busy} {...(first ? { 'data-gate-save': '' } : {})} className="cta inline-flex flex-1 items-center justify-center gap-2 px-5 py-3 font-semibold disabled:opacity-70 sm:flex-none">
+          <Icon name="forward" className="size-4" strokeWidth={2.6} /> {busy ? 'Saving…' : 'Save for the next agent'}
+        </button>
+        <HelpDot step="save" term="Save for the next agent" />
+      </div>
     </section>
   );
 }

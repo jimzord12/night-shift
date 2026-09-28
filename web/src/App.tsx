@@ -6,6 +6,8 @@ import { getNextNight, getNight, getOverview, markRead } from './api.ts';
 import { Inbox } from './Inbox.tsx';
 import { ReportPage } from './Report.tsx';
 import { Starfield } from './Starfield.tsx';
+import { ExplainerOverlay, explain, useExplainRequests } from './Explainer.tsx';
+import type { ExplainStep } from './Explainer.tsx';
 import { QuestionDeck, deckKey } from './QuestionDeck.tsx';
 import type { DeckItem } from './QuestionDeck.tsx';
 import { HistoryView, NextNightView } from './Views.tsx';
@@ -195,6 +197,9 @@ export function App() {
   const pick = (repo: string, night: string) => {
     go(`#/night/${encodeURIComponent(repo)}/${encodeURIComponent(night)}`);
   };
+  const [explaining, setExplaining] = useState<ExplainStep | null>(null);
+  useExplainRequests(useCallback((step: ExplainStep) => setExplaining(step), []));
+  const closeExplainer = useCallback(() => setExplaining(null), []);
   const openDeck = (items: DeckItem[], startKey?: string) => items.length && setDeck({ items, startKey });
   const nightItems = (key: string | null) => (key ? allItems.filter((i) => keyOf(i.detail.repo.id, i.detail.night.night) === key) : []);
   // The deck reads the latest details, so a saved answer updates the file hash for the next save.
@@ -225,6 +230,9 @@ export function App() {
           </nav>
           <div className="ml-auto flex items-center gap-3 text-xs text-white/40">
             <span className="hidden sm:inline">{overview?.version}</span>
+            <button onClick={() => explain()} className="glass grid size-8 place-items-center rounded-full text-sm font-bold text-white/70 hover:text-white" title="How Night Shift works" aria-label="How Night Shift works">
+              ?
+            </button>
             <button onClick={() => void load()} className="glass rounded-full p-2 text-white/70 hover:text-white" title="Reload the nights" aria-label="Reload the nights">
               <Icon name="refresh" className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -273,6 +281,7 @@ export function App() {
           onConflict={async (repo, night) => loadNight(repo, night, true)}
         />
       )}
+      {explaining && <ExplainerOverlay step={explaining} onClose={closeExplainer} />}
     </div>
   );
 }

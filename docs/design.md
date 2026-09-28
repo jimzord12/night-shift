@@ -419,6 +419,14 @@ from any folder. Screens:
    state, outcome counts, duration, cost and the grey stopped-early line;
    a row opens that night.
 
+**How it works** (TASK-32): the whole loop in one animated view of five
+steps (an agent works through the night, the Night Report with the six
+outcomes and "stopped early", answering, **Save for the next agent**,
+starting the next agent). It fills the Inbox while there are no nights,
+opens from the ? in the header, and opens at its step from the small ?
+beside the terms that need it (Save for the next agent, the outcome
+counts, stopped early). Esc closes it and nothing behind it.
+
 Every page has its own address, so the browser's Back works. Still to
 come from D24: a step track, a "let's discuss" answer (TASK-29), and the
 one-sentence summary rule.
