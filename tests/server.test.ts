@@ -343,8 +343,10 @@ test("a change from another site is refused; the Viewer's own page and the tool 
   assert.equal((await post({ Origin: 'https://evil.example' })).status, 403);
   assert.equal((await post({ 'Sec-Fetch-Site': 'same-site' })).status, 403);
   assert.equal(loadNight(repo, id).night.questions[0].answer, null);
-  assert.equal((await post({ 'Sec-Fetch-Site': 'same-origin', Origin: 'http://127.0.0.1:4747' })).status, 200);
+  // A browser that sends only Origin (older Safari) saves from the Viewer's own page.
+  assert.equal((await post({ Origin: 'http://127.0.0.1:4747' })).status, 200);
   assert.equal(loadNight(repo, id).night.questions[0].answer, 'b');
+  assert.equal((await post({ 'Sec-Fetch-Site': 'same-origin', Origin: 'http://127.0.0.1:4747' })).status, 200);
   // Reading stays open to the page's own links and images; a request with no browser headers is the tool.
   assert.equal((await app.request('http://127.0.0.1:4747/api/overview', { headers: { 'Sec-Fetch-Site': 'cross-site' } })).status, 200);
   assert.equal((await app.request(`http://127.0.0.1:4747/api/nights/${ref.id}/${id}/read`, { method: 'POST' })).status, 200);
