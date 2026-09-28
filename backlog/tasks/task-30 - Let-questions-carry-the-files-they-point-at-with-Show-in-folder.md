@@ -1,10 +1,10 @@
 ---
 id: TASK-30
 title: 'Let questions carry the files they point at, with Show in folder'
-status: Queued
+status: Done
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:54'
+updated_date: '2026-09-28 15:57'
 labels:
   - viewer
   - skills
@@ -24,15 +24,15 @@ D24. A question like: Which of the three 2026-09-25 design concepts do we keep d
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A question with file references shows them, and Show in folder opens Explorer on the file (Windows, screenshot)
-- [ ] #2 A reference outside the repository is refused by the tool with a clear message (test)
+- [x] #1 A question with file references shows them, and Show in folder opens Explorer on the file (Windows, screenshot)
+- [x] #2 A reference outside the repository is refused by the tool with a clear message (test)
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
@@ -41,3 +41,9 @@ D24. A question like: Which of the three 2026-09-25 design concepts do we keep d
 <!-- SECTION:NOTES:BEGIN -->
 D24: the three file-shape changes (TASK-26 summary headline, TASK-29 discuss kind, TASK-30 file references) land together as one versioned change under the AGENTS.md rule; TASK-29 carries the version change and this task ships in the same release. The summary limit applies to new nights only, so older night files stay valid.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Integrated to main after five review rounds (reports in docs/work/TASK-29/reviews; dispositions in TASK-29 notes; round 5 code, design and visual PASS). npm run check 60/60 and npm run test:ui pass on the merged revision. Screenshots looked at: .local/evidence/2026-09-28-shapes/r5, r6 in the shapes worktree. Show in folder: POST reveal returned 200 and Explorer opened a window on the file's folder (seen in the shell window list, not in a screenshot). Not done yet: the CHANGELOG entry lands with release v16 (DoD 4).
+<!-- SECTION:FINAL_SUMMARY:END -->
