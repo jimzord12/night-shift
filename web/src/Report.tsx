@@ -10,6 +10,7 @@ import { Section } from './Inbox.tsx';
 import { KIND } from './Views.tsx';
 import { Icon, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
 import { HelpDot } from './Explainer.tsx';
+import { NextLine, StepTrack, nextStep } from './StepTrack.tsx';
 
 // The Night Report page (D24): back to the Inbox, a header strip, what needs the developer, then
 // what happened as one row per task. Sections that have nothing to say are left out.
@@ -61,6 +62,12 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
         <h1 className="font-display mt-1 text-2xl font-semibold sm:text-3xl">{nightTitle(n.night)}</h1>
         {n.summary ? <p className="mt-2 leading-snug text-white/85 sm:text-lg">{n.summary}</p> : <p className="mt-2 text-white/50">{n.status === 'open' ? 'The night has no summary yet.' : 'The night stopped before the agent wrote a summary.'}</p>}
         {neverStarted(summary) > 0 && <div className="mt-2 flex min-w-0"><StoppedEarly count={neverStarted(summary)} after={<HelpDot step="report" term="stopped early" />} /></div>}
+        <div className="mt-5">
+          <StepTrack state={state} />
+          <div className="mt-3">
+            <NextLine {...nextStep(state, summary, !!detail.follow_up && detail.follow_up.items.some((i) => i.status === 'open') && detail.follow_up.items.every((i) => i.status !== 'open' || !!detail.taken[`${n.night}/${i.id}`]))} />
+          </div>
+        </div>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-white/10 pt-3 text-sm">
           {nonZero.map((o, i) => (
             <span key={o} className="inline-flex items-center gap-1.5 font-semibold" style={{ color: STATUS[o].color }}>

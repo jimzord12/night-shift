@@ -3,6 +3,7 @@ import type { NightSummary, Overview } from '../../src/types.ts';
 import { OUTCOMES, morningEstimate, neverStarted, ownerState, ownersTurn, readable } from '../../src/types.ts';
 import { Icon, NightBadge, STATUS, StoppedEarly, nightTitle } from './ui.tsx';
 import { HowItWorks } from './Explainer.tsx';
+import { StepTrack } from './StepTrack.tsx';
 
 interface Props {
   overview: Overview;
@@ -148,6 +149,7 @@ function NightCard({ n, now, name, delay, onOpen, onAnswer }: { n: NightSummary;
         </div>
         <NightBadge n={n} now={now} />
       </div>
+      <StepTrack state={state} small />
       <p className="line-clamp-2 text-white/80">{n.summary ?? (n.running ? 'Working through the plan…' : 'No summary.')}</p>
       {counts.length > 0 && (
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
