@@ -9,8 +9,8 @@ import { createApp } from '../src/server.ts';
 import { SUMMARY_MAX, ask, close, record, start } from '../src/night.ts';
 import { createFollowUp, openItems, resolveItem } from '../src/followup.ts';
 import { loadNight, readFollowUp, readNight, registerRepo, saveNight } from '../src/store.ts';
-import { ownerState } from '../src/types.ts';
-import type { NextNight, NightDetail, Overview } from '../src/types.ts';
+import { forTalk, ownerState } from '../src/types.ts';
+import type { FollowUp, FollowUpItem, NextNight, NightDetail, Overview } from '../src/types.ts';
 
 const json = { 'Content-Type': 'application/json' };
 
@@ -344,4 +344,10 @@ test('a carried question asked again as the second question of the task replaces
   const night = close(repo, 'Two questions came back.').night;
   const f = createFollowUp(repo, night);
   assert.deepEqual(f.items.map((i) => [i.kind, i.question]), [['waiting', 'Which PDF library?'], ['waiting', 'Which invoice layout?']]);
+});
+
+test('a point to discuss without a task holds only itself', () => {
+  const item = (id: string, kind: FollowUpItem['kind'], task?: string) => ({ id, kind, status: 'open', title: id, done_when: [], ...(task ? { task } : {}) }) as FollowUpItem;
+  const f = { items: [item('A1', 'discuss'), item('A2', 'decision'), item('A3', 'decision', 'T1'), item('A4', 'discuss', 'T1'), item('A5', 'decision', 'T2')] } as FollowUp;
+  assert.deepEqual(f.items.map((i) => forTalk(f, i)), [true, false, true, true, false]);
 });
