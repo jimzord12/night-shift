@@ -1,10 +1,11 @@
 ---
 id: TASK-8
 title: Cover the question deck with UI tests
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-25 17:59'
-updated_date: '2026-09-27 21:46'
+updated_date: '2026-09-28 11:49'
 labels:
   - viewer
 dependencies: []
