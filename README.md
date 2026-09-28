@@ -14,12 +14,12 @@ Night Shift adds a record of each unattended session, nothing more:
 - **The night file**: after each task, it records the outcome (done, partial,
   blocked, failed, not started, skipped), the checks, and proof from a small
   fixed set of blocks: screenshots, before/after comparisons, videos, PDFs,
-  links, command output, short notes. When it needs a decision, it asks
-  instead of guessing.
+  links, command output, short notes. When a choice is yours, it asks, or
+  takes it and records it for you to review.
 - **The Viewer**: one local page for all your repositories. Read the night,
-  open the proof, answer the questions with a click, hand the answers back
-  to the next agent as a follow-up, and send friction you want fixed to the
-  Night Shift maintainers.
+  open the proof, answer the questions and review the agent's decisions with a
+  click, hand the answers back to the next agent as a follow-up, and send
+  friction you want fixed to the Night Shift maintainers.
 - **The Meter**: duration, tokens, sub-agents and cost, read from Claude
   Code's own session logs, never claimed by the agent.
 

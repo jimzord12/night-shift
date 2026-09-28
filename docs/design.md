@@ -91,8 +91,8 @@ are in `docs/glossary.md`.
   compressed older context.
 - **Normal end.** The agent adds the summary (questions, decisions and
   feedback were recorded as they arose); the tool closes the night as
-  `complete`. When the session then ends, the Meter adds the metrics. They cover the whole
-  session, including anything done in it after the close.
+  `complete`. When the session then ends, the Meter adds the metrics. They
+  cover the whole session, including anything done in it after the close.
 - **The session ends early** (context exhausted, the developer exits, the
   process is killed). The session-end hook closes the night as
   `interrupted`, with every outcome recorded so far, and adds the metrics.
@@ -242,14 +242,14 @@ stands on its own in history. The agent writes `summary`, `tasks`,
 and `feedback[].sent`. An agent decision (`night-shift decide`, D31) is a
 decision the agent took on the developer's behalf: `decision`, `why`, the
 task; the developer reviews it as fine or disagrees with a note, and a
-disagreement becomes a `disagreed` follow-up item. Unreviewed decisions
-keep the night in the developer's turn. A metric Claude Code did not
-provide is `null` and shows as "unknown". `summary` is the headline on
-the Inbox card: one sentence on one line, at most 200 characters, checked
-at close (older nights keep longer ones). A question may carry `files`
-(paths inside the repository, with an optional caption); the Viewer shows them and opens the file manager
-on one. An answer is an option id, `"discuss"` (with a note), or `null`. An
-abridged example (the schema has every field):
+disagreement becomes a `disagreed` follow-up item. Unreviewed decisions keep
+the night in the developer's turn. A metric Claude Code did not provide is
+`null` and shows as "unknown". `summary` is the headline on the Inbox card:
+one sentence on one line, at most 200 characters, checked at close (older
+nights keep longer ones). A question may carry `files` (paths inside the
+repository, with an optional caption); the Viewer shows them and opens the
+file manager on one. An answer is an option id, `"discuss"` (with a note),
+or `null`. An abridged example (the schema has every field):
 
 ```json
 {
@@ -358,18 +358,18 @@ it up, in a night or by day, does the digging for context.
 }
 ```
 
-- Item kinds: `decision`, `unfinished`, `waiting` (a question the
-  developer did not answer; the next agent plans it, asks again instead of
-  guessing, and records it `blocked` if it still needs the answer), and
-  `discuss` (the developer answered "let's discuss" with a note: no night
-  plans or skips it, nor the other open items of its task; a day session
-  raises it with them first, and while only those items are open the
-  night is the developer's turn), and `disagreed` (the developer disagrees
-  with an agent decision: `question` holds the decision, `owner_note` what
-  they want instead, `agent_decision` its id; the next agent redoes that
-  part). Once it is asked again (word for word), or its task ends done or skipped, the
-  old copy of the question is locked in the Viewer: the answer belongs
-  where the question is open now. A night that works on the task without
+- Item kinds: `decision`, `unfinished`, `waiting` (a question the developer
+  did not answer; the next agent plans it, asks again instead of guessing,
+  and records it `blocked` if it still needs the answer), and `discuss` (the
+  developer answered "let's discuss" with a note: no night plans or skips
+  it, nor the other open items of its task; a day session raises it with
+  them first, and while only those items are open the night is the
+  developer's turn), and `disagreed` (the developer disagrees with an agent
+  decision: `question` holds the decision, `owner_note` what they want
+  instead, `agent_decision` its id; the next agent redoes that part). Once
+  it is asked again (word for word), or its task ends done or skipped, the
+  old copy of the question is locked in the Viewer: the answer belongs where
+  the question is open now. A night that works on the task without
   asking again leaves it open where it was, still answerable, and the next
   night plans or skips it again (D30).
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a

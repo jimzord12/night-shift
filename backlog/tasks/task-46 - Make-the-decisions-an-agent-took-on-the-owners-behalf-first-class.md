@@ -4,7 +4,7 @@ title: Make the decisions an agent took on the owner's behalf first-class
 status: Active
 assignee: []
 created_date: '2026-09-28 13:47'
-updated_date: '2026-09-28 20:06'
+updated_date: '2026-09-28 20:09'
 labels:
   - viewer
 dependencies: []
@@ -49,4 +49,6 @@ Review round 2 (95ea2e8): design PASS, visual PASS, code FINDINGS (M1 a note kep
 Review round 3 (bdd05d5): design PASS; code FINDINGS (M1 AC#3 day half untested, m1 deck note fix untested); context FINDINGS (M1 ask-or-decide discriminator too narrow; minors 2-5; note 6). Fixed: ask when the task cannot go on or a wrong choice would be costly to undo, else decide and record (skill, D31); design.md overview rows and Inbox buttons; skill description; wraps; day skill tells the agent to ask the developer (text + test); UI test asserts no note under Fine (mutant killed). Code notes (hidden note saved on a quick switch; non-string note 500; file race) left: harmless or older.
 
 Review round 4 (2f17f60): code PASS (notes N1-N3: CLI decide untested like ask/record; v16 refuses @3 files, CHANGELOG to say switch+reinstall+restart; asymmetric early-version check, harmless). Context FINDINGS: M1 docs/practices/task-flow.md still said never guess: fixed with the D31 rule; minors fixed (D31 scoped to a night, day asks; ask example names the costly-to-undo reason; day skill sentence moved to section 2 and phrased as an instruction; wraps; 'if the developer were here' in the skill and glossary).
+
+Review round 5 (af12da5), the attended cap: context FINDINGS, M1 README.md still said 'asks instead of guessing' (and the Viewer bullet named no decisions). Fixed after the round, with the Explainer string (note 3) and the wrap drift (minor 2); .claude/skills copies refresh at release (note 4). Code PASS r4, design PASS r3, visual PASS r2. Unresolved at the cap: the round-5 fix is unreviewed; awaiting the owner's go for one more context round before merging.
 <!-- SECTION:NOTES:END -->

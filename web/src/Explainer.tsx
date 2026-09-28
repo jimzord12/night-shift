@@ -24,7 +24,7 @@ const STEPS: { id: ExplainStep; icon: IconName; short: string; title: string; bo
     icon: 'moon',
     short: 'Night',
     title: 'An agent works through the night',
-    body: 'You give it a plan of tasks. It takes them one by one, records how each ended with proof, and asks you instead of guessing when a decision is yours.',
+    body: 'You give it a plan of tasks. It takes them one by one, records how each ended with proof, and, when a decision is yours, asks you or records it for you to review.',
   },
   {
     id: 'report',
