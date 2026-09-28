@@ -357,6 +357,15 @@ export const ownersTurn = (st: OwnerState) => st === 'new' || st === 'needs_answ
 // A night file that cannot be read has no start, so no state to judge; the Viewer shows it red.
 export const readable = (s: Pick<NightSummary, 'started_at'>) => !!s.started_at;
 
+// Start my morning's estimate (TASK-31): its questions, the saves its gates will ask for (the closed
+// nights among them not saved yet), and about a minute a question and half a minute a save.
+export function morningEstimate(nights: Pick<NightSummary, 'questions_open' | 'status' | 'hand_over'>[]) {
+  const walked = nights.filter((n) => n.questions_open > 0);
+  const questions = walked.reduce((sum, n) => sum + n.questions_open, 0);
+  const saves = walked.filter((n) => n.status !== 'open' && n.hand_over).length;
+  return { questions, saves, minutes: questions ? Math.max(1, Math.ceil(questions + saves / 2)) : 0 };
+}
+
 // Morning lists every night that is not done: the running ones, the developer's turn, and those
 // waiting for an agent (D24). A night file that cannot be read stays only until it is opened once;
 // History keeps it.

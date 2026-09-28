@@ -410,3 +410,15 @@ still decides priority. A `Night` skips intake: it works only its
 `Plan`, and the next day session takes the issues in. **Rejected:**
 issue statuses or labels such as "pending" or "read" (they drift from
 the board, which already shows progress).
+
+## D29  The Viewer accepts changes only from its own page (2026-09-28)
+
+**Decision:** every request that changes something (every non-GET: an
+answer, a save, a send, Show in folder) is refused when the browser marks
+it as coming from another site: `Sec-Fetch-Site` other than
+`same-origin` or `none`, or, without that header, an `Origin` that is not
+the Viewer's own. Requests with neither header (the tool, tests) pass.
+**Why:** D11's Host check stops DNS rebinding, not a page on another site
+posting to `127.0.0.1`; such a page could write an answer or open a file
+manager window (TASK-45). **Rejected:** a token in every request (more
+moving parts for the same protection on a local tool).

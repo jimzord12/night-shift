@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import type { NightSummary, Overview } from '../../src/types.ts';
-import { OUTCOMES, neverStarted, ownerState, ownersTurn, readable } from '../../src/types.ts';
+import { OUTCOMES, morningEstimate, neverStarted, ownerState, ownersTurn, readable } from '../../src/types.ts';
 import { Icon, NightBadge, STATUS, StoppedEarly, nightTitle } from './ui.tsx';
 import { HowItWorks } from './Explainer.tsx';
+import { StepTrack } from './StepTrack.tsx';
 
 interface Props {
   overview: Overview;
@@ -40,6 +41,7 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
   const reachable = questions - missing;
   const failedKeys = new Set(unloaded.map((u) => `${u.repo}/${u.night}`));
   const questionRepos = new Set(overview.nights.filter((n) => n.questions_open > 0 && !failedKeys.has(`${n.repo}/${n.id}`)).map((n) => n.repo)).size;
+  const estimate = morningEstimate(overview.nights.filter((n) => !failedKeys.has(`${n.repo}/${n.id}`)));
   const yours = inbox.filter((n) => readable(n) && ownersTurn(ownerState(n))).length;
   const last = overview.nights[0];
 
@@ -52,11 +54,16 @@ export function Inbox({ overview, inbox, scheduled, questionsReady, unloaded, on
       </section>
 
       {reachable > 0 && (
-        <button onClick={onStartMorning} disabled={!questionsReady} className="cta cta-block flex w-full flex-col items-center justify-center gap-x-3 gap-y-0.5 px-6 py-3.5 text-lg disabled:opacity-70 sm:flex-row sm:py-4">
+        <button onClick={onStartMorning} disabled={!questionsReady} className="cta cta-block flex w-full flex-col items-center justify-center gap-x-3 gap-y-0.5 px-6 py-3.5 text-lg disabled:opacity-70 lg:flex-row lg:py-4">
           <span className="cta-shine" />
           <Icon name="sparkle" className="size-5 text-moon drop-shadow-[0_0_6px_#f5d76e]" strokeWidth={2.2} />
-          <span className="font-semibold">{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
-          <span className="text-sm text-white/80 sm:text-base">{reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}</span>
+          <span className={`font-semibold ${questionsReady ? 'whitespace-nowrap' : ''}`}>{questionsReady ? 'Start my morning' : 'Getting the questions…'}</span>
+          <span className="text-sm text-white/80 sm:text-base">
+            {reachable} question{reachable === 1 ? '' : 's'}{questionRepos > 1 ? ` in ${questionRepos} repositories` : ''}
+            {estimate.saves > 0 && `, ${estimate.saves} save${estimate.saves === 1 ? '' : 's'}`}
+            {/* Its own line when the button stacks; after a dot when it is one row. */}
+            <span className="block whitespace-nowrap lg:inline"><span className="hidden lg:inline"> · </span>about {estimate.minutes} min</span>
+          </span>
         </button>
       )}
       {unloaded.length > 0 && (
@@ -143,6 +150,7 @@ function NightCard({ n, now, name, delay, onOpen, onAnswer }: { n: NightSummary;
         </div>
         <NightBadge n={n} now={now} />
       </div>
+      <StepTrack state={state} small />
       <p className="line-clamp-2 text-white/80">{n.summary ?? (n.running ? 'Working through the plan…' : 'No summary.')}</p>
       {counts.length > 0 && (
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
