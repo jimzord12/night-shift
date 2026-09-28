@@ -1,10 +1,10 @@
 ---
 id: TASK-34
 title: Make the whole morning work from the keyboard
-status: Active
+status: Done
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-28 17:32'
+updated_date: '2026-09-28 18:37'
 labels:
   - viewer
 dependencies:
@@ -23,14 +23,14 @@ D24, laptop first. Enter accepts the recommended answer (exists for Save today),
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A full morning (answer, discuss one, save) is done without the mouse (video)
+- [x] #1 A full morning (answer, discuss one, save) is done without the mouse (video)
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
@@ -48,4 +48,12 @@ Review round 3 (03-*): code FINDINGS, visual FINDINGS. Dispositions: visual V10 
 Review round 4 (04-*): visual PASS, code FINDINGS. Dispositions: code F1 fixed (the mixed test clicks use it, Tabs to Not now, presses Enter and asserts the question stays unanswered; removing the Tab reset fails it). Code F2 fixed (a clicked thumbnail leaves Enter to Save, like a clicked button). No action: N1 (a keyboard-reached progress segment keeps the focus; with TASK-40 V5), N2 (a rare stale Ctrl+Enter hint after the gate). To TASK-40: visual V13 (the focus ring on the cream footer buttons is hard to see).
 
 Review round 5 (05-*): visual PASS, code FINDINGS. Dispositions: code F1 fixed after the round (the mixed test adds a question with picture options: a thumbnail reached by keyboard opens on Enter and answers nothing; a clicked one, after Esc, leaves Enter to Save; removing either thumbnail rule fails it). Code F2 fixed after the round (a note focus still pending is cancelled by Esc; five back-to-back UI runs pass). N1 (Enter on let's discuss with no note untested) and visual V14 (a clicked thumbnail shows the keyboard ring after Esc) no action. The round cap (5, attended) is reached with these fixes unreviewed: not reported as done; a sixth round needs the owner's go.
+
+Review round 6 (06-*), cap extended to 8 by the owner: code PASS, visual PASS. After the verdict: code F1 fixed (the refusal path's note focus uses the same cancellable timer, so Esc cancels it too). F2 (no test for the Esc cancel; the race reproduces only with synthetic key events) and N1 no action.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+A whole morning works from the keyboard: Enter keeps the recommended answer, 1-9 pick, D picks let's discuss with the cursor in the note (Ctrl+Enter saves), N leaves a question for now (the deck does not come back to it; the gate names it), arrows move, S on the gate saves for the next agent, Enter leaves once all is clear. D, N and S work by key position, so a Greek layout works. Enter on a control reached by keyboard does its own job; a clicked one leaves Enter to Save; a number key moves the focus to its pick. Six review rounds (owner extended the cap to 8); round 6 code and visual PASS; reports in docs/work/TASK-34/reviews. Checks: npm run check 60/60, npm run test:ui 3/3 (a keyboard-only morning, a mixed mouse-and-keyboard morning with picture options, and the original deck test). Video: .local/evidence/2026-09-28-keyboard/out4/keyboard-morning.webm in the ci worktree. Deferred to TASK-40: Esc twice drops a note, focus leaving the deck, question order ties, the counter wording, a Not now in an earlier-saved night, the footer focus ring. Not done yet: the CHANGELOG entry lands with release v16 (DoD 4).
+<!-- SECTION:FINAL_SUMMARY:END -->

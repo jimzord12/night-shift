@@ -152,7 +152,9 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       setShowNote(true);
       setFocusNote(true);
       // The error makes the footer taller: bring the note above it and into focus.
-      setTimeout(() => {
+      // Kept with the other pending note focus, so Esc cancels it too.
+      clearTimeout(noteFocus.current);
+      noteFocus.current = setTimeout(() => {
         noteRef.current?.focus({ preventScroll: true });
         noteRef.current?.scrollIntoView({ block: 'center' });
       }, 0);
