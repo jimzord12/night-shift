@@ -420,6 +420,18 @@ folder (`~/.night-shift/repos.json`, `viewer.json`), never in a repository.
 read marks; its own files stay, and `night-shift install` there, or the next
 night started there, adds it back.
 
+**Notifications** (D24, TASK-33): off until the developer runs `night-shift
+notify on`, since Night Shift imposes nothing. Then a night that ends (the
+agent's `close`, or the session-end hook marking it interrupted) raises a
+desktop notification, "blog: night finished" with "2 questions for you ·
+3 done, 1 blocked", whose click opens that `Night Report` in the Viewer; a
+Viewer is started on the configured port (4747 by default) when none runs.
+Windows raises a toast through Windows PowerShell, with nothing to install;
+elsewhere, or by choice, `--command "<cmd>"` runs the developer's own
+command with `NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
+`night-shift notify test` raises one now. The setting lives in the install
+folder (`notify.json`), per machine.
+
 ## Feedback to the Night Shift Repo
 
 Agents log friction with Night Shift (a missing block, a confusing rule, a

@@ -1,10 +1,11 @@
 ---
 id: TASK-33
 title: Notify the owner on the desktop when a night ends
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:43'
+updated_date: '2026-09-28 11:19'
 labels:
   - cli
   - viewer

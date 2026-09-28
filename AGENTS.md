@@ -75,6 +75,7 @@ GitHub issue without the `tracked` label into a task
 | `src/store.ts` | The files on disk and their validation; the install folder (registry, Viewer state) |
 | `src/repo.ts` | Git and `.gitignore`: the only places Night Shift touches outside `.night-shift/` |
 | `src/install.ts`, `src/github.ts` | `night-shift install`; feedback to GitHub issues |
+| `src/notify.ts` | A desktop notification when a night ends (off until `night-shift notify on`) |
 | `src/files.ts`, `src/version.ts` | Media types for evidence files; the version string (release tag or dev commit) |
 | `src/server.ts` | The `Viewer`'s JSON API plus the built web app; Host check, media rules |
 | `src/types.ts` | Shapes shared by the tool and the web app |
