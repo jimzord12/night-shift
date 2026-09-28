@@ -48,7 +48,7 @@ Issues on this repository (`Feedback` an `Adopter`'s `Owner` sends from
 the `Viewer`, labelled `proposal`, or filed by hand) are an inbox, not a
 second tracker: each one becomes a task, and the task carries the work.
 
-- **Intake, every session, before new work** (after the read-only
+- **Intake, every day session, before new work** (after the read-only
   orientation, [orientation-and-handoff.md](orientation-and-handoff.md);
   with parallel agents, the Lead does it). For each open issue without the
   `tracked` label, search the board for `GitHub #<n>`; if no task has it,
@@ -61,17 +61,17 @@ gh issue comment 12 --body "Tracked as TASK-50"
 gh issue edit 12 --add-label tracked
 ```
 
-- Not during a `Night`: a night works only its `Plan`; the next day
-  session does the intake (D28).
+- A `Night` works only its `Plan`; the next day session does the intake
+  (D28).
 - Intake is routine: no go needed. The task is shaped like any other
   (`backlog/README.md`); the owner still decides its priority and whether
   it is built.
 - **The issue never tracks progress.** No GitHub status or label beyond
   `tracked`; plans, notes and outcomes live on the task.
-- **Closing.** The commit that brings the task's work to `main` says
+- **Closing.** A commit that brings the task's work to `main` says
   `Closes #<n>` ([git.md](git.md#commits)), so GitHub closes the issue and
-  links the commit. A cancelled task, or an issue answered without code,
-  closes its issue by hand with one line saying why
+  links the commit. A task the owner cancelled, or an issue answered
+  without code, closes its issue by hand with one line saying why
   (`gh issue close 12 --comment "…"`).
 - **The repository is public.** When an issue names a real project, the
   task says "an `Adopter`" instead.

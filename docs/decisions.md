@@ -398,7 +398,7 @@ lost in a wall of figures).
 
 ## D28  GitHub issues become tasks; the issue closes with the work (2026-09-28)
 
-Issues #4, #5 and #6 (feedback that `Adopter`s sent from the `Viewer`)
+Issues #4, #5 and #6 (`Feedback` an `Adopter`'s `Owner` sent from the `Viewer`)
 sat open with no task, and a session reported feedback as awaiting the
 owner when the owner had already sent it as #5. **Why:** sessions read
 only the board, so nothing ever looked at the issues. **Chosen:** every
