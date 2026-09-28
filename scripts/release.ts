@@ -45,8 +45,13 @@ function git(args: string[]): string {
   return r.stdout;
 }
 
+// npm's own script through node when `npm run` started us (npm_execpath), so no shell is needed;
+// otherwise one command line through the shell (Windows needs it for npm.cmd). Both avoid Node's
+// DEP0190 warning, which arguments passed alongside `shell: true` raise.
 function npm(args: string[], cwd: string) {
-  return run(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, cwd, process.platform === 'win32');
+  const cli = process.env.npm_execpath;
+  if (cli && /\.c?js$/.test(cli)) return run(process.execPath, [cli, ...args], cwd);
+  return process.platform === 'win32' ? run(['npm.cmd', ...args].join(' '), [], cwd, true) : run('npm', args, cwd);
 }
 
 const tail = (s: string) => s.trim().split(/\r?\n/).slice(-12).join('\n');

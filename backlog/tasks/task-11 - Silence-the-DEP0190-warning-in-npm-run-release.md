@@ -1,9 +1,11 @@
 ---
 id: TASK-11
 title: Silence the DEP0190 warning in npm run release
-status: Queued
-assignee: []
+status: Review
+assignee:
+  - '@claude'
 created_date: '2026-09-25 17:59'
+updated_date: '2026-09-28 11:46'
 labels:
   - release
 dependencies: []
@@ -30,3 +32,9 @@ ordinal: 11000
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Fixed in 95f24cc: npm runs through node with npm_execpath under npm run, else as one shell command line. Verified at the next release (v16), which runs npm three times.
+<!-- SECTION:NOTES:END -->

@@ -4,6 +4,7 @@ title: Make the whole morning work from the keyboard
 status: Queued
 assignee: []
 created_date: '2026-09-27 21:42'
+updated_date: '2026-09-28 11:58'
 labels:
   - viewer
 dependencies:
@@ -32,3 +33,9 @@ D24, laptop first. Enter accepts the recommended answer (exists for Save today),
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+tests/ui/deck.test.ts (TASK-8) clicks through the deck; update it if this changes what it clicks.
+<!-- SECTION:NOTES:END -->
