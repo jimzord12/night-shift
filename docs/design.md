@@ -69,7 +69,7 @@ are in `docs/glossary.md`.
 | 3 Record | Agent, one tool call per task | What it did | Each task's outcome, checks and evidence, right after the task; questions and feedback as they arise |
 | 4 Meter | Tool, a Claude Code session-end hook, or crash recovery | Claude Code's session logs; the night file | The metrics, added to the night file (closing it first if it is still open) |
 | 5 Close | Tool | Plan, records | `night.json`, validated, marked `complete` or `interrupted` |
-| 6 Viewer | Local app | Every night file of every registered repository; the developer's clicks | Morning page, history; answers written into the night file; follow-up files; GitHub issues |
+| 6 Viewer | Local app | Every night file of every registered repository; the developer's clicks | Inbox, reports, history; answers written into the night file; follow-up files; GitHub issues |
 
 ## Lifecycle of a night
 
@@ -375,37 +375,42 @@ nothing beyond the tool; what else a night needs stays the developer's call.
 One local web app for every registered repository, opened with one command
 from any folder. Screens:
 
-1. **Morning:** an inbox (D22, D24). Every night whose `Owner state` is
-   not Done (Running, New, Needs answers, Ready to save, Waiting for an
-   agent) is a chip with that one state as its badge, newest first; when
-   none is the developer's turn it reads "All caught up", with the last
-   night and History one click away. Below, the chosen night in full:
-   header (its state; "Stopped early: N tasks never started" in grey only
-   when stopping early cost work; duration, cost, sub-agents), summary, the
-   six outcome counts, tasks (open one for its checks, questions and
-   proof), the questions as a deck (one per screen, the recommendation
-   preselected, a free note), **Create follow-up**, and feedback with tick
+1. **Inbox** (D24; the home page, `#/`): at a glance, the questions
+   waiting for the developer, the nights that need them and the items
+   scheduled for the next night; **Start my morning**, one deck through
+   every open question across repositories; one card per night that is
+   Running or the developer's turn (repository, date, its `Owner state`,
+   a one-line result, the non-zero outcome counts, the grey stopped-early
+   line, and one next-step button: Answer N questions, Save for the next
+   agent, Read the report or Watch it run); below, a slim strip of the
+   nights Waiting for an agent or settled since the Viewer loaded, and
+   any night file that cannot be read (a red "Cannot be read" badge, not
+   counted, gone once opened; History keeps it). No night opens until it
+   is picked. "All caught up" when no card is left, with the last night
+   and History one click away. The list is fixed when the Viewer loads;
+   an entry that settles shows its new state until the next reload.
+2. **Night Report** (`#/night/<repo>/<night>`): a way back to the Inbox,
+   then the header (its state, the summary, the stopped-early line, the
+   non-zero outcome counts, duration, cost, sub-agents); **What needs
+   you** (the questions as one row with a small ring, opening the deck;
+   **Save for the next agent**, which writes the `Follow-up file`); the
+   items saved for the next agent; **What happened**, one row per task
+   (open one for its checks, questions and proof); feedback with tick
    boxes and **Send to GitHub**. Opening a night marks it read; a night
-   opened while it ran is unread again once it ends. The list is fixed
-   when the Viewer loads; a chip that settles shows its new state until
-   the next reload. A night file that cannot be read shows a red "Cannot
-   be read" badge, is not counted as the developer's turn, and stays in
-   Morning until it has been opened once; History keeps it.
-2. **Next night:** every open follow-up item across repositories, per
-   repository and grouped by the night it came from, with its kind, the
-   decision, the owner's note and what was left; the tab shows the count
-   (D26).
-3. **Questions:** every open question across nights.
-4. **History:** one row per night: date, repository, its state, outcome
-   counts, duration, cost and the grey stopped-early line; a row opens
-   that night.
-5. **Trends:** empty until measurement is designed.
+   opened while it ran is unread again once it ends.
+3. **Next night** (`#/next`): every open follow-up item across
+   repositories, per repository and grouped by the night it came from,
+   with its kind, the decision, the owner's note and what is still to
+   do; items a running night has taken on are left out; the tab shows
+   the count (D26).
+4. **History** (`#/history`): one row per night: date, repository, its
+   state, outcome counts, duration, cost and the grey stopped-early line;
+   a row opens that night.
 
-Agreed on 2026-09-28 (D24); the one `Owner state` per night, coloured by
-whose turn it is, is built (TASK-24), the rest is not yet: Morning becomes
-the `Inbox` of `Night Report` cards, a step track, an explicit **Save for the next agent**
-gate, a "let's discuss" answer, and a navigation of Inbox and History. The
-screens above stay the truth until the D24 tasks land.
+Every page has its own address, so the browser's Back works. Still to
+come from D24: a step track, the explicit gate after the deck and its
+confirmation (TASK-28), a "let's discuss" answer (TASK-29), and the
+one-sentence summary rule.
 
 The registry of repositories and the read marks live in the local install
 folder (`~/.night-shift/repos.json`, `viewer.json`), never in a repository.

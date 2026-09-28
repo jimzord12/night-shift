@@ -1,10 +1,11 @@
 ---
 id: TASK-25
 title: Show Night Report cards in an Inbox with one next-step button each
-status: Queued
-assignee: []
+status: Active
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:54'
+updated_date: '2026-09-28 07:39'
 labels:
   - viewer
 dependencies:

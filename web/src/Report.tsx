@@ -6,6 +6,7 @@ import { createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
 import type { Media } from './Evidence.tsx';
 import { Section } from './Inbox.tsx';
+import { KIND } from './Views.tsx';
 import { Icon, Pill, Ring, STATUS, StateBadge, StoppedEarly, dollars, minutes, nightTitle, taskStyle } from './ui.tsx';
 
 // The Night Report page (D24): back to the Inbox, a header strip, what needs the developer, then
@@ -83,7 +84,11 @@ function NightView({ detail, summary, onOpenDeck, onDetail }: { detail: NightDet
                   {i.title}
                   {i.decision_label && <span className="font-semibold text-white"> → {i.decision_label}</span>}
                 </span>
-                <span className="shrink-0 text-xs text-white/50">{i.status === 'open' ? i.kind : i.status}</span>
+                {i.status === 'open' ? (
+                  <span className="shrink-0 rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${KIND[i.kind].color} 75%, white)`, background: `color-mix(in srgb, ${KIND[i.kind].color} 18%, transparent)` }}>{KIND[i.kind].label}</span>
+                ) : (
+                  <span className="shrink-0 text-xs text-white/50">{i.status}</span>
+                )}
               </li>
             ))}
           </ul>

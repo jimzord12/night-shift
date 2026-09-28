@@ -375,3 +375,24 @@ was left. It reads the follow-up files only; no file shape changes. This
 amends D24's navigation of `Inbox` and History to three tabs. **Rejected:**
 a "Next night" section at the top of the `Inbox`, which the agent
 recommended to keep two tabs; the owner preferred a tab of its own.
+
+## D27  The Inbox is an overview; a report is its own page (2026-09-28)
+
+After using v13 the owner asked for the home page to be an overview of
+everything, with bigger night cards and the details of a night only once
+it is picked, a way back from a night, and clearer section boundaries.
+**Why:** v13 still showed D22's chip row with the first night opened in
+full below it, so "Open the last night" had no way back, and an empty
+questions card took as much room as a full one. **Chosen:** the `Inbox`
+is the home page: three actionable numbers (questions for you, nights
+that need you, items for the next night), **Start my morning** across
+every open question, one card per night that is Running or the owner's
+turn, and a slim strip of the rest. A `Night Report` is a page of its
+own with a way back, and every page has an address, so the browser's
+Back works. Sections carry a small heading over a lightly bordered
+block. The Questions tab goes now rather than after the gate (TASK-28),
+because Start my morning and the numbers replace it; the navigation is
+Inbox, Next night and History. **Rejected:** more numbers on the home
+page (cost and duration totals stay in History, so the next step is not
+lost in a wall of figures).
+

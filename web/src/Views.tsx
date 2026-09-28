@@ -6,7 +6,7 @@ import { Icon, NightBadge, STATUS, StoppedEarly, dollars, minutes, nightTitle } 
 
 // Each item's kind, coloured by whose turn it is: a decision or unfinished work is the agent's
 // (blue); a question still without an answer is asked again, so it is yours (amber).
-const KIND: Record<FollowUpItem['kind'], { label: string; color: string }> = {
+export const KIND: Record<FollowUpItem['kind'], { label: string; color: string }> = {
   decision: { label: 'Your decision', color: 'var(--color-agent)' },
   unfinished: { label: 'Unfinished', color: 'var(--color-agent)' },
   waiting: { label: 'Needs your answer', color: 'var(--color-eyes)' },

@@ -138,7 +138,7 @@ function NightCard({ n, now, name, delay, onOpen, onAnswer }: { n: NightSummary;
           e.stopPropagation();
           step.act();
         }}
-        className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-[var(--accent)] px-4 py-2 font-semibold text-white transition hover:brightness-110"
+        className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-[var(--accent)] px-4 py-2 font-semibold whitespace-nowrap text-white transition hover:brightness-110"
       >
         {step.label} <Icon name="right" className="size-4" strokeWidth={2.6} />
       </button>
