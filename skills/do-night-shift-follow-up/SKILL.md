@@ -51,5 +51,5 @@ Look at the real code first. Then do the work the repository's normal way
 ```
 
 An item left open is picked up by the next night: its plan must either take
-it on or skip it with a reason. A `discuss` item left open stays for the
-next day session.
+it on or skip it with a reason. A `discuss` item left open, and the other
+open items of its task, stay for the next day session.

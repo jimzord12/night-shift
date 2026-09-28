@@ -14,7 +14,7 @@ import type { Proposals } from './github.ts';
 import { recover, sessionRunning } from './night.ts';
 import { REPO_ROOT, StoreError, findRepo, listFollowUpIds, listNightIds, listRepos, loadNight, localIso, markRead, nightDir, readFollowUp, readNight, readViewerState, saveFollowUp, saveNight, followUpFile } from './store.ts';
 import type { FollowUp, NextNight, NightDetail, NightSummary, Overview, RepoRef } from './types.ts';
-import { DISCUSS, countOutcomes, emptyCounts, followUpDiscuss, followUpOpen, isOpenQuestionIn, needsHandOver, refsOf } from './types.ts';
+import { DISCUSS, countOutcomes, emptyCounts, followUpDiscuss, forTalk, followUpOpen, isOpenQuestionIn, needsHandOver, refsOf } from './types.ts';
 
 const WEB_DIST = path.join(REPO_ROOT, 'web', 'dist');
 
@@ -202,7 +202,7 @@ export function createApp({ version, port, reveal = revealInFileManager }: AppOp
       for (const id of listFollowUpIds(repo.path)) {
         try {
           const f = readFollowUp(repo.path, id);
-          for (const item of f.items) if (item.status === 'open' && !taken.has(`${id}/${item.id}`)) entry.items.push({ ref: `${id}/${item.id}`, from_night: f.from_night, created_at: f.created_at, item });
+          for (const item of f.items) if (item.status === 'open' && !taken.has(`${id}/${item.id}`)) entry.items.push({ ref: `${id}/${item.id}`, from_night: f.from_night, created_at: f.created_at, item, held: forTalk(f, item) });
         } catch (e) {
           entry.problems.push(`follow-up ${id}: ${(e as Error).message}`);
         }

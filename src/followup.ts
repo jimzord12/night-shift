@@ -30,7 +30,7 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
     const priors = refsOf(t)
       .map((r) => earlier(r))
       // A question asked again: its new answer (or its wait) replaces the earlier one.
-      .filter((i): i is FollowUpItem => i?.kind === 'decision' && !(q && i.question === q.ask));
+      .filter((i): i is FollowUpItem => i?.kind === 'decision' && !n.questions.some((x) => x.task === t.id && x.ask === i.question));
     const carried = (prior: FollowUpItem, extra: object = {}) =>
       add({ ...base, kind: 'decision', question: prior.question, decision: prior.decision, decision_label: prior.decision_label, ...(prior.owner_note ? { owner_note: prior.owner_note } : {}), ...extra });
     if (q && q.answer !== null) {

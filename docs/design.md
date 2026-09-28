@@ -352,8 +352,9 @@ it up, in a night or by day, does the digging for context.
   developer did not answer; the next agent plans it, asks again instead of
   guessing, and records it `blocked` if it still needs the answer), and
   `discuss` (the developer answered "let's discuss" with a note: no night
-  plans or skips it; a day session raises it with them first, and while
-  only `discuss` items are open the night is the developer's turn). Once
+  plans or skips it, nor the other open items of its task; a day session
+  raises it with them first, and while only those items are open the
+  night is the developer's turn). Once
   it is asked again or worked on, the old copy of the question is locked in
   the Viewer: the answer belongs where the question is open now.
 - Item status: `open`, `done`, `skipped` (with a reason), or `carried`: a

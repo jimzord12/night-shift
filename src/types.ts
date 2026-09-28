@@ -245,6 +245,8 @@ export interface NextNightItem {
   from_night: string;
   created_at: string;
   item: FollowUpItem;
+  // No night works on it until the developer has talked it through (forTalk).
+  held: boolean;
 }
 
 export interface NextNightRepo {

@@ -39,7 +39,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                     From the {nightTitle(night)} <Icon name="right" className="inline size-3.5 align-[-0.15em]" />
                   </button>
                   <ul className="space-y-3">
-                    {list.map(({ ref, item }) => {
+                    {list.map(({ ref, item, held }) => {
                       const k = KIND[item.kind];
                       return (
                         <li key={ref} className="flex min-w-0 gap-3">
@@ -54,6 +54,7 @@ export function NextNightView({ next, onPick }: { next: NextNight | null; onPick
                             {item.owner_note && <div className="mt-0.5 text-sm text-white/60">Your note: {item.owner_note}</div>}
                             {item.left && item.left.length > 0 && <div className="mt-0.5 text-sm text-white/55">Still to do: {item.left.join(' · ')}</div>}
                             {item.kind === 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">No night works on this: talk it through with an agent, with you there (&ldquo;work on the follow-up&rdquo;).</div>}
+                            {held && item.kind !== 'discuss' && <div className="mt-0.5 text-sm text-eyes/90">Waits for your talk about this task: no night works on it until then.</div>}
                           </div>
                         </li>
                       );

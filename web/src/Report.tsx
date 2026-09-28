@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { NightDetail, NightSummary, Task } from '../../src/types.ts';
-import { OUTCOMES, answerLabel, countOutcomes, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
+import { OUTCOMES, answerLabel, countOutcomes, forTalk, handedItem, refsOf, isOpenQuestionIn, needsHandOver, neverStarted, ownerState, unfinishedTasks, waitedDays } from '../../src/types.ts';
 import { Phrase } from './Gate.tsx';
 import { ApiError, createFollowUp, fileUrl, ghStatus, sendFeedback } from './api.ts';
 import { BlockView, MediaViewer } from './Evidence.tsx';
@@ -94,6 +94,9 @@ function NightView({ detail, summary, onOpenDeck, onDetail, onReload }: { detail
                 {i.status === 'open' && detail.taken[`${n.night}/${i.id}`] ? (
                   // A night running now took it on: the agent's turn, not the developer's.
                   <span className="shrink-0 rounded-full bg-agent/15 px-2 py-px text-xs font-semibold whitespace-nowrap text-agent">Taken by a running night</span>
+                ) : i.status === 'open' && i.kind !== 'discuss' && forTalk(detail.follow_up!, i) ? (
+                  // Held with a point the developer wants to talk through: no night takes it on.
+                  <span className="shrink-0 rounded-full bg-eyes/15 px-2 py-px text-xs font-semibold whitespace-nowrap text-eyes">Waits for your talk</span>
                 ) : i.status === 'open' ? (
                   <span className="shrink-0 rounded-full px-2 py-px text-xs font-semibold whitespace-nowrap" style={{ color: `color-mix(in srgb, ${KIND[i.kind].color} 75%, white)`, background: `color-mix(in srgb, ${KIND[i.kind].color} 18%, transparent)` }}>{KIND[i.kind].label}</span>
                 ) : (
