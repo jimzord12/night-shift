@@ -1,11 +1,11 @@
 ---
 id: TASK-22
 title: 'Idea: a preflight at start that the night can commit and reach its services'
-status: Active
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-26 12:36'
-updated_date: '2026-09-29 21:41'
+updated_date: '2026-09-29 21:42'
 labels:
   - skills
 dependencies: []
@@ -31,7 +31,7 @@ Night 1 of the v7 trial found halfway through that git commit and docker needed 
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
 - [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
