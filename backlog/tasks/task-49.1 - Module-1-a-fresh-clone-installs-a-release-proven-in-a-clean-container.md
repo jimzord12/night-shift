@@ -1,10 +1,10 @@
 ---
 id: TASK-49.1
 title: 'Module 1: a fresh clone installs a release, proven in a clean container'
-status: Active
+status: Done
 assignee: []
 created_date: '2026-09-29 08:36'
-updated_date: '2026-09-29 11:06'
+updated_date: '2026-09-29 11:17'
 labels:
   - chore
 dependencies: []
@@ -28,10 +28,10 @@ Absorbs TASK-21. Today npm run release builds only a new tag and switch needs an
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -43,3 +43,9 @@ Review round 2 (7cb0af0): context FINDINGS (M1 CHANGELOG header named the old co
 
 Review round 3 (f9a25d7): code PASS, context PASS. Context minor (D32 said every script answers docs) fixed with wording in D32, the glossary (Candidate: not yet published) and an owner.md wrap. Left as notes: R3-1 the candidate's check gate has no test (unchanged from the old script), N-a install's origin-first order untested, N-b smoke.sh comes from this checkout, N-c README's head is POSIX and check:clean's offline message says no tag.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Releases are build, install and publish (D32); a fresh clone builds and installs a published tag; every script agents run answers docs; npm run check:clean proves it in a clean container. v19 was cut with the new flow (candidate built, installed, tried, published) and check:clean passed for v19 on main (.local/evidence/2026-09-29-release/check-clean-v19-main.log). Checks: npm run check 76/76, test:ui 5/5, CI green; release tests on real git with a bare origin, mutants killed. Review: code PASS r3, context PASS r3. Unverified: Windows as a fresh machine (the check is Linux).
+<!-- SECTION:FINAL_SUMMARY:END -->

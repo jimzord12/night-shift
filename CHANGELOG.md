@@ -3,6 +3,23 @@
 One entry per release tag (`npm run release publish vN`); tags are never
 moved.
 
+## v19 (03d8f52), 2026-09-29
+
+- Releases are three steps (TASK-49.1, D32): `npm run release build v<N>`
+  builds a published tag from the tag, or a `Candidate` from a clean,
+  pushed main; `install v<N>` makes it the `night-shift` command;
+  `publish v<N>` tags exactly the commit the candidate was built from. A
+  fresh clone can now build and install a release (the README's Install
+  section), and a new release is tried before its number is used. The old
+  `npm run release v<N>`, `switch` and `install-launchers` say what
+  replaced them.
+- Every script agents run answers `docs`: `npm run release docs`,
+  `npm run check:clean docs`, and `night-shift docs` (every command, and
+  how a night goes).
+- `npm run check:clean` proves in a clean Linux container (Docker) that a
+  fresh clone builds and installs the newest release, runs a tiny night
+  and the Viewer shows it. It passed for v19.
+
 ## v18 (4fb504d), 2026-09-28
 
 - Viewer: the save screen at the end of the deck no longer saves the
