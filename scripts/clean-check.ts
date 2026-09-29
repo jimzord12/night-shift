@@ -12,8 +12,9 @@ const IMAGE = 'night-shift-clean';
 
 const DOCS = `npm run check:clean — a fresh clone installs a published release, proven in a clean container
 
-  npm run check:clean [v<N>] [--ref <branch>]   run the check (Docker must be running)
-  npm run check:clean docs                      this manual
+  npm run check:clean -- [v<N>] [--ref <branch>]   run the check (Docker must be running)
+  npm run check:clean docs                         this manual
+  (PowerShell drops the --: node scripts/clean-check.ts v<N> --ref <branch>)
 
 What it does, in a Linux container with Node and git and nothing else:
   clone the public repository (origin's URL) at <branch> (default main)
@@ -46,7 +47,7 @@ function main(argv: string[]): number {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--ref' && argv[i + 1]) ref = argv[++i];
     else if (/^v[1-9]\d*$/.test(argv[i]) && !version) version = argv[i];
-    else refuse(`usage: npm run check:clean [v<N>] [--ref <branch>] | docs (npm run check:clean docs explains)`);
+    else refuse(`usage: npm run check:clean -- [v<N>] [--ref <branch>] | docs (npm run check:clean docs explains)`);
   }
   if (sh('docker', ['info', '--format', '{{.ServerVersion}}']).status !== 0) refuse('Docker is not running; start Docker Desktop and try again');
   const url = sh('git', ['remote', 'get-url', 'origin']).stdout.trim();

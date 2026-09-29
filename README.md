@@ -42,8 +42,9 @@ Needs Node 24 or newer and git.
 ```sh
 git clone https://github.com/jimzord12/night-shift.git
 cd night-shift
-npm run release build v18            # the published v18, built into ~/.night-shift/releases (take the newest tag)
-npm run release install v18          # makes it the night-shift command, in ~/.night-shift/bin
+git tag --sort=-v:refname | head -1  # the newest release, say v19
+npm run release build v19            # builds it from its tag into ~/.night-shift/releases
+npm run release install v19          # makes it the night-shift command, in ~/.night-shift/bin
 ```
 
 Put `~/.night-shift/bin` on your PATH and open a new shell;
@@ -79,8 +80,8 @@ After answering, **Create follow-up** hands your decisions and the unfinished
 work to the next agent: the next night picks it up, or tell an agent by day
 "work on the follow-up".
 
-`night-shift --help` lists every command. `night-shift check` validates a
-repository's night files.
+`night-shift docs` lists every command and how a night goes.
+`night-shift check` validates a repository's night files.
 
 ## Releases
 
@@ -99,6 +100,7 @@ npm run check:clean           # a fresh clone installs the newest release, in a 
 ## Develop
 
 ```sh
+npm ci           # once
 npm run check    # typecheck, tests, web build: the release gate
 npm run dev      # the Viewer with hot reload; start `node src/cli.ts view` beside it
 ```

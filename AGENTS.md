@@ -45,7 +45,7 @@ GitHub issue without the `tracked` label into a task
 |---|---|
 | Replying to the owner | `docs/owner.md`, `.local/preferences/` |
 | Creating, taking or closing work | `backlog/README.md`, docs/practices/task-flow.md |
-| Committing, branching, integrating, releasing | docs/practices/git.md |
+| Committing, branching, integrating, releasing | docs/practices/git.md, `npm run release docs` |
 | Before calling anything done | docs/practices/evidence.md, docs/practices/review.md |
 | Changing what agents write or the `Viewer` reads | `docs/design.md`, `schemas/`, `skills/`, the file-shape versioning rule below |
 | Changing how agents behave here, beyond the small-change path (this file, `CLAUDE.md`, the owner file, practices, `backlog/README.md`, agent files) | `.claude/agents/context-maintainer.md`, `.claude/agents/context-reviewer.md` |
@@ -103,9 +103,10 @@ npm run check:clean                     # after publishing: a fresh clone instal
 backlog task list --plain               # the work (Backlog.md 1.52.0, installed globally)
 ```
 
-Every script here answers `docs` (`npm run release docs`,
-`npm run check:clean docs`, `night-shift docs`): run it before using one
-rather than guessing its verbs.
+Each script in `scripts/`, and the `night-shift` CLI, answers `docs`
+(`npm run release docs`, `npm run check:clean docs`, `night-shift docs`):
+run it before using one rather than guessing its verbs; a new script
+answers it too.
 
 After a release, a running `night-shift view` keeps the old version until it
 is restarted.
@@ -166,7 +167,7 @@ without committing.
 - Credentials (a `gh` login, tokens) stay with the tool; the browser never
   sees them.
 - Releases: tags `v1`, `v2`, … never moved; a bad release takes the next
-  number. A new version is built as a candidate, installed and tried,
+  number. A new version is built as a `Candidate`, installed and tried,
   then published; publishing tags exactly the commit that was built.
   Every release gets a CHANGELOG.md entry. After installing a new
   release, re-run `night-shift install .` so this repository's installed
@@ -175,7 +176,7 @@ without committing.
   runs on the installed release (the `night-shift` launcher), never on the
   checkout it changes. A night creates its own branch before
   `night-shift start` and the next session commits the history the `Meter`
-  left (docs/practices/git.md); a night never cuts or switches a release.
+  left (docs/practices/git.md); a night never builds, installs or publishes a release.
   Night history is committed to this public repository, the owner's
   answers and notes included.
 - A new design decision gets a docs/decisions.md entry; a new term goes into

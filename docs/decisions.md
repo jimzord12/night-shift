@@ -472,4 +472,5 @@ before anyone had tried it. The owner chose explicit verbs over one command
 that guesses from whether the tag exists (TASK-49.1). **Rejected:**
 `release v<N>` building an existing tag and publishing a missing one (the
 same keystrokes publish by accident when the tag was not fetched); checking
-out the tag in the clone (the files come straight from the tag).
+out the tag in the clone (the files come straight from the tag). Replaces
+D10's single command; its tags and launcher stand.

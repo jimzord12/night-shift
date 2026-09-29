@@ -54,7 +54,7 @@ command by **what it could lose, not by its name** ([practices/git.md](practices
   feature branch, creating and deleting branches (merged ones, and unmerged
   ones once a `backup/` tag holds their tip), ordinary and `backup/` tags,
   `git worktree` add, remove and prune, clearing `builds/` by path, and
-  releases (`npm run release v<N>` and `switch`; never during a `Night`).
+  releases (`npm run release build`, `install` and `publish`; never during a `Night`).
 - **Needs an explicit go, with the exact command shown first:** rewriting
   or force-pushing published `main`; deleting or moving `archive/*` tags;
   deleting work that exists nowhere else (no merge, no backup tag, no

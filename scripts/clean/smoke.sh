@@ -18,7 +18,7 @@ step "build and install $version, as the README says"
 PATH="$HOME/.night-shift/bin:$PATH"
 out=$(night-shift --version) || fail "night-shift --version"
 echo "$out"
-case "$out" in "$version "*) ;; *) fail "night-shift --version says '$out', not $version" ;; esac
+case "$out" in "$version · "*) ;; *) fail "night-shift --version says '$out', not $version" ;; esac
 
 step "a tiny night in a throwaway repository"
 mkdir shop && cd shop

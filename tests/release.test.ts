@@ -23,7 +23,7 @@ const git = (cwd: string, ...args: string[]) => {
 
 // A repository shaped like this one for the script: its copy of release.ts and version.ts, a package
 // whose check and build do nothing, pushed to a bare origin.
-function scratch() {
+function scratch(build = 'node -e 0') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-release-'));
   const origin = path.join(dir, 'origin.git');
   const repo = path.join(dir, 'repo');
@@ -32,7 +32,7 @@ function scratch() {
   fs.mkdirSync(path.join(repo, 'src'));
   fs.copyFileSync(path.join(HERE, 'scripts', 'release.ts'), path.join(repo, 'scripts', 'release.ts'));
   fs.copyFileSync(path.join(HERE, 'src', 'version.ts'), path.join(repo, 'src', 'version.ts'));
-  const pkg = { name: 'ns-scratch', version: '0.0.0', private: true, type: 'module', scripts: { check: 'node -e 0', build: 'node -e 0' } };
+  const pkg = { name: 'ns-scratch', version: '0.0.0', private: true, type: 'module', scripts: { check: 'node -e 0', build } };
   fs.writeFileSync(path.join(repo, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`);
   fs.writeFileSync(path.join(repo, 'package-lock.json'), `${JSON.stringify({ name: 'ns-scratch', version: '0.0.0', lockfileVersion: 3, requires: true, packages: { '': { name: 'ns-scratch', version: '0.0.0' } } }, null, 2)}\n`);
   git(repo, 'init', '--quiet', '-b', 'main');
@@ -130,11 +130,76 @@ test('the old verbs say what replaced them, and every script\'s docs names every
 
   const clean = sh(HERE, process.execPath, ['scripts/clean-check.ts', 'docs']);
   assert.equal(clean.status, 0);
-  assert.match(clean.out, /npm run check:clean \[v<N>\] \[--ref <branch>\]/);
+  assert.match(clean.out, /npm run check:clean -- \[v<N>\] \[--ref <branch>\]/);
   assert.equal(sh(HERE, process.execPath, ['scripts/clean-check.ts', 'nonsense']).status, 2);
 
   const cli = sh(HERE, process.execPath, ['src/cli.ts', 'docs']);
   assert.equal(cli.status, 0);
   for (const command of ['status', 'start', 'record', 'ask', 'decide', 'close', 'view', 'docs']) assert.match(cli.out, new RegExp(`night-shift ${command}`));
   assert.match(cli.out, /How a night goes/);
+});
+
+test('a candidate is built again after a fix, and one whose number was published elsewhere cannot run as that number', () => {
+  const s = scratch();
+  const ns = s.root('maintainer');
+  assert.equal(s.release(s.repo, ns, 'build', 'v1').status, 0);
+  const first = s.manifest(ns, 'v1').commit;
+  // The try found a bug: fix it, push, build the candidate again.
+  fs.writeFileSync(path.join(s.repo, 'fix.txt'), 'fix\n');
+  git(s.repo, 'add', '-A');
+  git(s.repo, 'commit', '--quiet', '-m', 'fix');
+  git(s.repo, 'push', '--quiet');
+  let r = s.release(s.repo, ns, 'build', 'v1');
+  assert.equal(r.status, 0, r.out);
+  assert.notEqual(s.manifest(ns, 'v1').commit, first);
+  assert.ok(fs.existsSync(path.join(ns, 'releases', 'v1', 'fix.txt')));
+
+  // Meanwhile another clone publishes v1 from a newer commit.
+  const other = path.join(s.dir, 'other');
+  git(s.dir, 'clone', '--quiet', s.origin, other);
+  fs.writeFileSync(path.join(other, 'theirs.txt'), 'theirs\n');
+  git(other, 'add', '-A');
+  git(other, 'commit', '--quiet', '-m', 'theirs');
+  git(other, 'push', '--quiet');
+  const theirs = git(other, 'rev-parse', 'HEAD');
+  assert.equal(s.release(other, s.root('other-home'), 'build', 'v1').status, 0);
+  assert.equal(s.release(other, s.root('other-home'), 'publish', 'v1').status, 0);
+  // This candidate no longer runs as v1, cannot be published over it, and building gives the real v1.
+  r = s.release(s.repo, ns, 'install', 'v1');
+  assert.equal(r.status, 2);
+  assert.match(r.out, /was published from [0-9a-f]{7}, not from this candidate/);
+  assert.match(s.release(s.repo, ns, 'publish', 'v1').out, /names [0-9a-f]{7}, not this candidate/);
+  r = s.release(s.repo, ns, 'build', 'v1');
+  assert.equal(r.status, 0, r.out);
+  assert.deepEqual([s.manifest(ns, 'v1').commit, s.manifest(ns, 'v1').candidate], [theirs, undefined]);
+  assert.equal(s.release(s.repo, ns, 'install', 'v1').status, 0);
+});
+
+test('a publish that stopped after tagging is finished by publishing again; a tag only here is not a release', () => {
+  const s = scratch();
+  const ns = s.root('maintainer');
+  assert.equal(s.release(s.repo, ns, 'build', 'v1').status, 0);
+  const commit = s.manifest(ns, 'v1').commit;
+  // Tagged here, not pushed: what a rejected push leaves.
+  git(s.repo, 'tag', '-a', 'v1', commit, '-m', 'release v1');
+  assert.match(s.release(s.repo, s.root('fresh'), 'build', 'v1').out, /exists only here, not on origin/);
+  const r = s.release(s.repo, ns, 'publish', 'v1');
+  assert.equal(r.status, 0, r.out);
+  assert.equal(git(s.origin, 'rev-parse', 'v1^{commit}'), commit);
+  assert.equal(s.manifest(ns, 'v1').candidate, undefined);
+});
+
+test('offline, an unknown number is not built as a candidate; a failed build leaves nothing to install', () => {
+  const s = scratch();
+  git(s.repo, 'remote', 'set-url', 'origin', path.join(s.dir, 'missing.git'));
+  let r = s.release(s.repo, s.root('offline'), 'build', 'v1');
+  assert.equal(r.status, 2);
+  assert.match(r.out, /origin cannot be reached/);
+
+  const f = scratch('node -e "process.exit(3)"');
+  const ns = f.root('maintainer');
+  r = f.release(f.repo, ns, 'build', 'v1');
+  assert.equal(r.status, 1);
+  assert.match(r.out, /the web build failed/);
+  assert.match(f.release(f.repo, ns, 'install', 'v1').out, /not built here/);
 });

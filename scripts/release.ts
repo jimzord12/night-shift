@@ -21,7 +21,7 @@ const VERSION = /^v([1-9]\d*)$/;
 
 // Every verb, with what it does: the manual and the usage line are built from this list.
 const VERBS = [
-  { verb: 'build', args: 'v<N>', what: 'build v<N> into the releases folder: from its tag when the tag is published, else a candidate from this clean, pushed checkout (the check gate first); never rebuilds a complete release' },
+  { verb: 'build', args: 'v<N>', what: 'build v<N> into the releases folder: from its tag when the tag is published, else a candidate from this clean, pushed checkout (the check gate first); a candidate may be built again, a published release never' },
   { verb: 'install', args: 'v<N>', what: 'make a built v<N> the release the night-shift command runs, and write that command (night-shift, night-shift.cmd) into <root>/bin' },
   { verb: 'publish', args: 'v<N>', what: 'tag the commit a candidate v<N> was built from and push the tag; only a commit on origin/main' },
   { verb: 'list', args: '', what: 'the releases on this machine: * current, candidates marked' },
@@ -42,8 +42,9 @@ Cutting a new release (maintainer, from a clean main that is pushed):
   npm run release publish v19    tag exactly the commit that was built and tried, and push the tag
   then a CHANGELOG.md entry, and night-shift install . in each repository that uses it
 
-Rules: tags are never moved or reused; a bad release takes the next number. A complete release
-is never rebuilt. NIGHT_SHIFT_ROOT (default ~/.night-shift) holds releases/ and bin/;
+Rules: tags are never moved or reused; a bad release takes the next number. A published release
+is never rebuilt; a candidate is, after a fix. A publish that stopped half way is finished by
+running publish again. NIGHT_SHIFT_ROOT (default ~/.night-shift) holds releases/ and bin/;
 NIGHT_SHIFT_VERSION=v<N> pins another installed release for one shell.
 Exit codes: 0 done · 1 a step failed · 2 a refusal or a usage error.`;
 
@@ -93,29 +94,42 @@ function readCurrent(): string | null {
 const folderOf = (version: string) => path.join(releasesDir(), version);
 const writeManifest = (folder: string, m: ReleaseManifest) => fs.writeFileSync(path.join(folder, 'version.json'), `${JSON.stringify(m, null, 2)}\n`);
 
-// Whether origin has the tag: true, false, or null when origin cannot be asked (offline).
-function tagOnOrigin(version: string): boolean | null {
-  const r = run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${version}`], REPO);
-  return r.status === 0 ? !!r.stdout.trim() : null;
+// The commit origin's tag names: a sha, '' when origin has no such tag, null when origin cannot be
+// asked (offline).
+function originTag(version: string): string | null {
+  const r = run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${version}`, `refs/tags/${version}^{}`], REPO);
+  if (r.status !== 0) return null;
+  const lines = r.stdout.trim().split('\n').filter(Boolean).map((l) => l.split(/\s+/));
+  // An annotated tag lists its object and, peeled (^{}), the commit it names.
+  return (lines.find(([, ref]) => ref.endsWith('^{}')) ?? lines[0])?.[0] ?? '';
 }
+const localTag = (version: string) => (git(['tag', '-l', version]).trim() ? git(['rev-parse', `${version}^{commit}`]).trim() : '');
 
 function build(version: string): void {
   const folder = folderOf(version);
-  if (readReleaseManifest(folder)) throw new Refusal(`${folder} is already a complete release; releases are never rebuilt (npm run release install ${version} runs it)`);
-  let tagged = !!git(['tag', '-l', version]).trim();
-  if (!tagged && tagOnOrigin(version)) {
+  const built = readReleaseManifest(folder);
+  // A published release is never rebuilt; a candidate may be, after a fix or once its tag exists.
+  if (built && !built.candidate) throw new Refusal(`${folder} is already a complete release; releases are never rebuilt (npm run release install ${version} runs it)`);
+  const remote = originTag(version);
+  let local = localTag(version);
+  if (local && remote !== null && remote !== local) {
+    throw new Refusal(remote ? `tag ${version} here names ${local.slice(0, 7)}, origin's names ${remote.slice(0, 7)}; tags never move, so fix the local tag first` : `tag ${version} exists only here, not on origin: finish publishing it (npm run release publish ${version}) or take the next number`);
+  }
+  if (!local && remote) {
     // Published but not fetched here: fetch it, so a published version is always built from its tag.
     git(['fetch', 'origin', 'tag', version, '--no-tags', '--quiet']);
-    tagged = true;
+    local = localTag(version);
   }
+  const tagged = !!local;
   let sha: string;
   if (tagged) {
-    sha = git(['rev-parse', `${version}^{commit}`]).trim();
+    sha = local;
     console.log(`building ${version} from its tag (${sha.slice(0, 7)})…`);
   } else {
+    if (remote === null) throw new Refusal(`origin cannot be reached, so there is no telling whether ${version} is published; a candidate needs origin`);
     const dirty = git(['status', '--porcelain']).trim();
     if (dirty) throw new Refusal(`${version} is not published, so it would be a candidate from this checkout, and the tree is dirty; commit first:\n${dirty}`);
-    run('git', ['fetch', 'origin', 'main', '--quiet'], REPO);
+    if (run('git', ['fetch', 'origin', 'main', '--quiet'], REPO).status !== 0) throw new Refusal('could not fetch origin/main; a candidate must be on it');
     sha = git(['rev-parse', 'HEAD']).trim();
     if (run('git', ['merge-base', '--is-ancestor', 'HEAD', 'origin/main'], REPO).status !== 0) throw new Refusal(`HEAD ${sha.slice(0, 7)} is not on origin/main; push first`);
     console.log(`${version} is not published: building a candidate from ${sha.slice(0, 7)}; running the check gate…`);
@@ -148,6 +162,11 @@ function build(version: string): void {
 function install(version: string): void {
   const m = readReleaseManifest(folderOf(version));
   if (!m || m.version !== version) throw new Refusal(`${version} is not built here; run npm run release build ${version} first (npm run release list shows what is)`);
+  // A candidate whose number was published meanwhile from another commit would run the wrong code.
+  if (m.candidate) {
+    const tag = localTag(version) || originTag(version);
+    if (tag && tag !== m.commit) throw new Refusal(`${version} was published from ${tag.slice(0, 7)}, not from this candidate (${m.commit.slice(0, 7)}); run npm run release build ${version} to build the published one`);
+  }
   fs.writeFileSync(currentFile(), `${version}\n`);
   console.log(`current → ${version}${m.candidate ? ' (a candidate, not published)' : ''} (${m.commit.slice(0, 7)}); NIGHT_SHIFT_VERSION pins another per shell`);
   writeLaunchers();
@@ -158,17 +177,25 @@ function publish(version: string): void {
   const m = readReleaseManifest(folder);
   if (!m || m.version !== version) throw new Refusal(`${version} is not built here; build and try a candidate first (npm run release build ${version})`);
   if (!m.candidate) throw new Refusal(`${version} was built from its published tag; there is nothing to publish`);
-  if (git(['tag', '-l', version]).trim()) throw new Refusal(`tag ${version} already exists here; a bad release takes the next number`);
-  const remote = tagOnOrigin(version);
+  const remote = originTag(version);
   if (remote === null) throw new Refusal('origin cannot be reached; publishing needs it to check and push the tag');
-  if (remote) throw new Refusal(`tag ${version} exists on origin; fetch tags and take the next number`);
-  run('git', ['fetch', 'origin', 'main', '--quiet'], REPO);
+  const local = localTag(version);
+  // A tag of this number that names another commit is someone else's release; one that names this
+  // candidate is an earlier publish that stopped half way, which this run finishes.
+  for (const [where, sha] of [['here', local], ['on origin', remote]] as const) {
+    if (sha && sha !== m.commit) throw new Refusal(`tag ${version} exists ${where} and names ${sha.slice(0, 7)}, not this candidate (${m.commit.slice(0, 7)}); a bad release takes the next number`);
+  }
+  if (run('git', ['fetch', 'origin', 'main', '--quiet'], REPO).status !== 0) throw new Refusal('could not fetch origin/main; publishing needs it');
   if (run('git', ['merge-base', '--is-ancestor', m.commit, 'origin/main'], REPO).status !== 0) throw new Refusal(`the candidate was built from ${m.commit.slice(0, 7)}, which is not on origin/main`);
 
-  const tag = run('git', ['tag', '-a', version, m.commit, '-m', `release ${version}`], REPO);
-  if (tag.status !== 0) throw new Refusal(`git tag failed: ${tag.stderr.trim()}`, 1);
-  const push = run('git', ['push', 'origin', version], REPO);
-  if (push.status !== 0) throw new Refusal(`tagged locally, but the push was rejected: ${push.stderr.trim()}; run git push origin ${version}`, 1);
+  if (!local) {
+    const tag = run('git', ['tag', '-a', version, m.commit, '-m', `release ${version}`], REPO);
+    if (tag.status !== 0) throw new Refusal(`git tag failed: ${tag.stderr.trim()}`, 1);
+  }
+  if (!remote) {
+    const push = run('git', ['push', 'origin', `refs/tags/${version}`], REPO);
+    if (push.status !== 0) throw new Refusal(`tagged locally, but the push was rejected: ${push.stderr.trim()}; run npm run release publish ${version} again to finish`, 1);
+  }
   writeManifest(folder, { version, commit: m.commit, date: m.date });
   console.log(`published ${version} (${m.commit.slice(0, 7)})`);
 }
