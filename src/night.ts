@@ -145,7 +145,7 @@ export function start(repo: string, planText: string, session: Session | null = 
   const plan: PlanInput = readPlanInput(planText);
   // Version 3 (D33): the night proves it can work before it starts, while the developer may still
   // be there to fix what it cannot do alone.
-  if (plan.schema === PLAN_SCHEMA) {
+  if (plan.schema !== 'night-shift/plan@1' && plan.schema !== 'night-shift/plan@2') {
     if (!plan.start_checks?.length)
       throw new StoreError(
         'a night-shift/plan@3 lists "start_checks": run each kind of command tonight needs once (the tests, a commit, each service it uses), then list them: [{ "command": "npm test", "exit_code": 0, "excerpt": "…", "proves": "the tests run" }]',

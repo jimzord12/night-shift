@@ -81,7 +81,8 @@ test('notifications: a night that a failed start check stops raises one, for a d
   const repo = gitRepo('late');
   const r = recorder();
   const planFile = path.join(repo, 'plan.json');
-  fs.writeFileSync(planFile, JSON.stringify({ schema: 'night-shift/plan@3', tasks: TASKS.slice(0, 1), start_checks: [{ command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }));
+  // As the skill hands a failed check over: no tasks yet, the checks as they ran.
+  fs.writeFileSync(planFile, JSON.stringify({ schema: 'night-shift/plan@3', tasks: [], start_checks: [{ command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }));
   run(repo, ['notify', 'off', '--command', r.command]);
   const quiet = run(repo, ['start', '--file', planFile]);
   assert.notEqual(quiet.status, 0);

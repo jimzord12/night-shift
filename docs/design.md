@@ -76,15 +76,16 @@ are in `docs/glossary.md`.
 - **Start.** The developer says "start night shift" (or runs
   `/start-night-shift`). The agent first runs its start checks (D33): once
   each, the tests, a real empty commit and every service the work uses. A
-  check that fails or stops for a permission stops the start: the agent
-  tells the developer what to fix, the tool refuses the plan, and a
-  desktop notification says so for a developer who has left. Then the
-  agent reads any open follow-up file, checks each
-  open item against the real code, and links each one in the plan: as a
-  task with `follow_up`, or under `skipped_follow_ups` with a one-line
-  reason (for example, already fixed by other means). The tool refuses a
-  plan that leaves an open item out. The agent writes the plan, and the
-  tool opens the night, recording the harness session it runs in. The same start refreshes
+  check that fails or still stops for a permission stops the start: the
+  agent hands the failed checks to `night-shift start`, which refuses the
+  plan and, when notifications are on, raises a desktop notification for
+  a developer who has left; then it tells the developer what to fix. Next
+  the agent reads any open follow-up file, checks each open item against
+  the real code, and links each one in the plan: as a task with
+  `follow_up`, or under `skipped_follow_ups` with a one-line reason (for
+  example, already fixed by other means). The tool refuses a plan that
+  leaves an open item out. The agent writes the plan, and the tool opens
+  the night, recording the harness session it runs in. The same start refreshes
   the history copies of earlier nights (see The files). The first night in
   a repository registers it with the local Night Shift install and adds
   `.night-shift/*` and `!.night-shift/history/` to `.gitignore` (git cannot
@@ -219,7 +220,7 @@ The agent's promise. `source` is free text so it fits any workflow.
   "started_at": "2026-09-26T23:10:00+03:00",
   "start_checks": [
     { "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed", "proves": "the tests run" },
-    { "command": "git commit --allow-empty -m \"night-shift: start check\"", "exit_code": 0, "excerpt": "[night/2026-09-26 3f2c1ab] night-shift: start check", "proves": "commits run, hooks included" }
+    { "command": "git commit --allow-empty --only -m \"chore: night-shift start check\"", "exit_code": 0, "excerpt": "[night/2026-09-26 3f2c1ab] chore: night-shift start check", "proves": "commits run, hooks included" }
   ],
   "tasks": [
     {
@@ -505,7 +506,8 @@ agent's `close`, or the session-end hook marking it interrupted) raises a
 desktop notification, "blog: night finished" with "2 questions for you ·
 3 done, 1 blocked", whose click opens that `Night Report` in the Viewer; a
 Viewer is started on the configured port (4747 by default) when none runs.
-Windows raises a toast through Windows PowerShell, with nothing to install;
+A night that a failed start check stops (D33) raises one too, "blog: the
+night did not start", naming the checks. Windows raises a toast through Windows PowerShell, with nothing to install;
 elsewhere, or by choice, `--command "<cmd>"` runs the developer's own
 command with `NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
 `night-shift notify test` raises one now. The setting lives in the install

@@ -1,11 +1,12 @@
 ---
 id: TASK-50
-title: Show a night's start checks in the Night Report
+title: 'Idea: show a night''s start checks in the Night Report'
 status: Queued
 assignee: []
 created_date: '2026-09-29 21:16'
+updated_date: '2026-09-29 21:22'
 labels:
-  - enhancement
+  - enhancement viewer
 dependencies: []
 priority: low
 ordinal: 52000
@@ -24,3 +25,9 @@ D33 (TASK-22) records the start checks in the git-ignored plan.json only; the de
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Idea: discuss with the owner before implementing (a visible Night Report change).
+<!-- SECTION:NOTES:END -->

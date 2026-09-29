@@ -36,7 +36,7 @@ For the developer:
   night-shift forget <repo id or path>        take a repository off the Viewer (its files stay)
   night-shift check [repo]                    validate a repository's night and follow-up files
   night-shift notify [on|off|test] [--port N] [--command "<cmd>"]
-                                              a desktop notification when a night ends (off until turned on)
+                                              a desktop notification when a night ends or does not start (off until turned on)
   night-shift --version
   night-shift docs                            this list, plus how a night goes
 
@@ -51,7 +51,8 @@ const DOCS = `${USAGE}
 How a night goes (the start-night-shift skill has the details):
   1. night-shift status                  an open night to continue, and open follow-up items
   2. start checks                        run once each kind of command the night needs (tests, a commit, its services);
-                                         one fails or waits for a permission: tell the developer now and stop
+                                         one fails: hand it to night-shift start (it refuses and notifies), tell the
+                                         developer what to fix, and stop
   3. night-shift start                   the plan: the start checks, tasks with done_when lines, follow-up items
                                          planned or skipped
   4. per task: the work, then night-shift record (outcome, one check per done_when line, evidence);
@@ -313,7 +314,7 @@ async function commandNotify(p: Parsed): Promise<number> {
     return result.startsWith('Notified') ? 0 : 1;
   } else if (sub !== undefined) throw new UsageError(`unknown notify command "${sub}"; use on, off or test`);
   if (sub !== undefined || p.flags.port !== undefined || p.flags.command !== undefined) writeNotify(s);
-  console.log(`Notifications are ${s.enabled ? 'on' : 'off'}: when a night ends, ${s.enabled ? 'a notification links to its report' : 'nothing is raised'} (Viewer port ${s.port}${s.command ? `, command: ${s.command}` : ''}).`);
+  console.log(`Notifications are ${s.enabled ? 'on' : 'off'}: when a night ends or a start check stops it, ${s.enabled ? 'a notification says so and links to the Viewer' : 'nothing is raised'} (Viewer port ${s.port}${s.command ? `, command: ${s.command}` : ''}).`);
   return 0;
 }
 

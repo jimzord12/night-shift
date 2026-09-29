@@ -479,15 +479,19 @@ D10's single command; its tags and launcher stand.
 ## D33  A night proves it can work before it starts (2026-09-30)
 
 **Decision:** before planning, the night skill runs once each kind of command
-the tasks need (the tests, a real empty commit on the night's branch, every
-service the work uses) through the agent's own tools, and `plan@3` lists
-those `start_checks` with their exit codes. `night-shift start` refuses a
-`plan@3` without them or with one that failed; the agent then tells the
-developer what failed and what to do, and stops, and the tool raises the
-desktop notification for a developer who has left. **Limit:** the agent
-cannot see that a prompt was answered with a one-time yes, which lets a check
-pass and leaves the command waiting at night; the skill asks the developer
-to answer prompts with `don't ask again` before the checks run. **Why:** a trial night found halfway through that commits
+the tasks need (the tests, a real empty commit on the night's branch that
+leaves staged work alone, every service the work uses) through the agent's
+own tools, and `plan@3` lists those `start_checks` with their exit codes.
+`night-shift start` refuses a `plan@3` without them or with one that
+failed. When a check fails, the agent hands it to `start` anyway, so the
+tool raises the desktop notification (when on) for a developer who has
+left, then tells the developer what failed and what to do, and stops.
+**Limits:** the agent cannot see that a prompt was answered with a one-time
+yes, which lets a check pass and leaves the command waiting at night, so the
+skill asks the developer to answer prompts with "don't ask again" before the
+checks run; and a check still waiting on a prompt after the developer left
+never returns, so nothing can notify. **Why:** a trial night found halfway
+through that commits
 and the database needed permission approvals nobody could give, so nothing
 was committed and nothing ran (TASK-22). Only the agent's own tool calls
 meet the harness's permission prompts; a check the tool ran itself would
