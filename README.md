@@ -42,29 +42,28 @@ Needs Node 24 or newer and git.
 ```sh
 git clone https://github.com/jimzord12/night-shift.git
 cd night-shift
-npm ci
-npm run build                        # the Viewer
+git tag --sort=-v:refname | head -1  # the newest release, say v19
+npm run release build v19            # builds it from its tag into ~/.night-shift/releases
+npm run release install v19          # makes it the night-shift command, in ~/.night-shift/bin
 ```
+
+Put `~/.night-shift/bin` on your PATH and open a new shell;
+`night-shift --version` then names the release. `npm run release docs`
+explains every step, and `night-shift docs` every command.
 
 Then, in each repository you want to run nights in:
 
 ```sh
-node <path to the clone>/src/cli.ts install   # the two skills, the session-end hook, the .gitignore lines
-node <path to the clone>/src/cli.ts allow     # let agents run the tool without asking, for nights nobody watches
+night-shift install   # the two skills, the session-end hook, the .gitignore lines
+night-shift allow     # let agents run the tool without asking, for nights nobody watches
 ```
 
 `allow` writes to your own `.claude/settings.local.json` (never committed):
 the tool itself and edits inside `.night-shift/`. Anything else a night
 needs, such as tests, git or a database, follows your own permissions.
 The rules name the command as it is when you run `allow`, so run it again
-after moving from a clone to a release, and start night sessions at the
+if you move to another way of running it, and start night sessions at the
 repository root, where the file lives.
-
-The installed skills and hook run the tool from your clone. Below,
-`night-shift` stands for `node <path to the clone>/src/cli.ts`. Installing a
-tagged release as a `night-shift` command on PATH works on the maintainer's
-machine today (`npm run release`); making it work from a fresh clone is
-open work.
 
 ## Use
 
@@ -81,8 +80,8 @@ After answering, **Create follow-up** hands your decisions and the unfinished
 work to the next agent: the next night picks it up, or tell an agent by day
 "work on the follow-up".
 
-`night-shift --help` lists every command. `night-shift check` validates a
-repository's night files.
+`night-shift docs` lists every command and how a night goes.
+`night-shift check` validates a repository's night files.
 
 ## Releases
 
@@ -90,14 +89,18 @@ Releases are git tags (`v1`, `v2`, …); the launcher runs the `current` one
 from `~/.night-shift/releases/`:
 
 ```sh
-npm run release v8          # from a clean, pushed main: check, export, install, build, tag, push
-npm run release switch v7   # run another one
+npm run release build v19     # a published tag: build it; a new number: a candidate from a clean, pushed main
+npm run release install v19   # run it (try a candidate before publishing it)
+npm run release publish v19   # tag the commit the candidate was built from, and push the tag
 npm run release list
+npm run release docs          # the manual
+npm run check:clean           # a fresh clone installs the newest release, in a clean container (Docker)
 ```
 
 ## Develop
 
 ```sh
+npm ci           # once
 npm run check    # typecheck, tests, web build: the release gate
 npm run dev      # the Viewer with hot reload; start `node src/cli.ts view` beside it
 ```

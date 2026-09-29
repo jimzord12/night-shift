@@ -455,3 +455,23 @@ in the morning; the owner's turn until reviewed) are the owner's.
 **Rejected:** reviewing them only on the Report (easy to miss); letting
 unreviewed decisions leave the night in an agent's turn (the owner called
 them very important).
+
+## D32  Releases are built, installed and published as separate steps (2026-09-29)
+
+**Decision:** `npm run release` has three verbs instead of one command that
+built and tagged together: `build v<N>` builds a published tag from the tag
+(fetched from origin when missing), or else a candidate from a clean, pushed
+main after the check gate; `install v<N>` makes a built release the one the
+`night-shift` command runs and writes that command; `publish v<N>` tags the
+commit the candidate was built from and pushes the tag. Every script agents
+run (`npm run release`, `npm run check:clean`, the `night-shift` CLI) answers
+`docs` with its manual, and `npm run check:clean` proves in a clean container
+that a fresh clone builds and installs the newest release. **Why:** the one
+command refused an existing tag, so a stranger's clone could not build a
+published release at all (TASK-21); and a new release burned its number
+before anyone had tried it. The owner chose explicit verbs over one command
+that guesses from whether the tag exists (TASK-49.1). **Rejected:**
+`release v<N>` building an existing tag and publishing a missing one (the
+same keystrokes publish by accident when the tag was not fetched); checking
+out the tag in the clone (the files come straight from the tag). Replaces
+D10's single command; its tags and launcher stand.

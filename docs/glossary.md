@@ -35,7 +35,8 @@ name what v7 builds.
 | `Owner Profile` | The `Owner`'s personal preferences, kept out of the repository; read before the first reply of a session | `.local/preferences/` (git-ignored) | 2026-09-25 |
 | `Backup Tag` | A local tag on a branch's old tip, made before a command drops commits or deletes an unmerged branch, so nothing is lost for good | `backup/<branch>-<yyyymmdd-hhmm>` | 2026-09-25 |
 | `Practice` | One of this repository's own ways of working | docs/practices/ | 2026-09-25; redefined 2026-09-26 |
-| `Release` | A tagged version `vN` installed under `~/.night-shift/releases/` and run by the launcher | scripts/release.ts | 2026-09-25 |
+| `Release` | A version `vN` built under `~/.night-shift/releases/` and run by the launcher; published as a git tag, and a `Candidate` until then (D32) | scripts/release.ts, `npm run release docs` | 2026-09-25; redefined 2026-09-29 |
+| `Candidate` | A release built from a clean, pushed main and not yet published: installed and tried first, then published under its number (D32) | `candidate: true` in the release folder's version.json | 2026-09-29, owner |
 
 ## Words with two meanings
 

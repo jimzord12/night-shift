@@ -1,6 +1,6 @@
 # Changelog
 
-One entry per release tag. `npm run release vN` cuts them; tags are never
+One entry per release tag (`npm run release publish vN`); tags are never
 moved.
 
 ## v18 (4fb504d), 2026-09-28
