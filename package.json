@@ -19,6 +19,7 @@
     "test": "node --test \"tests/*.test.ts\"",
     "check": "npm run typecheck && npm test && npm run build",
     "release": "node scripts/release.ts",
+    "check:clean": "node scripts/clean-check.ts",
     "test:ui": "npm run build && node --test \"tests/ui/*.test.ts\""
   },
   "dependencies": {

@@ -38,11 +38,25 @@ For the developer:
   night-shift notify [on|off|test] [--port N] [--command "<cmd>"]
                                               a desktop notification when a night ends (off until turned on)
   night-shift --version
+  night-shift docs                            this list, plus how a night goes
 
 For the harness:
   night-shift meter                           the session-end hook (reads Claude Code's hook JSON on stdin)
 
 Commands act on the git repository of the current folder.`;
+
+// \`night-shift docs\`: the commands, then the order they are used in.
+const DOCS = `${USAGE}
+
+How a night goes (the start-night-shift skill has the details):
+  1. night-shift status                  an open night to continue, and open follow-up items
+  2. night-shift start                   the plan: tasks with done_when lines; follow-up items planned or skipped
+  3. per task: the work, then night-shift record (outcome, one check per done_when line, evidence);
+     night-shift ask when the task cannot go on without the developer or a wrong choice would be
+     costly to undo; night-shift decide for every other choice taken on their behalf
+  4. night-shift close --summary "<one sentence>"
+In the morning the developer answers and reviews in night-shift view, then saves a follow-up; the
+next night (or a day session, do-night-shift-follow-up) picks it up.`;
 
 class UsageError extends Error {}
 
@@ -204,6 +218,9 @@ async function main(argv: string[]): Promise<number> {
   }
   const repo = () => repoRoot('.');
   switch (p.command) {
+    case 'docs':
+      console.log(DOCS);
+      return 0;
     case 'view':
     case 'serve':
       commandView(p);

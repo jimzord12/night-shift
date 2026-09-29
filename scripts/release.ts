@@ -1,12 +1,9 @@
 #!/usr/bin/env node
-// release — cut a versioned release of night-shift and manage the releases on this machine.
+// release — build, install and publish versioned releases of night-shift on this machine.
 // One git tag = one version = one exported snapshot that the `night-shift` launcher runs, while
-// the checkout keeps being edited.
-//
-//   npm run release v<N>                 export HEAD, install, build the web app, write version.json, tag, push
-//   npm run release switch v<N>          make v<N> the release the launcher runs (`current`)
-//   npm run release list                 the releases on this machine, current marked
-//   npm run release install-launchers    write night-shift(.cmd) into <root>/bin
+// the checkout keeps being edited. Building, installing and publishing are separate verbs, so a
+// fresh clone can build a published tag and a new version is tried before its number is used up.
+// `npm run release docs` prints the manual (VERBS below is its single source).
 //
 // Root: ~/.night-shift (NIGHT_SHIFT_ROOT overrides): releases/v<N>/, releases/current, bin/.
 // Tags are v1, v2, … never moved: a bad release takes the next number. Cheap refusals first,
@@ -17,9 +14,38 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { readReleaseManifest } from '../src/version.ts';
+import type { ReleaseManifest } from '../src/version.ts';
 
 const REPO = path.resolve(import.meta.dirname, '..');
 const VERSION = /^v([1-9]\d*)$/;
+
+// Every verb, with what it does: the manual and the usage line are built from this list.
+const VERBS = [
+  { verb: 'build', args: 'v<N>', what: 'build v<N> into the releases folder: from its tag when the tag is published, else a candidate from this clean, pushed checkout (the check gate first); never rebuilds a complete release' },
+  { verb: 'install', args: 'v<N>', what: 'make a built v<N> the release the night-shift command runs, and write that command (night-shift, night-shift.cmd) into <root>/bin' },
+  { verb: 'publish', args: 'v<N>', what: 'tag the commit a candidate v<N> was built from and push the tag; only a commit on origin/main' },
+  { verb: 'list', args: '', what: 'the releases on this machine: * current, candidates marked' },
+  { verb: 'docs', args: '', what: 'this manual' },
+];
+
+const DOCS = `npm run release — build, install and publish night-shift releases
+
+${VERBS.map((v) => `  npm run release ${`${v.verb} ${v.args}`.trim().padEnd(13)} ${v.what}`).join('\n')}
+
+A stranger with a fresh clone:
+  npm run release build v18      build the published v18 (its tag, fetched from origin)
+  npm run release install v18    run it: the night-shift command, in <root>/bin (put it on PATH)
+
+Cutting a new release (maintainer, from a clean main that is pushed):
+  npm run release build v19      a candidate from HEAD, after npm run check; not tagged yet
+  npm run release install v19    try it on this machine (a running night-shift view needs a restart)
+  npm run release publish v19    tag exactly the commit that was built and tried, and push the tag
+  then a CHANGELOG.md entry, and night-shift install . in each repository that uses it
+
+Rules: tags are never moved or reused; a bad release takes the next number. A complete release
+is never rebuilt. NIGHT_SHIFT_ROOT (default ~/.night-shift) holds releases/ and bin/;
+NIGHT_SHIFT_VERSION=v<N> pins another installed release for one shell.
+Exit codes: 0 done · 1 a step failed · 2 a refusal or a usage error.`;
 
 class Refusal extends Error {
   readonly code: number;
@@ -64,28 +90,45 @@ function readCurrent(): string | null {
   }
 }
 
-function build(version: string): void {
-  const folder = path.join(releasesDir(), version);
-  if (git(['tag', '-l', version]).trim()) throw new Refusal(`tag ${version} already exists; a bad release takes the next number`);
-  if (readReleaseManifest(folder)) throw new Refusal(`${folder} is already a complete release; releases are never rebuilt`);
-  const remote = run('git', ['ls-remote', '--tags', 'origin', version], REPO);
-  if (remote.status === 0 && remote.stdout.trim()) throw new Refusal(`tag ${version} exists on origin; fetch tags and take the next number`);
-  const dirty = git(['status', '--porcelain']).trim();
-  if (dirty) throw new Refusal(`the tree is dirty; commit first:\n${dirty}`);
-  run('git', ['fetch', 'origin', 'main', '--quiet'], REPO);
-  const sha = git(['rev-parse', 'HEAD']).trim();
-  if (run('git', ['merge-base', '--is-ancestor', 'HEAD', 'origin/main'], REPO).status !== 0) throw new Refusal(`HEAD ${sha.slice(0, 7)} is not on origin/main; push first`);
+const folderOf = (version: string) => path.join(releasesDir(), version);
+const writeManifest = (folder: string, m: ReleaseManifest) => fs.writeFileSync(path.join(folder, 'version.json'), `${JSON.stringify(m, null, 2)}\n`);
 
-  console.log(`releasing ${version} from ${sha.slice(0, 7)}; running the check gate…`);
-  const check = npm(['run', 'check'], REPO);
-  if (check.status !== 0) throw new Refusal(`the check gate is red:\n${tail(check.stdout + check.stderr)}`);
+// Whether origin has the tag: true, false, or null when origin cannot be asked (offline).
+function tagOnOrigin(version: string): boolean | null {
+  const r = run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${version}`], REPO);
+  return r.status === 0 ? !!r.stdout.trim() : null;
+}
+
+function build(version: string): void {
+  const folder = folderOf(version);
+  if (readReleaseManifest(folder)) throw new Refusal(`${folder} is already a complete release; releases are never rebuilt (npm run release install ${version} runs it)`);
+  let tagged = !!git(['tag', '-l', version]).trim();
+  if (!tagged && tagOnOrigin(version)) {
+    // Published but not fetched here: fetch it, so a published version is always built from its tag.
+    git(['fetch', 'origin', 'tag', version, '--no-tags', '--quiet']);
+    tagged = true;
+  }
+  let sha: string;
+  if (tagged) {
+    sha = git(['rev-parse', `${version}^{commit}`]).trim();
+    console.log(`building ${version} from its tag (${sha.slice(0, 7)})…`);
+  } else {
+    const dirty = git(['status', '--porcelain']).trim();
+    if (dirty) throw new Refusal(`${version} is not published, so it would be a candidate from this checkout, and the tree is dirty; commit first:\n${dirty}`);
+    run('git', ['fetch', 'origin', 'main', '--quiet'], REPO);
+    sha = git(['rev-parse', 'HEAD']).trim();
+    if (run('git', ['merge-base', '--is-ancestor', 'HEAD', 'origin/main'], REPO).status !== 0) throw new Refusal(`HEAD ${sha.slice(0, 7)} is not on origin/main; push first`);
+    console.log(`${version} is not published: building a candidate from ${sha.slice(0, 7)}; running the check gate…`);
+    const check = npm(['run', 'check'], REPO);
+    if (check.status !== 0) throw new Refusal(`the check gate is red:\n${tail(check.stdout + check.stderr)}`);
+  }
 
   // An incomplete folder (no version.json) is this script's own leftover: empty it for a clean build.
   if (fs.existsSync(folder)) for (const entry of fs.readdirSync(folder)) fs.rmSync(path.join(folder, entry), { recursive: true, force: true, maxRetries: 3 });
   fs.mkdirSync(folder, { recursive: true });
   const tar = `.release-${version}.tar`;
   try {
-    git(['archive', '--format=tar', '-o', path.join(folder, tar), 'HEAD']);
+    git(['archive', '--format=tar', '-o', path.join(folder, tar), sha]);
     const x = run('tar', ['-xf', tar], folder);
     if (x.status !== 0) throw new Refusal(`tar failed: ${x.stderr.trim()}`, 1);
   } finally {
@@ -93,27 +136,41 @@ function build(version: string): void {
   }
   console.log(`exported into ${folder}; installing and building…`);
   const ci = npm(['ci', '--no-audit', '--no-fund'], folder);
-  if (ci.status !== 0) throw new Refusal(`npm ci failed; no tag written:\n${tail(ci.stdout + ci.stderr)}`, 1);
+  if (ci.status !== 0) throw new Refusal(`npm ci failed:\n${tail(ci.stdout + ci.stderr)}`, 1);
   const web = npm(['run', 'build'], folder);
-  if (web.status !== 0) throw new Refusal(`the web build failed; no tag written:\n${tail(web.stdout + web.stderr)}`, 1);
-  fs.writeFileSync(path.join(folder, 'version.json'), `${JSON.stringify({ version, commit: sha, date: new Date().toISOString() }, null, 2)}\n`);
-
-  const tag = run('git', ['tag', '-a', version, sha, '-m', `release ${version}`], REPO);
-  if (tag.status !== 0) {
-    fs.rmSync(path.join(folder, 'version.json'), { force: true });
-    throw new Refusal(`git tag failed: ${tag.stderr.trim()}; re-run to rebuild and tag`, 1);
-  }
-  const push = run('git', ['push', 'origin', version], REPO);
-  if (push.status !== 0) throw new Refusal(`tagged locally, push rejected: ${push.stderr.trim()}; run git push origin ${version}`, 1);
-  console.log(`release ${version} ready: ${folder}`);
-  if (!readCurrent()) switchTo(version);
+  if (web.status !== 0) throw new Refusal(`the web build failed:\n${tail(web.stdout + web.stderr)}`, 1);
+  // The manifest last: a folder without it is incomplete, and the next build starts it over.
+  writeManifest(folder, { version, commit: sha, date: new Date().toISOString(), ...(tagged ? {} : { candidate: true }) });
+  console.log(`${tagged ? 'release' : 'candidate'} ${version} built: ${folder}`);
+  console.log(`next: npm run release install ${version}${tagged ? '' : `, try it, then npm run release publish ${version}`}`);
 }
 
-function switchTo(version: string): void {
-  const m = readReleaseManifest(path.join(releasesDir(), version));
-  if (!m || m.version !== version) throw new Refusal(`${version} is not an installed release; run npm run release list`);
+function install(version: string): void {
+  const m = readReleaseManifest(folderOf(version));
+  if (!m || m.version !== version) throw new Refusal(`${version} is not built here; run npm run release build ${version} first (npm run release list shows what is)`);
   fs.writeFileSync(currentFile(), `${version}\n`);
-  console.log(`current → ${version} (${m.commit.slice(0, 7)}); NIGHT_SHIFT_VERSION pins another per shell`);
+  console.log(`current → ${version}${m.candidate ? ' (a candidate, not published)' : ''} (${m.commit.slice(0, 7)}); NIGHT_SHIFT_VERSION pins another per shell`);
+  writeLaunchers();
+}
+
+function publish(version: string): void {
+  const folder = folderOf(version);
+  const m = readReleaseManifest(folder);
+  if (!m || m.version !== version) throw new Refusal(`${version} is not built here; build and try a candidate first (npm run release build ${version})`);
+  if (!m.candidate) throw new Refusal(`${version} was built from its published tag; there is nothing to publish`);
+  if (git(['tag', '-l', version]).trim()) throw new Refusal(`tag ${version} already exists here; a bad release takes the next number`);
+  const remote = tagOnOrigin(version);
+  if (remote === null) throw new Refusal('origin cannot be reached; publishing needs it to check and push the tag');
+  if (remote) throw new Refusal(`tag ${version} exists on origin; fetch tags and take the next number`);
+  run('git', ['fetch', 'origin', 'main', '--quiet'], REPO);
+  if (run('git', ['merge-base', '--is-ancestor', m.commit, 'origin/main'], REPO).status !== 0) throw new Refusal(`the candidate was built from ${m.commit.slice(0, 7)}, which is not on origin/main`);
+
+  const tag = run('git', ['tag', '-a', version, m.commit, '-m', `release ${version}`], REPO);
+  if (tag.status !== 0) throw new Refusal(`git tag failed: ${tag.stderr.trim()}`, 1);
+  const push = run('git', ['push', 'origin', version], REPO);
+  if (push.status !== 0) throw new Refusal(`tagged locally, but the push was rejected: ${push.stderr.trim()}; run git push origin ${version}`, 1);
+  writeManifest(folder, { version, commit: m.commit, date: m.date });
+  console.log(`published ${version} (${m.commit.slice(0, 7)})`);
 }
 
 function list(): void {
@@ -121,24 +178,24 @@ function list(): void {
   const names = fs.existsSync(releasesDir()) ? fs.readdirSync(releasesDir()).filter((n) => VERSION.test(n)) : [];
   if (!names.length) return console.log(`no releases under ${releasesDir()}`);
   for (const n of names.sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))) {
-    const m = readReleaseManifest(path.join(releasesDir(), n));
-    console.log(`${n === current ? '*' : ' '} ${n.padEnd(5)} ${m ? `${m.commit.slice(0, 7)}  ${m.date}` : '(incomplete)'}`);
+    const m = readReleaseManifest(folderOf(n));
+    console.log(`${n === current ? '*' : ' '} ${n.padEnd(5)} ${m ? `${m.commit.slice(0, 7)}  ${m.date}${m.candidate ? '  candidate' : ''}` : '(incomplete)'}`);
   }
 }
 
-function installLaunchers(): void {
+function writeLaunchers(): void {
   const bin = path.join(root(), 'bin');
   fs.mkdirSync(bin, { recursive: true });
   const r = releasesDir();
   const cmd = [
     '@echo off',
-    'rem night-shift launcher; written by `npm run release install-launchers`.',
+    'rem night-shift launcher; written by `npm run release install`.',
     'setlocal',
     `set "R=${r}"`,
     'set "V=%NIGHT_SHIFT_VERSION%"',
     'if not defined V if exist "%R%\\current" set /p V=<"%R%\\current"',
     'if not defined V (',
-    '  echo night-shift: no current release; run "npm run release switch v<N>" in the night-shift checkout 1>&2',
+    '  echo night-shift: no current release; run "npm run release install v<N>" in the night-shift checkout 1>&2',
     '  exit /b 2',
     ')',
     'if not exist "%R%\\%V%\\src\\cli.ts" (',
@@ -150,7 +207,7 @@ function installLaunchers(): void {
   ].join('\r\n');
   const sh = [
     '#!/bin/sh',
-    '# night-shift launcher; written by `npm run release install-launchers`.',
+    '# night-shift launcher; written by `npm run release install`.',
     `R="${r.replace(/\\/g, '/')}"`,
     'V="${NIGHT_SHIFT_VERSION:-}"',
     '[ -z "$V" ] && [ -f "$R/current" ] && V=$(head -n 1 "$R/current" | tr -d \'\\r\')',
@@ -161,22 +218,38 @@ function installLaunchers(): void {
   fs.writeFileSync(path.join(bin, 'night-shift.cmd'), `${cmd}\r\n`);
   fs.writeFileSync(path.join(bin, 'night-shift'), `${sh}\n`, { mode: 0o755 });
   const onPath = (process.env.PATH || '').split(path.delimiter).some((p) => p && path.resolve(p).toLowerCase() === bin.toLowerCase());
-  console.log(`launchers written into ${bin}${onPath ? '' : `\n${bin} is not on PATH: add it to your user PATH, then open a new shell`}`);
+  console.log(`night-shift command written into ${bin}${onPath ? '' : `\n${bin} is not on PATH: add it to your user PATH, then open a new shell`}`);
 }
 
+// The verbs from before build, install and publish were split: say what replaced them.
+const RENAMED: Record<string, string> = {
+  switch: 'npm run release install v<N>',
+  'install-launchers': 'npm run release install v<N> (it writes the command too)',
+};
+
 function main(argv: string[]): void {
-  const [command, arg] = argv;
+  const [command, arg, ...rest] = argv;
+  const usage = `usage: npm run release ${VERBS.map((v) => `${v.verb}${v.args ? ` ${v.args}` : ''}`).join(' | ')} (npm run release docs explains each)`;
+  if (rest.length) throw new Refusal(usage);
+  const version = () => {
+    if (!arg || !VERSION.test(arg)) throw new Refusal(`usage: npm run release ${command} v<N> (v1, v2, … no leading zero)`);
+    return arg;
+  };
   switch (command) {
-    case 'switch':
-      if (!arg || !VERSION.test(arg)) throw new Refusal('usage: npm run release switch v<N>');
-      return switchTo(arg);
+    case 'build':
+      return build(version());
+    case 'install':
+      return install(version());
+    case 'publish':
+      return publish(version());
     case 'list':
       return list();
-    case 'install-launchers':
-      return installLaunchers();
+    case 'docs':
+      return console.log(DOCS);
     default:
-      if (!command || !VERSION.test(command)) throw new Refusal('usage: npm run release v<N> | switch v<N> | list | install-launchers (v1, v2, … no leading zero)');
-      return build(command);
+      if (command && RENAMED[command]) throw new Refusal(`"${command}" is now ${RENAMED[command]}; npm run release docs has the rest`);
+      if (command && VERSION.test(command)) throw new Refusal(`releasing is now three steps: npm run release build ${command}, install ${command}, publish ${command}; npm run release docs explains them`);
+      throw new Refusal(usage);
   }
 }
 
