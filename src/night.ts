@@ -120,6 +120,19 @@ export function nextNightId(repo: string, now: Date): string {
   }
 }
 
+// A night that proved it cannot work: the agent tells the developer and stops, and the command
+// raises the desktop notification too, for a developer who has already left.
+export class StartCheckFailed extends StoreError {
+  readonly commands: string[];
+  constructor(commands: string[]) {
+    super(
+      `a start check failed: ${commands.map((c) => `\`${c}\``).join(', ')}. Do not start the night: tell the developer now what failed and what they need to do (start a service, allow a command for good), then run every check again and start once all pass.`,
+      422,
+    );
+    this.commands = commands;
+  }
+}
+
 export function start(repo: string, planText: string, session: Session | null = currentSession(), now = new Date()): StartResult {
   const messages: string[] = [];
   messages.push(...recover(repo, now));
@@ -138,12 +151,9 @@ export function start(repo: string, planText: string, session: Session | null = 
         'a night-shift/plan@3 lists "start_checks": run each kind of command tonight needs once (the tests, a commit, each service it uses), then list them: [{ "command": "npm test", "exit_code": 0, "excerpt": "…", "proves": "the tests run" }]',
       );
     const failed = plan.start_checks.filter((c) => c.exit_code !== 0);
-    if (failed.length)
-      throw new StoreError(
-        `a start check failed: ${failed.map((c) => `\`${c.command}\` exited ${c.exit_code}`).join('; ')}. Do not start the night: tell the developer now what failed and what they need to do (start a service, allow a command), and start once every check passes.`,
-        422,
-      );
-  }  const ids = plan.tasks.map((t) => t.id);
+    if (failed.length) throw new StartCheckFailed(failed.map((c) => c.command));
+  }
+  const ids = plan.tasks.map((t) => t.id);
   if (!ids.length && !plan.skipped_follow_ups?.length) throw new StoreError('the plan has no tasks');
   if (new Set(ids).size !== ids.length) throw new StoreError('task ids repeat in the plan');
 

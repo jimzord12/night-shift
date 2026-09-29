@@ -58,6 +58,13 @@ export async function notifyNightEnded(repo: string, n: Night): Promise<string |
   return raise(s, title, text, reportUrl(s.port, ref.id, n.night));
 }
 
+// A night that did not start because a start check failed (D33): the developer may have left.
+export async function notifyStartRefused(repo: string, commands: string[]): Promise<string | null> {
+  const s = readNotify();
+  if (!s.enabled) return null;
+  return raise(s, `${path.basename(repo)}: the night did not start`, `A start check failed: ${commands.join(', ')}. The agent says what to fix.`, `http://127.0.0.1:${s.port}/`);
+}
+
 export async function raise(s: NotifySettings, title: string, text: string, url: string): Promise<string> {
   if (s.command) {
     // Output ignored: a pipe a grandchild keeps open would hold the command past its timeout.

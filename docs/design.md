@@ -74,7 +74,12 @@ are in `docs/glossary.md`.
 ## Lifecycle of a night
 
 - **Start.** The developer says "start night shift" (or runs
-  `/start-night-shift`). The agent reads any open follow-up file, checks each
+  `/start-night-shift`). The agent first runs its start checks (D33): once
+  each, the tests, a real empty commit and every service the work uses. A
+  check that fails or stops for a permission stops the start: the agent
+  tells the developer what to fix, the tool refuses the plan, and a
+  desktop notification says so for a developer who has left. Then the
+  agent reads any open follow-up file, checks each
   open item against the real code, and links each one in the plan: as a
   task with `follow_up`, or under `skipped_follow_ups` with a one-line
   reason (for example, already fixed by other means). The tool refuses a
@@ -177,15 +182,15 @@ repository's nights at a time.
 
 **Version 3** (D31): `night@3` adds `agent_decisions` and `follow-up@3` the
 `disagreed` item kind (with `agent_decision`, the decision it comes from).
-The plan stays at version 2. Older files read as they are; a night started
-by an older release cannot record a decision (the tool says so).
+The plan stayed at version 2 until D33. Older files read as they are; a
+night started by an older release cannot record a decision (the tool says
+so).
 
 **Plan version 3** (D33): `plan@3` adds `start_checks`, the commands the
-agent ran before planning to prove the night can work (the tests, a commit,
-each service), each with its exit code and an excerpt. `night-shift start`
-refuses a `plan@3` without them or with one that failed, and the agent
-tells the developer instead of starting. `plan@1` and `plan@2` still start
-without them, so older skills keep working; the stored plan says `@3`.
+agent ran before planning (see Lifecycle, Start), each with its exit code
+and an excerpt. `night-shift start` refuses a `plan@3` without them or with
+one that failed. `plan@1` and `plan@2` still start without them, so older
+skills keep working; such a plan is stored as `@3`, without checks.
 
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
@@ -214,7 +219,7 @@ The agent's promise. `source` is free text so it fits any workflow.
   "started_at": "2026-09-26T23:10:00+03:00",
   "start_checks": [
     { "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed", "proves": "the tests run" },
-    { "command": "git commit --dry-run --allow-empty -m \"start check\"", "exit_code": 0, "excerpt": "On branch night/2026-09-26", "proves": "commits are allowed" }
+    { "command": "git commit --allow-empty -m \"night-shift: start check\"", "exit_code": 0, "excerpt": "[night/2026-09-26 3f2c1ab] night-shift: start check", "proves": "commits run, hooks included" }
   ],
   "tasks": [
     {
@@ -402,7 +407,7 @@ slash command.
 
 | Skill | Triggered by | Teaches |
 |---|---|---|
-| `start-night-shift` | "start night shift" | The whole night: follow-ups, plan, record per task, questions, decisions, feedback, close |
+| `start-night-shift` | "start night shift" | The whole night: follow-ups, start checks, plan, record per task, questions, decisions, feedback, close |
 | `do-night-shift-follow-up` | "work on the follow-up" | Pick up a follow-up file by day, check items against the code, fix them, update their status |
 
 No `/ns:ask` in version 1: outside a night the developer is at the terminal.

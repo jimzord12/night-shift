@@ -7,12 +7,12 @@ import { spawn } from 'node:child_process';
 import { serve } from '@hono/node-server';
 import { createApp } from './server.ts';
 import { StoreError, followUpSchemaProblems, forgetRepo, listFollowUpIds, listNightIds, parseJson, readFollowUp, readNight } from './store.ts';
-import { ask, close, decide, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
+import { StartCheckFailed, ask, close, decide, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
 import { openItems, resolveItem } from './followup.ts';
 import { allow, install } from './install.ts';
 import { repoRoot } from './repo.ts';
 import { versionString } from './version.ts';
-import { notifyNightEnded, raise, readNotify, writeNotify } from './notify.ts';
+import { notifyNightEnded, notifyStartRefused, raise, readNotify, writeNotify } from './notify.ts';
 import type { Night } from './types.ts';
 import type { AskInput, DecideInput, RecordInput } from './night.ts';
 
@@ -232,7 +232,16 @@ async function main(argv: string[]): Promise<number> {
       console.log(status(repo()));
       return 0;
     case 'start': {
-      const r = start(repo(), inputText(p));
+      let r: ReturnType<typeof start>;
+      try {
+        r = start(repo(), inputText(p));
+      } catch (error) {
+        if (error instanceof StartCheckFailed) {
+          const note = await notifyStartRefused(repo(), error.commands).catch((e: Error) => `The notification failed: ${e.message}`);
+          if (note) console.error(note);
+        }
+        throw error;
+      }
       console.log(r.messages.join('\n'));
       return 0;
     }

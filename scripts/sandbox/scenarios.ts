@@ -70,7 +70,7 @@ const plan = (tasks: { id: string; title: string; done_when: string[]; follow_up
 // What an agent runs before planning to prove the night can work (D33).
 const START_CHECKS = [
   { command: 'pnpm test', exit_code: 0, excerpt: 'Test Files  41 passed (41)', proves: 'the tests run' },
-  { command: 'git commit --dry-run --allow-empty -m "start check"', exit_code: 0, excerpt: 'On branch night/2026-09-29', proves: 'commits are allowed' },
+  { command: 'git commit --allow-empty -m "night-shift: start check"', exit_code: 0, excerpt: '[night/2026-09-29 3f2c1ab] night-shift: start check', proves: 'commits run, hooks included' },
   { command: 'docker compose ps --status running', exit_code: 0, excerpt: 'db   postgres:17   running', proves: 'the database is up' },
 ];
 

@@ -57,18 +57,29 @@ raises them with the developer.
 
 Before you plan, prove the night can do its work, while the developer may
 still be there: run once, with your normal tools, each kind of command the
-tasks will need. At least the tests, a commit (`git commit --dry-run
---allow-empty -m "start check"`), and every service the work uses (the
-database, a dev server, a container). A command that stops for a permission
-prompt, or fails, would stop the night hours later with nobody there to
-help.
+tasks will need. A command that stops for a permission prompt, or fails,
+would stop the night hours later with nobody there to help. First tell the
+developer, in one line, to answer any permission prompt now with "don't ask
+again" (or an allow rule in their settings): a one-time yes lets the check
+pass and leaves the same command waiting at night. Then check at least:
 
-**When a check fails or waits for a permission, do not start the night.**
-Tell the developer right away what failed and what they need to do (start
-Docker, allow a command, fix the test setup), then stop. Start once every
-check passes. The tool refuses a plan with a failed check.
+- **The tests run.** The test command the tasks will use. When the suite
+  is already failing (tonight's work is to fix it), run one test file that
+  passes: the check proves the runner works, not that everything is green.
+- **Commits work.** On the branch you will work on tonight, a real empty
+  commit: `git commit --allow-empty -m "night-shift: start check"`. It runs
+  the repository's hooks, as every commit tonight will.
+- **Every service the work uses runs.** The database, a dev server, a
+  container: one command each that talks to it.
+
+**When a check fails or stopped for a permission, do not start the
+night.** Tell the developer right away what failed and what they need to do
+(start Docker, allow a command for good, fix the test setup), then stop.
+After the fix, run every check again, and start only when all of them pass
+without a prompt. The tool refuses a plan with a failed check.
 
 ## 4. The plan: your promise
+
 List the tasks you will attempt tonight, from the developer's instructions,
 their tracker, or the follow-ups. Each has a `done_when` list: the checks
 that make it done. Write them so a person can verify them.
@@ -80,7 +91,7 @@ Write to `.night-shift/input.json`:
   "schema": "night-shift/plan@3",
   "start_checks": [
     { "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed", "proves": "the tests run" },
-    { "command": "git commit --dry-run --allow-empty -m \"start check\"", "exit_code": 0, "excerpt": "On branch night/2026-09-26", "proves": "commits are allowed" },
+    { "command": "git commit --allow-empty -m \"night-shift: start check\"", "exit_code": 0, "excerpt": "[night/2026-09-26 3f2c1ab] night-shift: start check", "proves": "commits run, hooks included" },
     { "command": "docker compose ps --status running", "exit_code": 0, "excerpt": "db  postgres:17  running", "proves": "the database is up" }
   ],
   "tasks": [

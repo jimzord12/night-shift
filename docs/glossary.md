@@ -16,7 +16,8 @@ name what v7 builds.
 | `Lead` | The agent in the `Owner`'s session that runs the work and briefs subagents (`Reviewer`s, idea agents) | docs/practices/review.md, docs/practices/idea-loop.md | 2026-09-25; redefined 2026-09-26 |
 | `Reviewer` | A fresh agent that reviews another agent's change | docs/practices/review.md, `.claude/agents/` | 2026-09-25 |
 | `Night` | One unattended agent session, whenever it runs | a night id such as `2026-09-26-a` | 2026-09-26, owner |
-| `Plan` | The agent's promise at the start of a `Night`: the tasks and what "done" means for each | `.night-shift/nights/<night id>/plan.json`, schema `night-shift/plan@2` (`@1` still read) | 2026-09-26, owner |
+| `Plan` | The agent's promise at the start of a `Night`: the tasks and what "done" means for each | `.night-shift/nights/<night id>/plan.json`, schema `night-shift/plan@3` (`@1`, `@2` still read) | 2026-09-26, owner |
+| `Start check` | A command the agent runs once before planning a `Night` to prove it can work: the tests, a real empty commit, each service; one that fails or stops for a permission stops the start (D33) | `start_checks` in the `Plan`; the start-night-shift skill, step 3 | 2026-09-30, owner |
 | `Night file` | The single record of one `Night`: the `Plan`'s tasks with their `Outcome`s, `Question`s, `Agent decision`s, `Feedback`, metrics | `night.json`, schema `night-shift/night@3` (older versions still read); copies in `.night-shift/history/` | 2026-09-26, owner |
 | `Outcome` | One of six values a task ends a `Night` with: `done`, `partial`, `blocked`, `failed`, `not_started`, `skipped` | `tasks[].outcome` in the `Night file` | 2026-09-25; redefined 2026-09-26, owner |
 | `Block` | One item of the fixed vocabulary for evidence and notes in a `Night file`: `image`, `compare`, `video`, `pdf`, `link`, `command`, `note` | `type` of an `evidence[]` entry | 2026-09-26, owner |

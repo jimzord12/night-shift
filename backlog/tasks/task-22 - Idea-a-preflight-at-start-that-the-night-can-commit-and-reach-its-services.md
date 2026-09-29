@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-26 12:36'
-updated_date: '2026-09-29 21:08'
+updated_date: '2026-09-29 21:16'
 labels:
   - skills
 dependencies: []
@@ -46,4 +46,6 @@ Idea: discuss with the owner before implementing.
 2026-09-29: the owner said yes, super important. Design choices to bring: how the check runs, and whether a failed check stops the night.
 
 2026-09-30: the owner chose real commands at start and stop-and-tell on failure. The checks run through the agent's own tools, since only those meet the harness's permission prompts; the tool enforces that they were run and passed.
+
+Review round 1 (docs/work/TASK-22/reviews/): code and context FINDINGS. Blocking: the dry-run commit check exits 1 on a clean tree (confirmed): the skill now makes a real empty commit on the night's branch, which also runs the hooks; examples, design and D33 follow. Material: a one-time yes passes a check: the agent first tells the developer to answer prompts with don't ask again, and reruns every check after a fix (limit recorded in D33); a red suite: run one passing test file; stale plan@2 pointers (design, AGENTS.md, glossary) fixed; the Lifecycle Start bullet now owns the behaviour; glossary Start check added. Minor: formatting, trailing newlines, the stored-@3 wording, the Skills table, an excerpt must not be empty, the shape error names the version range. Added beyond the reports: a refused start raises the desktop notification (tested), so a developer who has left still hears. Filed: showing the checks in the Night Report.
 <!-- SECTION:NOTES:END -->

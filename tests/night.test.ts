@@ -356,7 +356,7 @@ test('a version 3 plan starts only after its start checks passed (D33, TASK-22)'
   refused(v3({}), /lists "start_checks"/);
   refused(v3({ start_checks: [] }), /start_checks/);
   // One failed check stops it, naming the command, and tells the agent to tell the developer now.
-  refused(v3({ start_checks: [ok, { command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }), /`docker compose ps` exited 1.*tell the developer now/);
+  refused(v3({ start_checks: [ok, { command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }), /a start check failed: `docker compose ps`.*tell the developer now/);
   // Every check passed: the night opens, and the plan keeps the checks for the morning.
   const s = start(repo, v3({ start_checks: [ok] }), session('c', DEAD_PID));
   assert.ok(s.messages.some((m) => m === 'Start checks passed: the tests run.'), s.messages.join('\n'));

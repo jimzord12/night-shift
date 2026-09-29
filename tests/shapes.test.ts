@@ -221,7 +221,7 @@ test("the day skill raises discuss items first; the night skill leaves them out 
   assert.match(night, /close with \*\*one\nsentence\*\*/);
   assert.match(night, /"schema": "night-shift\/plan@3"/);
   // D33: the night proves it can work before it starts, and stops when it cannot.
-  assert.match(night, /\*\*When a check fails or waits for a permission, do not start the night\.\*\*/);
+  assert.match(night, /\*\*When a check fails or stopped for a permission, do not start the\nnight\.\*\*/);
 });
 
 test('an answer saves when only other parts of the night changed since it was opened (TASK-44)', async () => {

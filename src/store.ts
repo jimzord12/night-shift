@@ -251,7 +251,7 @@ export function readPlanInput(text: string): PlanInput {
     throw new StoreError(`the plan is not valid JSON: ${(error as Error).message}`);
   }
   const problems = planProblems(data);
-  if (problems.length) throw new StoreError(`the plan does not match ${PLAN_SCHEMA}: ${problems.join('; ')}`);
+  if (problems.length) throw new StoreError(`the plan does not match its shape (night-shift/plan@1 to ${PLAN_SCHEMA}): ${problems.join('; ')}`);
   return data as PlanInput;
 }
 

@@ -76,3 +76,20 @@ test('notifications: a failing notification never fails the close or the session
   const test = run(repo, ['notify', 'test']);
   assert.equal(test.status, 1);
 });
+
+test('notifications: a night that a failed start check stops raises one, for a developer who has left (D33)', () => {
+  const repo = gitRepo('late');
+  const r = recorder();
+  const planFile = path.join(repo, 'plan.json');
+  fs.writeFileSync(planFile, JSON.stringify({ schema: 'night-shift/plan@3', tasks: TASKS.slice(0, 1), start_checks: [{ command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }));
+  run(repo, ['notify', 'off', '--command', r.command]);
+  const quiet = run(repo, ['start', '--file', planFile]);
+  assert.notEqual(quiet.status, 0);
+  assert.deepEqual(r.seen(), []);
+  run(repo, ['notify', 'on', '--port', '4791']);
+  const refused = run(repo, ['start', '--file', planFile]);
+  assert.notEqual(refused.status, 0);
+  assert.match(refused.stderr, /a start check failed: `docker compose ps`/);
+  assert.deepEqual(r.seen(), ['late: the night did not start | A start check failed: docker compose ps. The agent says what to fix. | http://127.0.0.1:4791/']);
+  run(repo, ['notify', 'off']);
+});
