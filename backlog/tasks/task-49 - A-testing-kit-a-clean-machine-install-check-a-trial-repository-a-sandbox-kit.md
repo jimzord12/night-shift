@@ -3,9 +3,10 @@ id: TASK-49
 title: >-
   A testing kit: a clean-machine install check, a trial repository, a sandbox
   kit
-status: Queued
+status: Done
 assignee: []
 created_date: '2026-09-29 08:36'
+updated_date: '2026-09-29 20:37'
 labels:
   - spike
 dependencies: []
@@ -26,3 +27,9 @@ Hand-testing rebuilds its setup every time: about 65 throwaway setup, walk, scre
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+All three modules done 2026-09-29: 49.1 clean-machine check (v19), 49.2 trial copy (the owner's first trial night running), 49.3 npm run sandbox.
+<!-- SECTION:NOTES:END -->
