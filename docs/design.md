@@ -79,14 +79,14 @@ are in `docs/glossary.md`.
   check that fails or still stops for a permission stops the start: the
   agent hands the failed checks to `night-shift start`, which refuses the
   plan and, when notifications are on, raises a desktop notification for
-  a developer who has left; then it tells the developer what to fix. Next
-  the agent reads any open follow-up file, checks each open item against
-  the real code, and links each one in the plan: as a task with
-  `follow_up`, or under `skipped_follow_ups` with a one-line reason (for
-  example, already fixed by other means). The tool refuses a plan that
-  leaves an open item out. The agent writes the plan, and the tool opens
-  the night, recording the harness session it runs in. The same start refreshes
-  the history copies of earlier nights (see The files). The first night in
+  a developer who has left; the agent then tells the developer what to
+  fix, and stops. Otherwise the agent reads any open follow-up file,
+  checks each open item against the real code, and links each one in the
+  plan: as a task with `follow_up`, or under `skipped_follow_ups` with a
+  one-line reason (for example, already fixed by other means). The tool
+  refuses a plan that leaves an open item out. The agent writes the plan,
+  and the tool opens the night, recording the harness session it runs in.
+  The same start refreshes the history copies of earlier nights (see The files). The first night in
   a repository registers it with the local Night Shift install and adds
   `.night-shift/*` and `!.night-shift/history/` to `.gitignore` (git cannot
   re-include a folder inside an ignored one); `night-shift install` does
@@ -508,8 +508,9 @@ desktop notification, "blog: night finished" with "2 questions for you ·
 Viewer is started on the configured port (4747 by default) when none runs.
 A night that a failed start check stops (D33) raises one too, "blog: the
 night did not start", naming the checks. Windows raises a toast through
-Windows PowerShell, with nothing to install; elsewhere, or by choice, `--command "<cmd>"` runs the developer's own
-command with `NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
+Windows PowerShell, with nothing to install; elsewhere, or by choice,
+`--command "<cmd>"` runs the developer's own command with
+`NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
 `night-shift notify test` raises one now. The setting lives in the install
 folder (`notify.json`), per machine.
 

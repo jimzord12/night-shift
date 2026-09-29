@@ -145,14 +145,15 @@ export function start(repo: string, planText: string, session: Session | null = 
   const plan: PlanInput = readPlanInput(planText);
   // Version 3 (D33): the night proves it can work before it starts, while the developer may still
   // be there to fix what it cannot do alone.
+  // Checks are required from version 3 on; a failed one refuses the start whatever the version.
   if (plan.schema !== 'night-shift/plan@1' && plan.schema !== 'night-shift/plan@2') {
     if (!plan.start_checks?.length)
       throw new StoreError(
         'a night-shift/plan@3 lists "start_checks": run each kind of command tonight needs once (the tests, a commit, each service it uses), then list them: [{ "command": "npm test", "exit_code": 0, "excerpt": "…", "proves": "the tests run" }]',
       );
-    const failed = plan.start_checks.filter((c) => c.exit_code !== 0);
-    if (failed.length) throw new StartCheckFailed(failed.map((c) => c.command));
   }
+  const failed = (plan.start_checks ?? []).filter((c) => c.exit_code !== 0);
+  if (failed.length) throw new StartCheckFailed(failed.map((c) => c.command));
   const ids = plan.tasks.map((t) => t.id);
   if (!ids.length && !plan.skipped_follow_ups?.length) throw new StoreError('the plan has no tasks');
   if (new Set(ids).size !== ids.length) throw new StoreError('task ids repeat in the plan');
@@ -397,7 +398,7 @@ export function status(repo: string): string {
   if (!open.length) {
     const items = openItems(repo);
     const last = ids.length ? ids[ids.length - 1] : null;
-    return [`No night is open.${last ? ` The last one was ${last}.` : ''}`, items.length ? `${items.length} open follow-up item(s): ${items.map((o) => o.ref).join(', ')}.` : 'No open follow-up items.', 'Start a night with: night-shift start (the plan as JSON).', ...feedbackOfEarlierNights(all)].join('\n');
+    return [`No night is open.${last ? ` The last one was ${last}.` : ''}`, items.length ? `${items.length} open follow-up item(s): ${items.map((o) => o.ref).join(', ')}.` : 'No open follow-up items.', 'Start a night: run the start checks, then night-shift start (the plan as JSON).', ...feedbackOfEarlierNights(all)].join('\n');
   }
   const n = open[open.length - 1];
   const lines = [`Night ${n.night} is open (started ${n.started_at}).`];

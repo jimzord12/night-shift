@@ -496,11 +496,11 @@ through that commits and the database needed permission approvals nobody
 could give, so nothing was committed and nothing ran (TASK-22). Only the
 agent's own tool calls meet the harness's permission prompts; a check the
 tool ran itself would pass while the agent's next command still waits for
-an approval. The owner
-chose real commands over reading the permission settings, and stopping over
-starting half-blind. **Rejected:** a checklist in the skill alone (nothing
-enforces it); a dry-run commit (it fails on a clean tree and skips
-hooks); `night-shift start` running the commands itself (it bypasses the
-prompts it is meant to find); reading `.claude/settings` (an allowed
-command can still fail, as a stopped Docker does). `plan@1` and `plan@2`
-still start without checks, so older skills keep working.
+an approval. The owner chose real commands over reading the permission
+settings, and stopping over starting half-blind. **Rejected:** a checklist
+in the skill alone (nothing enforces it); a dry-run commit (it fails on a
+clean tree and skips hooks); `night-shift start` running the commands
+itself (it bypasses the prompts it is meant to find); reading
+`.claude/settings` (an allowed command can still fail, as a stopped Docker
+does). `plan@1` and `plan@2` still start without checks, so older skills
+keep working.

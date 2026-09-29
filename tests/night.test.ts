@@ -356,7 +356,7 @@ test('a version 3 plan starts only after its start checks passed (D33, TASK-22)'
   refused(v3({}), /lists "start_checks"/);
   refused(v3({ start_checks: [] }), /start_checks/);
   // One failed check stops it, naming the command, and tells the agent to tell the developer now.
-  refused(v3({ start_checks: [ok, { command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }), /a start check failed: `docker compose ps`.*tell the developer now/);
+  refused(v3({ start_checks: [ok, { command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }), /a start check failed: `docker compose ps`.*tell the developer now.*and stop; once it is fixed/);
   // Every check passed: the night opens, and the plan keeps the checks for the morning.
   const s = start(repo, v3({ start_checks: [ok] }), session('c', DEAD_PID));
   assert.ok(s.messages.some((m) => m === 'Start checks passed: the tests run.'), s.messages.join('\n'));
@@ -364,8 +364,10 @@ test('a version 3 plan starts only after its start checks passed (D33, TASK-22)'
   assert.deepEqual([stored.schema, stored.start_checks], ['night-shift/plan@3', [ok]]);
 });
 
-test('a version 2 plan still starts without start checks: older skills keep working', () => {
+test('a version 2 plan still starts without start checks, but not with a failed one', () => {
   const repo = gitRepo('older');
+  const failed = { command: 'docker compose exec db pg_isready', exit_code: 1, excerpt: 'service "db" is not running' };
+  assert.throws(() => start(repo, JSON.stringify({ schema: 'night-shift/plan@2', tasks: TASKS.slice(0, 1), start_checks: [failed] }), session('o', DEAD_PID)), /a start check failed/);
   const s = start(repo, JSON.stringify({ schema: 'night-shift/plan@2', tasks: TASKS.slice(0, 1) }), session('o', DEAD_PID));
   assert.equal(s.night.status, 'open');
 });
