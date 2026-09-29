@@ -84,7 +84,8 @@ GitHub issue without the `tracked` label into a task
 | `.night-shift/` | This repository's own nights (it is its own `Adopter`, D25); only `history/` is committed |
 | `.claude/skills/`, `.claude/settings.json` | Installed by `night-shift install .` from a release: the skills' copies and the `Meter` hook. Edit `skills/`, never these copies |
 | `tests/` | `node --test` suites against real files, git and the server; `tests/ui/` drives the built Viewer in Chromium |
-| `scripts/release.ts` | Tag releases and the `night-shift` launcher |
+| `scripts/release.ts` | Build, install and publish releases; the `night-shift` launcher |
+| `scripts/clean-check.ts`, `scripts/clean/` | `npm run check:clean`: a fresh clone installs a release, in a clean container |
 
 ## Commands
 
@@ -92,14 +93,19 @@ GitHub issue without the `tracked` label into a task
 npm ci                                  # once
 npm run check                           # typecheck + tests + web build: the gate for every commit and release
 npm run test:ui                         # the Viewer in a real browser (Playwright; npx playwright install chromium once)
-node src/cli.ts --help                  # every night-shift command
+node src/cli.ts docs                    # every night-shift command, and how a night goes
 NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts install <copy>  # a git-initialised copy of examples/sample-repo
 NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts view --port 4799   # the Viewer on sample data, never your real install
 npm run view                            # this checkout's Viewer on your real nights, port 4748 (the installed one stays on 4747)
 npm run dev                             # the Viewer with hot reload beside a running view
-npm run release v<N>                    # from a clean, pushed main; then `npm run release switch v<N>`
+npm run release build v<N>              # then install v<N>, try it, publish v<N> (npm run release docs)
+npm run check:clean                     # after publishing: a fresh clone installs it (Docker)
 backlog task list --plain               # the work (Backlog.md 1.52.0, installed globally)
 ```
+
+Every script here answers `docs` (`npm run release docs`,
+`npm run check:clean docs`, `night-shift docs`): run it before using one
+rather than guessing its verbs.
 
 After a release, a running `night-shift view` keeps the old version until it
 is restarted.
@@ -160,9 +166,11 @@ without committing.
 - Credentials (a `gh` login, tokens) stay with the tool; the browser never
   sees them.
 - Releases: tags `v1`, `v2`, … never moved; a bad release takes the next
-  number. Every release gets a CHANGELOG.md entry. After switching to a
-  new release, re-run `night-shift install .` so this repository's
-  installed skills match it (D25).
+  number. A new version is built as a candidate, installed and tried,
+  then published; publishing tags exactly the commit that was built.
+  Every release gets a CHANGELOG.md entry. After installing a new
+  release, re-run `night-shift install .` so this repository's installed
+  skills match it (D25).
 - **Nights here (D25).** This repository is its own `Adopter`: a `Night`
   runs on the installed release (the `night-shift` launcher), never on the
   checkout it changes. A night creates its own branch before

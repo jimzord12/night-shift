@@ -30,8 +30,7 @@ jobs:
           git archive --format=tar HEAD | tar -x -C "$R/releases/v1"
           cp -r node_modules "$R/releases/v1/"
           printf '{"version":"v1","commit":"%s","date":"ci"}\n' "$GITHUB_SHA" > "$R/releases/v1/version.json"
-          NIGHT_SHIFT_ROOT="$R" node scripts/release.ts switch v1
-          NIGHT_SHIFT_ROOT="$R" node scripts/release.ts install-launchers
+          NIGHT_SHIFT_ROOT="$R" node scripts/release.ts install v1
           out=$("$R/bin/night-shift" --version)
           echo "$out"
           case "$out" in *"v1 · ${GITHUB_SHA:0:7}"*) ;; *) echo "unexpected version: $out"; exit 1 ;; esac
