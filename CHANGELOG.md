@@ -3,6 +3,18 @@
 One entry per release tag (`npm run release publish vN`); tags are never
 moved.
 
+## v21 (a5437d3), 2026-09-30
+
+- Multiple-choice questions (TASK-36, D34, GitHub #3). `night-shift ask`
+  takes `"multiple": true` with a recommended list (ids or labels, `[]` for
+  none of them); the deck shows tick boxes with the recommended set ticked,
+  a click, a number key or Space ticks an option, and Save (or Enter) keeps
+  the list. The night file goes to `night-shift/night@4`; older night files
+  still read, and a night started by an older release refuses a
+  multiple-choice question. The follow-up keeps its shape: `decision` holds
+  the chosen ids comma-joined and `decision_label` their names.
+- The sandbox's full morning now has a multiple-choice question.
+
 ## v20 (5190e80), 2026-09-30
 
 - A night proves it can work before it starts (TASK-22, D33). The night
