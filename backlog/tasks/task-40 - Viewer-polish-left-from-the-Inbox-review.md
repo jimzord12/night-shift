@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-29 22:48'
+updated_date: '2026-09-29 23:32'
 labels:
   - viewer
 dependencies: []
@@ -55,4 +55,6 @@ From the TASK-48 visual review (V1): with long cards the gate's focused Save and
 2026-09-30 batch 1 (keyboard, fix/viewer-polish-1): the page behind an open deck is inert, so Tab stays in the deck; the deck returns the focus to what opened it; a second Esc with an unsaved note warns first ('Save it, or press Esc again'); the cream moon buttons get an accent focus-visible ring. Browser test added.
 
 Batch 1 review round 1 (docs/work/TASK-40/reviews/01-*): code FINDINGS, visual FINDINGS, fixed: one leave path (Esc, X, the gate's back button) warns once about an unsaved note, the warning shows on the gate too and any click takes it back; the focus falls back to the page's main area when the opener is gone; the media viewer (deck or report) takes the focus, keeps Tab inside, swallows Enter meant for controls under it and returns the focus to its thumbnail. Tests extended. Left: the warning can push the note out of view at 390 (V4); Save, X and ? keep the browser outline (V5).
+
+Batch 1 review round 2 (docs/work/TASK-40/reviews/02-*): code FINDINGS, visual FINDINGS, fixed: X and the gate's leave button are leave controls (data-leave) that keep the warning armed, so the second press leaves; Enter on a clear gate goes through the same warning; disarming also clears the warning text; the warning shows beside the gate's way out and scrolls into view; the warning no longer names Esc; a click on the picture or video stays in the viewer and never reaches a drawer under it; Shift+Tab from outside the viewer lands on its last control; the focus falls back to the main area when the opener cannot take it. Found while testing: the new gate effect returned scrollIntoView's value and React crashed on it when the gate closed; now a block body, and the keyboard test asserts no page error. Tests extended; each fix checked by reverting it. Left as notes: video controls inside the trap and keys inside an iframe (R2-5), the viewer header at 390 (V4), focus on the page itself (V5), the drawer's focus (V7).
 <!-- SECTION:NOTES:END -->

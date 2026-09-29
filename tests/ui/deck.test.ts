@@ -375,6 +375,8 @@ test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a 
     await new Promise((resolve) => server.once('listening', resolve));
     const { port } = server.address() as AddressInfo;
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    const errs: string[] = [];
+    page.on('pageerror', (e) => errs.push(e.stack ?? e.message));
     await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
     const opener = page.getByRole('button', { name: /Start answering/ });
     await opener.focus();
@@ -398,15 +400,43 @@ test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a 
     await warning.waitFor({ state: 'detached' });
     await page.keyboard.press('Escape');
     await warning.waitFor();
-    // On the gate too: Not now leads there, and leaving warns before the note goes.
-    await deck.getByRole('button', { name: /Not now/ }).click();
-    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor({ state: 'detached' });
-    await page.keyboard.press('Escape');
+    // Any other key takes the warning back, and its text goes with it.
+    await page.keyboard.press('Tab');
+    await warning.waitFor({ state: 'detached' });
+    // The close button warns like Esc, and its second press is the one that leaves.
+    const x = deck.getByRole('button', { name: 'Close' });
+    await x.click();
     await warning.waitFor();
-    assert.equal(await deck.count(), 1, 'the gate closed without a warning');
-    await page.keyboard.press('Escape');
+    assert.equal(await deck.count(), 1, 'the first click on the close button dropped the note');
+    await x.click();
     await deck.waitFor({ state: 'detached' });
     assert.ok(await opener.evaluate((el) => el === document.activeElement), 'the focus did not return to the opener');
+    await opener.click();
+    await deck.getByRole('button', { name: '+ add a note' }).click();
+    await page.keyboard.type('Keep the logo small.');
+    await page.keyboard.press('Escape');
+    // On the gate too: Not now leads there (the click takes the warning back), the night is saved
+    // for the next agent (S), and Enter, the gate's own shortcut, warns before the note goes.
+    await deck.getByRole('button', { name: /Not now/ }).click();
+    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor({ state: 'detached' });
+    await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
+    await page.keyboard.press('s');
+    const back = deck.getByRole('button', { name: /^Back to the/ });
+    await back.waitFor();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    // At phone size the gate is long: the warning shows beside the way out, where the eye is.
+    await page.setViewportSize({ width: 390, height: 700 });
+    await deck.evaluate((d) => d.scrollTo({ top: 0 }));
+    await page.keyboard.press('Enter');
+    await warning.waitFor();
+    assert.equal(await deck.count(), 1, 'Enter on the gate closed without a warning');
+    const onScreen = () => warning.evaluate((w) => { const r = w.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; });
+    for (let i = 0; i < 20 && !(await onScreen()); i++) await page.waitForTimeout(100);
+    assert.ok(await onScreen(), 'the warning is off-screen');
+    await back.click();
+    await deck.waitFor({ state: 'detached' });
+    assert.ok(await opener.evaluate((el) => el === document.activeElement), 'the focus did not return to the opener');
+    assert.deepEqual(errs, [], 'the page threw');
   } finally {
     await browser.close();
     server.close();
@@ -443,10 +473,21 @@ test('the media viewer over the deck keeps the keys: Tab and Enter never reach t
     await page.keyboard.press('Enter');
     const viewer = page.getByRole('dialog');
     await viewer.waitFor();
+    assert.ok(await viewer.getByRole('button', { name: 'Close' }).evaluate((el) => el === document.activeElement), 'the viewer did not take the focus');
     for (let i = 0; i < 8; i++) {
       await page.keyboard.press('Tab');
       assert.ok(await viewer.evaluate((v) => v.contains(document.activeElement)), `Tab ${i + 1} left the viewer`);
     }
+    // A click on the picture is the picture's own (actual size), never a close.
+    await viewer.locator('img').click();
+    assert.equal(await viewer.count(), 1, 'a click on the picture closed the viewer');
+    // Enter meant for a deck control under the viewer does nothing: Not now stays unpressed.
+    await deck.getByRole('button', { name: /Not now/ }).evaluate((el) => (el as HTMLElement).focus());
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(400);
+    assert.equal(await deck.getByRole('heading', { name: 'Which invoice layout?' }).count(), 0, 'Enter pressed Not now under the viewer');
+    assert.equal(await viewer.count(), 1, 'Enter under the viewer closed it');
+    await viewer.getByRole('button', { name: 'Close' }).focus();
     // Closing it puts the focus back, and the deck is still on this question, unanswered.
     await page.keyboard.press('Escape');
     await viewer.waitFor({ state: 'detached' });

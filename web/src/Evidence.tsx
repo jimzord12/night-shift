@@ -46,7 +46,7 @@ export function MediaViewer({ media, onClose }: { media: Media; onClose: () => v
         const i = all.indexOf(document.activeElement as HTMLElement);
         e.preventDefault();
         e.stopPropagation();
-        all[(i + (e.shiftKey ? -1 : 1) + all.length) % all.length]?.focus();
+        all[i < 0 ? (e.shiftKey ? all.length - 1 : 0) : (i + (e.shiftKey ? -1 : 1) + all.length) % all.length]?.focus();
       } else if (e.key === 'Enter' && !root.current?.contains(document.activeElement)) {
         // Enter must not press a control hidden under the viewer.
         e.preventDefault();
@@ -58,7 +58,12 @@ export function MediaViewer({ media, onClose }: { media: Media; onClose: () => v
   }, [onClose]);
   const external = /^https?:\/\//i.test(media.src);
   return (
-    <div ref={root} role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col bg-black/90 backdrop-blur-sm" onClick={onClose}>
+    <div ref={root} role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col bg-black/90 backdrop-blur-sm" onClick={(e) => {
+      // Only the dark backdrop closes; a click on the picture or the video is its own, and no click
+      // reaches what lies under the viewer (a task drawer closes on its own backdrop click).
+      e.stopPropagation();
+      if (e.target === e.currentTarget) onClose();
+    }}>
       <header className="flex items-center gap-3 px-5 py-3" onClick={(e) => e.stopPropagation()}>
         <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide uppercase">{KIND_LABEL[kind]}</span>
         <span className="min-w-0 flex-1 truncate text-white/80">{media.title ?? media.src.split('/').pop()}</span>
@@ -77,7 +82,7 @@ export function MediaViewer({ media, onClose }: { media: Media; onClose: () => v
           </div>
         )}
         {kind === 'video' && (
-          <div className="grid h-full place-items-center">
+          <div className="grid h-full place-items-center" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <video src={media.src} controls autoPlay className="pop-in max-h-full max-w-full rounded-lg shadow-2xl" />
           </div>
         )}

@@ -56,6 +56,8 @@ export const deckKey = (d: NightDetail, q: Question) => `${d.repo.id}/${d.night.
 // One question per screen, the agent's recommendation preselected. The order is fixed when the
 // deck opens: the question clicked, then the open ones; with nothing open, every question, so
 // answers can be reviewed and changed.
+const LEAVE_WARNING = 'You have a note that is not saved. Save it, or leave again to go without it.';
+
 export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConflict }: Props) {
   const order = useMemo(() => {
     const open = items.filter(isOpenItem);
@@ -158,9 +160,13 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     scroller.current?.focus({ preventScroll: true });
-    // An opener gone with the page's change (Start my morning once nothing is left) hands the focus
-    // to the page, not to the top of the document.
-    return () => (opener?.isConnected ? opener : document.querySelector<HTMLElement>('main'))?.focus({ preventScroll: true });
+    // An opener that cannot take it back (gone with the page's change, as Start my morning once
+    // nothing is left) hands the focus to the page, not to the top of the document.
+    const giveBack = () => {
+      opener?.focus({ preventScroll: true });
+      if (document.activeElement !== opener) document.querySelector<HTMLElement>('main')?.focus({ preventScroll: true });
+    };
+    return giveBack;
   }, []);
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(order.length - 1, i))), [order.length]);
@@ -233,9 +239,15 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     const unsaved = Object.entries(drafts).some(([k, d]) => d.note.trim() && d.note.trim() !== (byKey.get(k)?.question.note ?? '').trim());
     if (unsaved && !warnedLeave.current) {
       warnedLeave.current = true;
-      return setMessage('You have a note that is not saved. Save it, or leave again (Esc) to go without it.');
+      return setMessage(LEAVE_WARNING);
     }
     onClose();
+  };
+  // A leave control (marked data-leave) keeps the warning armed, so its second press leaves.
+  const disarm = (target: EventTarget | null) => {
+    if (!warnedLeave.current || (target instanceof Element && target.closest('[data-leave]'))) return;
+    warnedLeave.current = false;
+    setMessage((m) => (m === LEAVE_WARNING ? null : m));
   };
   const qRef = useRef(q);
   qRef.current = q;
@@ -250,7 +262,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         return (e.target as HTMLElement).blur();
       }
       if (e.key === 'Escape') return leave();
-      warnedLeave.current = false;
+      const gateEnter = finished && e.key === 'Enter' && !(e.target instanceof HTMLButtonElement && !!scroller.current?.contains(e.target));
+      if (!gateEnter) disarm(e.target);
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
         // A held key saves nothing more: each night on the gate takes its own press (TASK-48).
@@ -259,7 +272,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         if (e.key === 'Enter' && !ownButton) {
           // A button behind the deck (the one that opened it) must not take the key.
           e.preventDefault();
-          if (gateState(deckNights).clear) onClose();
+          if (gateState(deckNights).clear) leave();
         }
         if (letter === 's' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
           e.preventDefault();
@@ -339,7 +352,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const rec = item?.decision || !q ? undefined : multi ? { id: joined(q.recommended)!, label: answerLabel({ ...q, answer: recIds })! } : q.options.find((o) => o.id === q.recommended);
 
   return (
-    <div ref={scroller} tabIndex={-1} onPointerDown={() => { clicked.current = true; warnedLeave.current = false; }} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
+    <div ref={scroller} tabIndex={-1} onPointerDown={(e) => { clicked.current = true; disarm(e.target); }} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">
@@ -361,16 +374,13 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             })}
           </div>
           <span className="text-sm text-white/60 tabular-nums">{answeredCount} / {order.length}</span>
-          <button onClick={leave} className="rounded-full p-2 hover:bg-white/10" aria-label="Close">
+          <button data-leave onClick={leave} className="rounded-full p-2 hover:bg-white/10" aria-label="Close">
             <Icon name="close" className="size-5" />
           </button>
         </header>
 
         {finished ? (
-          <>
-          {message && <div className="mt-6 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{message}</div>}
-          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={leave} back={from} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
-          </>
+          <Gate notice={message} nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={leave} back={from} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (
