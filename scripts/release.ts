@@ -40,7 +40,8 @@ Cutting a new release (maintainer, from a clean main that is pushed):
   npm run release build v19      a candidate from HEAD, after npm run check; not tagged yet
   npm run release install v19    try it on this machine (a running night-shift view needs a restart)
   npm run release publish v19    tag exactly the commit that was built and tried, and push the tag
-  then a CHANGELOG.md entry, and night-shift install . in each repository that uses it
+  then a CHANGELOG.md entry, night-shift install . in each repository that uses it, and
+  npm run check:clean (a fresh clone installs the new release, in a clean container)
 
 Rules: tags are never moved or reused; a bad release takes the next number. A published release
 is never rebuilt; a candidate is, after a fix. A publish that stopped half way is finished by
@@ -120,6 +121,8 @@ function build(version: string): void {
     git(['fetch', 'origin', 'tag', version, '--no-tags', '--quiet']);
     local = localTag(version);
   }
+  // Offline, a tag only here may be what a rejected push left on a candidate: not proof of a release.
+  if (local && remote === null && built?.candidate) throw new Refusal(`origin cannot be reached, so there is no telling whether tag ${version} was ever pushed; build it again online, or finish with npm run release publish ${version}`);
   const tagged = !!local;
   let sha: string;
   if (tagged) {
@@ -164,7 +167,8 @@ function install(version: string): void {
   if (!m || m.version !== version) throw new Refusal(`${version} is not built here; run npm run release build ${version} first (npm run release list shows what is)`);
   // A candidate whose number was published meanwhile from another commit would run the wrong code.
   if (m.candidate) {
-    const tag = localTag(version) || originTag(version);
+    // Origin's tag decides; the local one only offline (it may be a half-finished publish).
+    const tag = originTag(version) ?? localTag(version);
     if (tag && tag !== m.commit) throw new Refusal(`${version} was published from ${tag.slice(0, 7)}, not from this candidate (${m.commit.slice(0, 7)}); run npm run release build ${version} to build the published one`);
   }
   fs.writeFileSync(currentFile(), `${version}\n`);
@@ -188,7 +192,10 @@ function publish(version: string): void {
   if (run('git', ['fetch', 'origin', 'main', '--quiet'], REPO).status !== 0) throw new Refusal('could not fetch origin/main; publishing needs it');
   if (run('git', ['merge-base', '--is-ancestor', m.commit, 'origin/main'], REPO).status !== 0) throw new Refusal(`the candidate was built from ${m.commit.slice(0, 7)}, which is not on origin/main`);
 
-  if (!local) {
+  if (!local && remote) {
+    // Already pushed from another clone at this commit: take origin's tag rather than make a second one.
+    git(['fetch', 'origin', 'tag', version, '--no-tags', '--quiet']);
+  } else if (!local) {
     const tag = run('git', ['tag', '-a', version, m.commit, '-m', `release ${version}`], REPO);
     if (tag.status !== 0) throw new Refusal(`git tag failed: ${tag.stderr.trim()}`, 1);
   }

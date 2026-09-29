@@ -4,7 +4,7 @@ title: 'Module 1: a fresh clone installs a release, proven in a clean container'
 status: Active
 assignee: []
 created_date: '2026-09-29 08:36'
-updated_date: '2026-09-29 10:36'
+updated_date: '2026-09-29 10:56'
 labels:
   - chore
 dependencies: []
@@ -38,4 +38,6 @@ Absorbs TASK-21. Today npm run release builds only a new tag and switch needs an
 
 <!-- SECTION:NOTES:BEGIN -->
 Review round 1 (031a55e): context FINDINGS (owner.md old commands, D32 names D10, the docs rule scoped to scripts/ and the CLI and binding new scripts, check:clean needs --; minors: old wording, Candidate term, glossary dates, README night-shift docs/--help, npm ci in Develop; notes taken: newest-tag command, releasing row points at npm run release docs). Code FINDINGS: F1 candidate never rebuilt / stale candidate installs under a published number: build rebuilds a candidate, install refuses a candidate whose number was published from another commit (test, 2 mutants killed); F2 offline candidate refused; F3 half-finished publish finished by publishing again; F4 a tag only here (or differing from origin's) refused by build; F5 -- documented, PowerShell form added; F6 failed build leaves nothing to install (test); F7 smoke version match tightened; asset check left (index.html served, assets not fetched). A reviewer's scratch npm ci emptied the worktree's node_modules through a junction; restored with npm ci.
+
+Review round 2 (7cb0af0): context FINDINGS (M1 CHANGELOG header named the old command: fixed; minors: the docs rule named scripts/ (smoke.sh does not answer docs): now names release, check:clean and the CLI; AGENTS.md wrap; README night-shift docs holds once v19 is published right after the merge; notes taken: check:clean added to the manual's release steps, a test that AGENTS.md names the three manuals). Code FINDINGS: R2-1 the release tests needed a git identity (CI has none): the helper sets one; passes with an empty global git config. R2-2 offline, a candidate with a local tag refuses to build as published; R2-3 publish takes origin's tag when it was pushed elsewhere at the same commit; R2-4 differing-tag refusal tested; N1 install asks origin first. Mutants on R2-2, R2-3, R2-4 all fail the tests. N2 (a failed rebuild of the installed candidate breaks the command until a good build) left: rare, and the fix is the next build.
 <!-- SECTION:NOTES:END -->

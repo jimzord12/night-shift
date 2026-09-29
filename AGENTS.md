@@ -103,10 +103,10 @@ npm run check:clean                     # after publishing: a fresh clone instal
 backlog task list --plain               # the work (Backlog.md 1.52.0, installed globally)
 ```
 
-Each script in `scripts/`, and the `night-shift` CLI, answers `docs`
-(`npm run release docs`, `npm run check:clean docs`, `night-shift docs`):
-run it before using one rather than guessing its verbs; a new script
-answers it too.
+`npm run release`, `npm run check:clean` and the `night-shift` CLI answer
+`docs` (`npm run release docs`, `npm run check:clean docs`,
+`night-shift docs`): run it before using one rather than guessing its
+verbs; a new script agents run answers it too.
 
 After a release, a running `night-shift view` keeps the old version until it
 is restarted.
@@ -176,9 +176,9 @@ without committing.
   runs on the installed release (the `night-shift` launcher), never on the
   checkout it changes. A night creates its own branch before
   `night-shift start` and the next session commits the history the `Meter`
-  left (docs/practices/git.md); a night never builds, installs or publishes a release.
-  Night history is committed to this public repository, the owner's
-  answers and notes included.
+  left (docs/practices/git.md); a night never builds, installs or
+  publishes a release. Night history is committed to this public
+  repository, the owner's answers and notes included.
 - A new design decision gets a docs/decisions.md entry; a new term goes into
   docs/glossary.md, named in the next report to the owner.
 - **This process is young.** When something is missing, unclear or keeps

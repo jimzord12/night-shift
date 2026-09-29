@@ -41,7 +41,9 @@ function scratch(build = 'node -e 0') {
   git(repo, 'remote', 'add', 'origin', origin);
   git(repo, 'push', '--quiet', '-u', 'origin', 'main');
   const root = (name: string) => path.join(dir, name);
-  const release = (cwd: string, nsRoot: string, ...args: string[]) => sh(cwd, process.execPath, [path.join(cwd, 'scripts', 'release.ts'), ...args], { NIGHT_SHIFT_ROOT: nsRoot });
+  // The script tags with git's own identity: set one, as a CI runner has none.
+  const identity = { GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' };
+  const release = (cwd: string, nsRoot: string, ...args: string[]) => sh(cwd, process.execPath, [path.join(cwd, 'scripts', 'release.ts'), ...args], { NIGHT_SHIFT_ROOT: nsRoot, ...identity });
   const manifest = (nsRoot: string, v: string) => JSON.parse(fs.readFileSync(path.join(nsRoot, 'releases', v, 'version.json'), 'utf8'));
   return { dir, origin, repo, root, release, manifest };
 }
@@ -137,6 +139,9 @@ test('the old verbs say what replaced them, and every script\'s docs names every
   assert.equal(cli.status, 0);
   for (const command of ['status', 'start', 'record', 'ask', 'decide', 'close', 'view', 'docs']) assert.match(cli.out, new RegExp(`night-shift ${command}`));
   assert.match(cli.out, /How a night goes/);
+  // Agents are told to read them.
+  const agents = fs.readFileSync(path.join(HERE, 'AGENTS.md'), 'utf8');
+  for (const manual of ['npm run release docs', 'npm run check:clean docs', 'night-shift docs']) assert.ok(agents.includes(manual), manual);
 });
 
 test('a candidate is built again after a fix, and one whose number was published elsewhere cannot run as that number', () => {
@@ -202,4 +207,42 @@ test('offline, an unknown number is not built as a candidate; a failed build lea
   assert.equal(r.status, 1);
   assert.match(r.out, /the web build failed/);
   assert.match(f.release(f.repo, ns, 'install', 'v1').out, /not built here/);
+});
+
+test('a tag that disagrees with origin, or cannot be checked on a candidate, is not built as a release; a tag pushed elsewhere at the same commit is taken, not made twice', () => {
+  const s = scratch();
+  const ns = s.root('maintainer');
+  assert.equal(s.release(s.repo, ns, 'build', 'v1').status, 0);
+  // Another clone publishes v1 from this same commit first.
+  const other = path.join(s.dir, 'other');
+  git(s.dir, 'clone', '--quiet', s.origin, other);
+  assert.equal(s.release(other, s.root('other-home'), 'build', 'v1').status, 0);
+  assert.equal(s.release(other, s.root('other-home'), 'publish', 'v1').status, 0);
+  // A tag made here a second later would be a different object than origin's.
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1100);
+  const r = s.release(s.repo, ns, 'publish', 'v1');
+  assert.equal(r.status, 0, r.out);
+  assert.equal(git(s.repo, 'rev-parse', 'v1'), git(s.origin, 'rev-parse', 'v1'));
+
+  // Here, v2's tag names a different commit than origin's.
+  const t = scratch();
+  const tns = t.root('maintainer');
+  git(t.repo, 'tag', '-a', 'v2', '-m', 'v2');
+  git(t.repo, 'push', '--quiet', 'origin', 'v2');
+  fs.writeFileSync(path.join(t.repo, 'more.txt'), 'more\n');
+  git(t.repo, 'add', '-A');
+  git(t.repo, 'commit', '--quiet', '-m', 'more');
+  git(t.repo, 'tag', '-f', '-a', 'v2', '-m', 'v2 moved');
+  assert.match(t.release(t.repo, tns, 'build', 'v2').out, /origin's names/);
+
+  // Offline, a candidate carrying a local tag (a rejected push) is not built as published.
+  assert.equal(t.release(t.repo, tns, 'build', 'v3').status, 2); // not pushed: refused
+  git(t.repo, 'push', '--quiet', 'origin', 'main');
+  assert.equal(t.release(t.repo, tns, 'build', 'v3').status, 0);
+  git(t.repo, 'tag', '-a', 'v3', t.manifest(tns, 'v3').commit, '-m', 'v3');
+  git(t.repo, 'remote', 'set-url', 'origin', path.join(t.dir, 'missing.git'));
+  const off = t.release(t.repo, tns, 'build', 'v3');
+  assert.equal(off.status, 2);
+  assert.match(off.out, /no telling whether tag v3 was ever pushed/);
+  assert.equal(t.manifest(tns, 'v3').candidate, true);
 });
