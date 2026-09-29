@@ -80,7 +80,7 @@ GitHub issue without the `tracked` label into a task
 | `src/server.ts` | The `Viewer`'s JSON API plus the built web app; Host check, media rules |
 | `src/types.ts` | Shapes shared by the tool and the web app |
 | `web/` | React + Tailwind + Vite `Viewer`; `web/dist` is built, ignored |
-| `examples/sample-repo/` | Sample night files from a real trial, for the `Viewer` and reviewers; serve a copy |
+| `examples/sample-repo/` | Sample night files from a real trial, to read or serve by hand; reviews use `npm run sandbox` |
 | `.night-shift/` | This repository's own nights (it is its own `Adopter`, D25); only `history/` is committed |
 | `.claude/skills/`, `.claude/settings.json` | Installed by `night-shift install .` from a release: the skills' copies and the `Meter` hook. Edit `skills/`, never these copies |
 | `tests/` | `node --test` suites against real files, git and the server; `tests/ui/` drives the built Viewer in Chromium |
@@ -149,8 +149,8 @@ without committing.
   the screenshot yourself. Ask the owner only for decisions that are theirs
   and observations only they can make.
 - A visual change is not done until it has been seen: a screenshot of the
-  running `Viewer` (on a sandbox scenario, `npm run sandbox`) or the owner's own
-  look.
+  running `Viewer` (on a `Sandbox`, `npm run sandbox`) or the owner's
+  own look.
 - Tests exercise the real code: a test that passes with the feature deleted
   is not written; mocks only at true external boundaries.
 - The repository is public: before every push, search the diff for names

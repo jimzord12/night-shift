@@ -14,6 +14,8 @@ import { PLAN_SCHEMA } from '../../src/types.ts';
 import type { RepoRef, Session } from '../../src/types.ts';
 
 const MEDIA = path.join(import.meta.dirname, 'media');
+// Screenshots from a real trial, shared with examples/ rather than copied.
+const SHOTS = path.join(import.meta.dirname, '..', '..', 'examples', 'sample-repo', '.night-shift', 'nights', '2026-09-26-b', 'evidence');
 
 // An odd number is never a Windows process id, and far above the usual Linux range: a session
 // that has ended.
@@ -58,7 +60,8 @@ function at(days: number, hour: number, minute = 0): Date {
   const d = new Date();
   d.setDate(d.getDate() - days);
   d.setHours(hour, minute, 0, 0);
-  return d;
+  // Never in the future: run before 06:40, "this morning" is a minute ago.
+  return new Date(Math.min(d.getTime(), Date.now() - 60_000));
 }
 
 const plan = (tasks: { id: string; title: string; done_when: string[]; follow_up?: string | string[] }[], extra: object = {}) =>
@@ -68,7 +71,7 @@ const plan = (tasks: { id: string; title: string; done_when: string[]; follow_up
 function media(repoDir: string, night: string, ...names: string[]): void {
   const dir = evidenceDir(repoDir, night);
   fs.mkdirSync(dir, { recursive: true });
-  for (const n of names) fs.copyFileSync(path.join(MEDIA, n), path.join(dir, n));
+  for (const n of names) fs.copyFileSync(path.join(n.endsWith('.png') ? SHOTS : MEDIA, n), path.join(dir, n));
 }
 
 const TODO_TASKS = [

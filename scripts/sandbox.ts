@@ -30,10 +30,13 @@ const DOCS = `npm run sandbox — named scenarios in a throwaway install, served
 Flags go after "--", or npm takes them: npm run sandbox -- morning --port 4799
   --port N      serve on N instead of a free port
   --no-build    keep the Viewer build in web/dist as it is
-  --phone       (shot) phone width, 390 px, instead of laptop, 1280 px
+  --phone       (shot) phone width, 390 px, instead of laptop, 1440 px
+  --out DIR     (shot) save there instead of the sandbox's shots/, which the next run or clean deletes
+shot needs Chromium once: npx playwright install chromium.
 
 Where: ${HOME}${path.sep}<scenario>, with install/ (its own NIGHT_SHIFT_ROOT), repos/, shots/
-and viewer.log. Your real install (~/.night-shift) and your real repositories are never touched.
+and viewer.log; NIGHT_SHIFT_SANDBOX=<folder> moves them all (one per agent when several work at
+once). Your real install (~/.night-shift) and your real repositories are never touched.
 Each run rebuilds the Viewer (npm run build) and the scenario from scratch, on a free port unless
 --port says otherwise. To run the tool against a scenario yourself:
   NIGHT_SHIFT_ROOT=${HOME}${path.sep}<scenario>${path.sep}install node src/cli.ts <command>   (in one of its repos/)
@@ -50,7 +53,11 @@ interface State {
   open: string[];
 }
 
-const dirOf = (name: string) => path.join(HOME, name);
+// A scenario name is one plain word: never a path out of the sandbox home.
+const dirOf = (name: string) => {
+  if (!/^[a-z0-9-]+$/.test(name)) throw new UsageError(`no scenario "${name}"; npm run sandbox list shows them`);
+  return path.join(HOME, name);
+};
 const stateFile = (name: string) => path.join(dirOf(name), 'sandbox.json');
 
 function readState(name: string): State | null {
@@ -61,21 +68,27 @@ function readState(name: string): State | null {
   }
 }
 
-async function answers(url: string): Promise<boolean> {
+// The Viewer on this address serves this sandbox's repositories and nothing else: another sandbox,
+// `npm run view` or the owner's own Viewer on the same port is never taken for it.
+async function serves(url: string, name: string): Promise<boolean> {
   try {
-    return (await fetch(`${url}api/overview`, { signal: AbortSignal.timeout(1500) })).ok;
+    const res = await fetch(`${url}api/overview`, { signal: AbortSignal.timeout(1500) });
+    if (!res.ok) return false;
+    const { repos } = (await res.json()) as { repos: { path: string }[] };
+    const home = fs.realpathSync.native(dirOf(name)).toLowerCase() + path.sep;
+    return repos.length > 0 && repos.every((r) => path.resolve(r.path).toLowerCase().startsWith(home));
   } catch {
     return false;
   }
 }
 
-// Only a Viewer this kit started and that still answers on its port: a process id reused by
-// something else after a reboot is left alone.
+// Only a Viewer this kit started for this sandbox and that still serves it: a process id reused
+// by something else is left alone.
 async function stop(name: string): Promise<boolean> {
   const s = readState(name);
   if (!s) return false;
   let stopped = false;
-  if (await answers(s.url)) {
+  if (await serves(s.url, name)) {
     try {
       process.kill(s.pid);
       stopped = true;
@@ -88,7 +101,7 @@ async function stop(name: string): Promise<boolean> {
 }
 
 function sandboxes(): string[] {
-  return fs.existsSync(HOME) ? fs.readdirSync(HOME).filter((n) => fs.statSync(dirOf(n)).isDirectory()) : [];
+  return fs.existsSync(HOME) ? fs.readdirSync(HOME).filter((n) => /^[a-z0-9-]+$/.test(n) && fs.existsSync(path.join(dirOf(n), 'install'))) : [];
 }
 
 function freePort(): Promise<number> {
@@ -133,8 +146,12 @@ async function up(name: string, port: number | undefined, build: boolean): Promi
   });
   child.unref();
   const url = `http://127.0.0.1:${p}/`;
-  for (let i = 0; i < 50 && !(await answers(url)); i++) await new Promise((r) => setTimeout(r, 200));
-  if (!(await answers(url))) {
+  // Started means this child still runs and serves this sandbox: a child that exited (the port was
+  // taken) while something else answers there is a failure, not a start.
+  let exited = false;
+  child.once('exit', () => (exited = true));
+  for (let i = 0; i < 50 && !exited && !(await serves(url, name)); i++) await new Promise((r) => setTimeout(r, 200));
+  if (exited || !(await serves(url, name))) {
     try {
       process.kill(child.pid!);
     } catch {
@@ -151,16 +168,17 @@ async function up(name: string, port: number | undefined, build: boolean): Promi
   console.log(`stop it: npm run sandbox stop ${name} · remove every sandbox: npm run sandbox clean`);
 }
 
-async function shot(name: string, paths: string[], phone: boolean): Promise<void> {
+async function shot(name: string, paths: string[], phone: boolean, outDir: string | undefined): Promise<void> {
   const s = readState(name);
-  if (!s || !(await answers(s.url))) throw new UsageError(`${name} is not running; start it: npm run sandbox ${name}`);
+  if (!s || !(await serves(s.url, name))) throw new UsageError(`${name} is not running; start it: npm run sandbox ${name}`);
   // Playwright from this repository's own dependencies (npx playwright install chromium once).
   const { chromium } = await import('playwright');
-  const out = path.join(dirOf(name), 'shots');
+  // The sandbox's own shots/ goes with the next run or clean: evidence to keep gets --out.
+  const out = outDir ? path.resolve(outDir) : path.join(dirOf(name), 'shots');
   fs.mkdirSync(out, { recursive: true });
   const browser = await chromium.launch();
   try {
-    const page = await browser.newPage({ viewport: phone ? { width: 390, height: 844 } : { width: 1280, height: 800 }, deviceScaleFactor: phone ? 2 : 1 });
+    const page = await browser.newPage({ viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: phone ? 2 : 1 });
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -182,6 +200,7 @@ async function main(argv: string[]): Promise<void> {
   let port: number | undefined;
   let phone = false;
   let build = true;
+  let out: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--port') {
@@ -189,6 +208,10 @@ async function main(argv: string[]): Promise<void> {
       if (!Number.isInteger(port) || port < 1 || port > 65535) throw new UsageError('--port must be a number from 1 to 65535');
     } else if (a === '--phone') phone = true;
     else if (a === '--no-build') build = false;
+    else if (a === '--out') {
+      out = argv[++i];
+      if (!out) throw new UsageError('--out needs a folder');
+    }
     else if (a.startsWith('--')) throw new UsageError(`unknown flag ${a}; npm run sandbox docs lists them`);
     else words.push(a);
   }
@@ -202,16 +225,23 @@ async function main(argv: string[]): Promise<void> {
       return console.log(`${'all'.padEnd(14)}every scenario above, side by side in one Viewer`);
     case 'shot':
       if (!rest[0]) throw new UsageError('which scenario? npm run sandbox shot <scenario> [#/path ...]');
-      return shot(rest[0], rest.slice(1), phone);
+      dirOf(rest[0]);
+      return shot(rest[0], rest.slice(1), phone, out);
     case 'stop': {
       const names = rest.length ? rest : sandboxes();
+      names.forEach(dirOf);
       for (const n of names) console.log(`${n}: ${(await stop(n)) ? 'stopped' : 'not running'}`);
       return;
     }
     case 'clean': {
-      for (const n of sandboxes()) await stop(n);
-      fs.rmSync(HOME, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
-      return console.log(`removed ${HOME}`);
+      // Only folders this kit made (an install/ inside), then the home if nothing else is left: a
+      // mis-set NIGHT_SHIFT_SANDBOX never takes other files with it.
+      for (const n of sandboxes()) {
+        await stop(n);
+        fs.rmSync(dirOf(n), { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+      }
+      if (fs.existsSync(HOME) && !fs.readdirSync(HOME).length) fs.rmdirSync(HOME);
+      return console.log(fs.existsSync(HOME) ? `removed the sandboxes; ${HOME} holds other files and stays` : `removed ${HOME}`);
     }
     default:
       if (rest.length) throw new UsageError(`unexpected "${rest.join(' ')}"; npm run sandbox docs lists the commands`);

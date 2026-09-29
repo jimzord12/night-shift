@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-29 08:36'
-updated_date: '2026-09-29 20:14'
+updated_date: '2026-09-29 20:28'
 labels:
   - enhancement
 dependencies: []
@@ -35,3 +35,9 @@ npm run sandbox <scenario>: an isolated install folder it always sets itself, sc
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Review round 1 (docs/work/TASK-49.3/reviews/). Code FINDINGS: F1 a port another Viewer holds was reported as a start and stop could kill a reused pid: the child exiting is a failure, and start, stop and shot accept only a Viewer that serves this sandbox's own repositories (tested with a taken port); F2 the second-night checks passed with it gutted: the UI test reads its own page for its own text, the API test picks it by id; F3 briefs give each reviewer its own NIGHT_SHIFT_SANDBOX and stop <scenario>; F4 clean removes only the kit's folders and keeps a home holding anything else (tested); N1 shot --out; N2 screenshots read from examples/ instead of copies; N3 names are plain words (stop ../x refused), clock times never in the future; the flags-on-every-verb, feedback-unpinned and pid notes accepted as they are. Context FINDINGS: M1 shot --out and briefs save evidence in .local/evidence; M2 the sample-repo Layout row; m1 stop <scenario>; m2/m3 the rewrapped line uses the term; N1 sample README points at the sandbox; N3 shots at 1440; N4 Chromium once.
+<!-- SECTION:NOTES:END -->

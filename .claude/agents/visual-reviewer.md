@@ -23,7 +23,9 @@ to you.
 ## Set up
 
 1. Start from the sandbox, never from real nights: answers, follow-ups and
-   feedback write into the files. `npm run sandbox list` names the
+   feedback write into the files. Set `NIGHT_SHIFT_SANDBOX` to a scratch
+   folder of your own first, so other agents' sandboxes and yours never
+   stop or rebuild each other. `npm run sandbox list` names the
    scenarios; `npm run sandbox <scenario>` builds the `Viewer`, builds that
    scenario in its own install folder and prints the address (run
    `npm run sandbox docs` first). Run it again to start a journey over. Use
@@ -31,14 +33,16 @@ to you.
    into a scratch folder with `NIGHT_SHIFT_ROOT` pointed at its own
    install folder.
 2. Drive it with Playwright from a Node script, imported from this
-   repository's own dependency (`npm run sandbox shot` covers plain
-   screenshots). If the session gives you the Chrome extension tools, you
-   may use the owner's browser instead; open a new tab and leave the others
-   alone.
-3. When you are done, `npm run sandbox stop`: no `Viewer` of yours is left
-   running.
-4. Save every screenshot in a new folder under `.local/evidence/` named
-   `<yyyy-mm-dd>-visual-<topic>/`, and collect the browser console.
+   repository's own dependency (`npm run sandbox -- shot <scenario> --out
+   <folder>` covers plain screenshots). If the session gives you the
+   Chrome extension tools, you may use the owner's browser instead; open a
+   new tab and leave the others alone.
+3. Save every screenshot in a new folder under `.local/evidence/` named
+   `<yyyy-mm-dd>-visual-<topic>/`, never in the sandbox (the next run
+   deletes it), and collect the browser console.
+4. When you are done, `npm run sandbox stop <scenario>` for each one you
+   started: no `Viewer` of yours is left running, and nobody else's is
+   stopped.
 
 ## Walk, then judge
 

@@ -30,9 +30,11 @@ Open every image. If one is missing, stale (older than the change) or
 shows the wrong screen, say so: that is INCOMPLETE, not a pass. You may
 take fresh screenshots of the `Viewer` into a new folder under
 `.local/evidence/`: `npm run sandbox <scenario>` serves a named scenario
-and `npm run sandbox shot` photographs it (`npm run sandbox docs`). Never
-serve real nights (answers write into them), stop your `Viewer` when done
-(`npm run sandbox stop`), and never edit source or data.
+and `npm run sandbox -- shot <scenario> --out <that folder>` photographs
+it (`npm run sandbox docs`), with `NIGHT_SHIFT_SANDBOX` set to a scratch
+folder of your own. Never serve real nights (answers write into
+them), stop your `Viewer` when done (`npm run sandbox stop <scenario>`),
+and never edit source or data.
 
 ## Rubric
 

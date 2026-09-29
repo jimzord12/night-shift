@@ -14,6 +14,8 @@ import { installRoot, listRepos } from '../src/store.ts';
 
 interface OverviewNight {
   repo: string;
+  id: string;
+  tasks: number;
   status: string;
   running: boolean;
   questions_open: number;
@@ -60,9 +62,11 @@ test('every scenario builds, and the Viewer shows what it promises', async () =>
       assert.equal(n.follow_up, true);
       assert.deepEqual([n.questions_open, n.decisions_open], [0, 1]);
     },
-    'second-night': ({ nights }) => {
+    'second-night': ({ built, nights }) => {
       assert.equal(nights.length, 2);
-      assert.equal(nights[1].counts.done, 2);
+      // The second night by its id: the first, a full night, has two done tasks too.
+      const second = nights.find((n) => n.id === built.open[1].split('/').pop());
+      assert.deepEqual([second?.status, second?.tasks, second?.counts.done], ['complete', 2, 2]);
     },
     broken: ({ nights: [n] }) => assert.match(n.problems.join(' '), /not valid JSON/),
   };
@@ -99,6 +103,13 @@ test('npm run sandbox serves a scenario from its own install folder and stops it
     assert.ok(repos.repos[0].path.startsWith(fs.realpathSync.native(home)), repos.repos[0].path);
     assert.ok(fs.existsSync(path.join(home, 'empty', 'install', 'repos.json')));
     assert.equal(listRepos().length, before, `the sandbox registered a repository in ${installRoot()}`);
+    // A port another Viewer holds is a failure, never that Viewer taken for this scenario.
+    const port = new URL(url).port;
+    const taken = node(['interrupted', '--no-build', '--port', port], { NIGHT_SHIFT_SANDBOX: home });
+    assert.equal(taken.status, 1, taken.stdout);
+    assert.match(taken.stderr, /did not start on port/);
+    assert.equal(fs.existsSync(path.join(home, 'interrupted', 'sandbox.json')), false);
+    assert.ok((await fetch(`${url}api/overview`)).ok, 'the other Viewer was stopped');
   } finally {
     const stop = node(['stop', 'empty'], { NIGHT_SHIFT_SANDBOX: home });
     assert.match(stop.stdout, /empty: stopped/);
@@ -108,14 +119,16 @@ test('npm run sandbox serves a scenario from its own install folder and stops it
     () => true,
   );
   assert.ok(gone, 'the Viewer still answers after stop');
+  // clean removes only what the kit made: a stray file in the home stays, and so does the home.
+  fs.writeFileSync(path.join(home, 'keep.txt'), 'not the kit’s');
   const clean = node(['clean'], { NIGHT_SHIFT_SANDBOX: home });
   assert.equal(clean.status, 0, clean.stderr);
-  assert.equal(fs.existsSync(home), false);
+  assert.deepEqual(fs.readdirSync(home), ['keep.txt']);
 });
 
 test('npm run sandbox refuses an unknown scenario, a stray flag and a stray word', () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-sandbox-home-'));
-  for (const args of [['nope', '--no-build'], ['empty', '--nope'], ['empty', 'extra']]) {
+  for (const args of [['nope', '--no-build'], ['empty', '--nope'], ['empty', 'extra'], ['stop', '../x']]) {
     const r = node(args, { NIGHT_SHIFT_SANDBOX: home });
     assert.equal(r.status, 2, `${args.join(' ')}: ${r.stdout}${r.stderr}`);
   }
