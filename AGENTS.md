@@ -86,6 +86,7 @@ GitHub issue without the `tracked` label into a task
 | `tests/` | `node --test` suites against real files, git and the server; `tests/ui/` drives the built Viewer in Chromium |
 | `scripts/release.ts` | Build, install and publish releases; the `night-shift` launcher |
 | `scripts/clean-check.ts`, `scripts/clean/` | `npm run check:clean`: a fresh clone installs a release, in a clean container |
+| `scripts/sandbox.ts`, `scripts/sandbox/` | `npm run sandbox`: named scenarios built through the tool, each in its own install, served on a free port; the UI tests use the same scenarios |
 
 ## Commands
 
@@ -94,8 +95,8 @@ npm ci                                  # once
 npm run check                           # typecheck + tests + web build: the gate for every commit and release
 npm run test:ui                         # the Viewer in a real browser (Playwright; npx playwright install chromium once)
 node src/cli.ts docs                    # every night-shift command, and how a night goes
-NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts install <copy>  # a git-initialised copy of examples/sample-repo
-NIGHT_SHIFT_ROOT=<scratch> node src/cli.ts view --port 4799   # the Viewer on sample data, never your real install
+npm run sandbox <scenario>              # the Viewer on a named scenario in its own install, never your real nights (npm run sandbox list)
+npm run sandbox clean                   # stop every sandbox Viewer and delete the sandboxes
 npm run view                            # this checkout's Viewer on your real nights, port 4748 (the installed one stays on 4747)
 npm run dev                             # the Viewer with hot reload beside a running view
 npm run release build v<N>              # then install v<N>, try it, publish v<N> (npm run release docs)
@@ -103,10 +104,11 @@ npm run check:clean                     # after publishing: a fresh clone instal
 backlog task list --plain               # the work (Backlog.md 1.52.0, installed globally)
 ```
 
-`npm run release`, `npm run check:clean` and the `night-shift` CLI answer
-`docs` (`npm run release docs`, `npm run check:clean docs`,
-`night-shift docs`): run it before using one rather than guessing its
-verbs; a new script agents run answers it too.
+`npm run release`, `npm run check:clean`, `npm run sandbox` and the
+`night-shift` CLI answer `docs` (`npm run release docs`,
+`npm run check:clean docs`, `npm run sandbox docs`, `night-shift docs`):
+run it before using one rather than guessing its verbs; a new script
+agents run answers it too.
 
 After a release, a running `night-shift view` keeps the old version until it
 is restarted.
@@ -147,7 +149,7 @@ without committing.
   the screenshot yourself. Ask the owner only for decisions that are theirs
   and observations only they can make.
 - A visual change is not done until it has been seen: a screenshot of the
-  running `Viewer` (on a copy of sample night files) or the owner's own
+  running `Viewer` (on a sandbox scenario, `npm run sandbox`) or the owner's own
   look.
 - Tests exercise the real code: a test that passes with the feature deleted
   is not written; mocks only at true external boundaries.

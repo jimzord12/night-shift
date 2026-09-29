@@ -141,7 +141,7 @@ test('the old verbs say what replaced them, and every script\'s docs names every
   assert.match(cli.out, /How a night goes/);
   // Agents are told to read them.
   const agents = fs.readFileSync(path.join(HERE, 'AGENTS.md'), 'utf8');
-  for (const manual of ['npm run release docs', 'npm run check:clean docs', 'night-shift docs']) assert.ok(agents.includes(manual), manual);
+  for (const manual of ['npm run release docs', 'npm run check:clean docs', 'npm run sandbox docs', 'night-shift docs']) assert.ok(agents.includes(manual), manual);
 });
 
 test('a candidate is built again after a fix, and one whose number was published elsewhere cannot run as that number', () => {

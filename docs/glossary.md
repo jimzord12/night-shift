@@ -37,6 +37,7 @@ name what v7 builds.
 | `Practice` | One of this repository's own ways of working | docs/practices/ | 2026-09-25; redefined 2026-09-26 |
 | `Release` | A version `vN` built under `~/.night-shift/releases/` and run by the launcher; published as a git tag, and a `Candidate` until then (D32) | scripts/release.ts, `npm run release docs` | 2026-09-25; redefined 2026-09-29 |
 | `Candidate` | A release built from a clean, pushed main and not yet published: installed and tried first, then published under its number (D32) | `candidate: true` in the release folder's version.json | 2026-09-29, owner |
+| `Sandbox` | A named scenario (a morning to answer, a running night, a broken file, …) built through the tool in its own throwaway install folder and served by the `Viewer` on a free port, for trying the `Viewer` by hand, in reviews and in the UI tests | scripts/sandbox.ts, `npm run sandbox docs` | 2026-09-29, owner |
 
 ## Words with two meanings
 
