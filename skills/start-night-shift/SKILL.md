@@ -212,8 +212,9 @@ together** (which of these to keep, which checks to add), add
 `"recommended": ["a", "c"]` (`[]` for none of them); the developer ticks
 any number of options and the follow-up names every one they chose. Word
 it so the chosen set reads on its own ("which of these do we keep?").
-**A question about files carries them** in `files` (paths inside the repository), so the developer sees
-them instead of hunting for them; the Viewer offers Show in folder. The
+**A question about files carries them** in `files` (paths inside the
+repository), so the developer sees them instead of hunting for them; the
+Viewer offers Show in folder. The
 developer may also answer "let's discuss" with a note: that becomes a
 `discuss` item for a day session, never for a night.
 

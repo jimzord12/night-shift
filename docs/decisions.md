@@ -510,9 +510,10 @@ keep working.
 **Decision:** a question may say `"multiple": true`; its recommendation and
 its answer are then lists of option ids, `[]` meaning none of them. The deck
 shows tick boxes with the recommended set ticked; a click, a number key or
-Space on an option ticks or unticks it, and Save (or Enter) keeps the list. The night
-file goes to `night@4`; the follow-up keeps its shape, with the chosen ids
-comma-joined in `decision` and their labels in `decision_label`. **Why:** a
+Space on an option ticks or unticks it, and Save (or Enter) keeps the
+list. The night file goes to `night@4`; the follow-up keeps its shape, with
+the chosen ids comma-joined in `decision` and their labels in
+`decision_label`. **Why:** a
 real night's keep/drop question (keep A and B, drop C) had to recommend one
 option and leave the rest to a note (GitHub issue #3, TASK-36); the owner
 chose to build it. **Rejected:** one question per option (a long deck for

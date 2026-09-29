@@ -194,11 +194,11 @@ one that failed. `plan@1` and `plan@2` still start without them, so older
 skills keep working; such a plan is stored as `@3`, without checks.
 
 **Night version 4** (D34): a question may say `multiple: true`, when
-several options can hold together; its `recommended` and its `answer` are then lists of
-option ids (`[]` means none of them). The follow-up item keeps its shape:
-`decision` holds the chosen ids joined by commas and `decision_label` their
-labels (`None of them` for an empty choice). A night started by an older
-release cannot hold such a question (the tool says so).
+several options can hold together; its `recommended` and its `answer`
+are then lists of option ids (`[]` means none of them). The follow-up item
+keeps its shape: `decision` holds the chosen ids joined by commas and
+`decision_label` their labels (`None of them` for an empty choice). A night
+started by an older release cannot hold such a question (the tool says so).
 
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
@@ -273,7 +273,8 @@ one sentence on one line, at most 200 characters, checked at close (older
 nights keep longer ones). A question may carry `files` (paths inside the
 repository, with an optional caption); the Viewer shows them and opens the
 file manager on one. An answer is an option id (a list of them, possibly
-empty, on a `multiple` question), `"discuss"` (with a note), or `null`. An abridged example (the schema has every field):
+empty, on a `multiple` question), `"discuss"` (with a note), or `null`. An
+abridged example (the schema has every field):
 
 ```json
 {

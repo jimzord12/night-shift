@@ -111,7 +111,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   // What Save sends: a list on a multiple-choice question, unless the talk card is chosen.
   const toAnswer = (answer: string): string | string[] => (multi && answer !== TALK ? idsOf(answer) : answer);
   const isOn = (id: string) => !!draft && (multi && draft.answer !== TALK ? idsOf(draft.answer).includes(id) : draft.answer === id);
-  // A click, a number key or Enter on an option: one choice replaces the answer; on a multiple
+  // A click, a number key or Space on an option: one choice replaces the answer; on a multiple
   // choice it is ticked or unticked, in the options' order.
   const pickOption = (id: string) => {
     if (!draft || !q) return;
