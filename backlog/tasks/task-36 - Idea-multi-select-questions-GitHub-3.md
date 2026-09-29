@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-29 21:57'
+updated_date: '2026-09-29 22:17'
 labels:
   - cli
   - skills
@@ -45,4 +45,6 @@ Feedback from a real Adopter's night, sent by the owner as issue #3: keep/drop q
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-09-29: the owner said yes: build it.
+
+Review round 1 (docs/work/TASK-36/reviews/01-*): code FINDINGS (F1 Enter after a tick unticked it: Enter now saves on a multiple choice and Space ticks, the browser test covers click then Enter and Space; F2 phone footer says None of them; F3 comment), visual FINDINGS (V1 the same Enter bug, V2 the footer; V3: the button reads 'Save: none' with nothing ticked), design PASS (D1 = F2), context FINDINGS (design's answer definition, the deck description, a wrap, a wording tip in the skill: fixed). Left as is: let's discuss then an option starts from an empty set ('use it' restores it); night@4 for every new night (D24 versioning); the Next night tab repeating a question (predates this change).
 <!-- SECTION:NOTES:END -->

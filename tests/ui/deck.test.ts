@@ -342,16 +342,18 @@ test('a multiple-choice question: the recommended set is ticked, clicks and keys
     assert.deepEqual(await ticked(), [true, false, true], 'the recommended set starts ticked');
     await deck.getByText('Recommended: ').waitFor();
     assert.match(await deck.locator('text=Recommended:').locator('..').innerText(), /CSV, XML/);
-    // A click unticks, a number key ticks, Enter on a focused option toggles it and saves nothing.
+    // A click unticks, a number key ticks, Space on a focused option toggles it; Enter, right after
+    // any of them, saves what the screen shows as ticked.
     await deck.getByRole('checkbox', { name: /^XML/ }).click();
     await page.keyboard.press('2');
     await deck.getByRole('checkbox', { name: /^CSV/ }).focus();
-    await page.keyboard.press('Enter');
+    await page.keyboard.press('Space');
     assert.deepEqual(await ticked(), [false, true, false]);
-    assert.equal(loadNight(repo, id).night.questions[0].answer, null, 'Enter on an option saved');
-    await deck.getByRole('button', { name: /^Save/ }).click();
+    assert.equal(loadNight(repo, id).night.questions[0].answer, null, 'a tick saved');
+    await deck.getByRole('checkbox', { name: /^XML/ }).click();
+    await page.keyboard.press('Enter');
     await deck.getByRole('heading', { name: 'Which exports do we keep?' }).waitFor({ state: 'detached', timeout: 10_000 });
-    assert.deepEqual(loadNight(repo, id).night.questions[0].answer, ['b']);
+    assert.deepEqual(loadNight(repo, id).night.questions[0].answer, ['b', 'c']);
   } finally {
     await browser.close();
     server.close();

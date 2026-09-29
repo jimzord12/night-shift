@@ -268,9 +268,10 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           return focusNoteSoon();
         }
         if (option && multi && option !== TALK) {
-          // On a multiple choice Enter ticks the focused option; Save (or Enter elsewhere) saves.
+          // On a multiple choice Enter saves what is ticked, wherever the focus is; Space (the
+          // button's own key) ticks the focused option.
           e.preventDefault();
-          return pickOption(option);
+          return void save();
         }
         if (option) {
           e.preventDefault();
@@ -469,7 +470,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             <footer className="sticky bottom-0 z-10 -mx-4 mt-auto border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
               {message && <div className="mb-2 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{message}</div>}
               {/* On a phone the options may be above the fold: name the answer Save would keep. */}
-              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{draft.answer === DISAGREE && item.decision ? 'I disagree' : answerLabel({ ...q, answer: toAnswer(draft.answer) })}</span></div>}
+              {!lock && (draft.answer || multi) && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{draft.answer === DISAGREE && item.decision ? 'I disagree' : answerLabel({ ...q, answer: toAnswer(draft.answer) })}</span></div>}
               <div className="flex items-center gap-2">
               <div className="hidden gap-2 sm:flex">
                 <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous" title="Previous question (←)"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>
@@ -479,7 +480,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
               <button onClick={() => (lock && index === order.length - 1 ? setFinished(true) : advance(savedKeys, !lock))} disabled={busy} className="moon-btn !inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap sm:px-5" title={lock ? 'Go to the next question' : 'Leave it unanswered; the next agent asks again'}>{lock ? (index === order.length - 1 ? 'Done' : 'Next') : 'Not now'} {!lock && <kbd className="hidden sm:inline">N</kbd>}</button>
               {!lock && (
                 <button onClick={() => void save()} disabled={busy} className="rounded-full bg-[var(--accent)] px-5 py-2.5 font-semibold whitespace-nowrap text-white sm:px-6 shadow-[0_8px_30px_-8px_var(--accent)] transition hover:brightness-110 disabled:opacity-60">
-                  {busy ? 'Saving…' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">{inNote ? 'Ctrl+Enter' : 'Enter'}</kbd>
+                  {busy ? 'Saving…' : multi && draft.answer === '' ? 'Save: none' : 'Save'} <kbd className="ml-1 hidden !border-white/40 sm:inline">{inNote ? 'Ctrl+Enter' : 'Enter'}</kbd>
                 </button>
               )}
               </div>

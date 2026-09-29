@@ -363,10 +363,11 @@ export const forTalk = (f: FollowUp, item: FollowUpItem) =>
   item.status === 'open' && (item.kind === 'discuss' || (!!item.task && f.items.some((o) => o.status === 'open' && o.kind === 'discuss' && o.task === item.task)));
 export const followUpDiscuss = (f: FollowUp) => f.items.filter((i) => forTalk(f, i)).length;
 
-// How an answer reads to a person: the option's label, or "Let's discuss".
 // The labels of chosen options, in the options' order; "None of them" for an empty multiple choice.
 export const labelsOf = (q: Question, ids: string[]): string =>
   ids.length ? q.options.filter((o) => ids.includes(o.id)).map((o) => o.label).join(', ') || ids.join(', ') : 'None of them';
+// How an answer reads to a person: the option's label (the labels, on a multiple choice), or
+// "Let's discuss".
 export const answerLabel = (q: Question): string | null =>
   q.answer === null ? null : q.answer === DISCUSS ? "Let's discuss" : Array.isArray(q.answer) ? labelsOf(q, q.answer) : (q.options.find((o) => o.id === q.answer)?.label ?? q.answer);
 // A question's recommendation as a list, whether it names one option or several.

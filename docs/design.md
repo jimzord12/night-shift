@@ -193,8 +193,8 @@ and an excerpt. `night-shift start` refuses a `plan@3` without them or with
 one that failed. `plan@1` and `plan@2` still start without them, so older
 skills keep working; such a plan is stored as `@3`, without checks.
 
-**Night version 4** (D34): a question may say `multiple: true`, for
-keep/drop choices; its `recommended` and its `answer` are then lists of
+**Night version 4** (D34): a question may say `multiple: true`, when
+several options can hold together; its `recommended` and its `answer` are then lists of
 option ids (`[]` means none of them). The follow-up item keeps its shape:
 `decision` holds the chosen ids joined by commas and `decision_label` their
 labels (`None of them` for an empty choice). A night started by an older
@@ -272,8 +272,8 @@ the night in the developer's turn. A metric Claude Code did not provide is
 one sentence on one line, at most 200 characters, checked at close (older
 nights keep longer ones). A question may carry `files` (paths inside the
 repository, with an optional caption); the Viewer shows them and opens the
-file manager on one. An answer is an option id, `"discuss"` (with a note),
-or `null`. An abridged example (the schema has every field):
+file manager on one. An answer is an option id (a list of them, possibly
+empty, on a `multiple` question), `"discuss"` (with a note), or `null`. An abridged example (the schema has every field):
 
 ```json
 {
@@ -478,8 +478,9 @@ from any folder. Screens:
    boxes and **Send to GitHub**. Opening a night marks it read; a night
    opened while it ran is unread again once it ends.
 3. **The question deck** (over any page): one question per screen, the
-   recommendation preselected; after the questions, one card per agent
-   decision to review: Enter keeps it, D disagrees with a note (D31). It
+   recommendation preselected (tick boxes with the recommended set ticked
+   on a multiple-choice question, D34); after the questions, one card per
+   agent decision to review: Enter keeps it, D disagrees with a note (D31). It
    ends on the **gate** (TASK-28): for each night it walked that is not
    saved yet, the answers, the disagreements and the unfinished work with
    one **Save for the next agent**; once saved, a confirmation
