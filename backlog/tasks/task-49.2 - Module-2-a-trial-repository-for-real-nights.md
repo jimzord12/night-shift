@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-29 08:36'
-updated_date: '2026-09-29 12:35'
+updated_date: '2026-09-29 13:07'
 labels:
   - spike
 dependencies: []
@@ -22,17 +22,17 @@ A small real project with tests, a Docker Compose database and deliberately open
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A fresh copy of a real app whose only remote is a local stand-in; every trial command refuses if another remote or a URL rewrite appears (tested by hand: added remote, GitHub push URL, url rewrite)
-- [ ] #2 One command resets it to its starting point: code, branches, tags, the stand-in remote, night files, a fresh migrated and seeded database of its own, permissions for unattended nights (tested on a deliberate mess)
-- [ ] #3 Scripted nights cover every part of Night Shift and every Viewer screen, with the owner's expected results kept privately outside the copy
+- [x] #1 A fresh copy of a real app whose only remote is a local stand-in; every trial command refuses if another remote or a URL rewrite appears (tested by hand: added remote, GitHub push URL, url rewrite)
+- [x] #2 One command resets it to its starting point: code, branches, tags, the stand-in remote, night files, a fresh migrated and seeded database of its own, permissions for unattended nights (tested on a deliberate mess)
+- [x] #3 Scripted nights cover every part of Night Shift and every Viewer screen, with the owner's expected results kept privately outside the copy
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
+- [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
 - [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
-- [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
-- [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
+- [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
+- [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
 
 ## Implementation Notes
@@ -47,4 +47,6 @@ Hand checks (2026-09-29, recorded per DoD #1): guard refuses an added remote, a 
 Code review round 2 (report private): FINDINGS. M1 the narrowed permissions blocked the app's own gates (a :* rule matches whole words): every gate, dependency and database script is named, and a deny list covers the deploy, preview and provider scripts, the original app's database project and pushes that skip the pre-push hook; the copy has no git credentials. m1 worktree removal followed junctions: folders are removed with rmSync, a junction's target survives (tested); m2 a branch tracking a local branch no longer refuses; N2 tags matched exactly and peeled lines skipped; N3 locked worktrees unlocked first. Tested: junction target kept, local-tracking branch, annotated night tags on both sides, all cleared by one reset.
 
 Code review round 3 (report private): PASS. Minors fixed: the deploy-script deny never matched (a :* rule is whole words; now a wildcard rule); the push deny named -n (dry run) and missed a trailing --no-verify; allow gaps (the browser CLIs the app's skills use, pnpm start/up/why/ls/vitest, psql in the trial database container); the scenarios now say to start the session in auto mode; a stray argument (reset --help) is refused instead of resetting. Notes taken: status shows whether the copy's empty credential helper is still in place; a reset ends a half-done rebase, merge or cherry-pick. Context review round 4: FINDINGS (the replaced branch still public: deleted; two long lines: wrapped).
+
+Final hand check (after the round-3 fixes, trial-base moved with the owner's go): a deliberate mess (a branch with a commit pushed to the stand-in, a night tag, a commit on main, a stash, a worktree on its own branch, untracked files, a merge stopped on a conflict) and one reset returned HEAD = trial-base, one branch, tags trial-base and v0.0.1, no stash, one worktree and its folder gone, no merge in progress, stand-in = main + trial-base, 0 changes, a healthy fresh database, signin none; the new allow and deny rules are in the copy's settings. Mistake: the two throwaway mess commits used --no-verify, against the rule; they were discarded by the reset. Unverified until the owner's first trial: a real night end to end.
 <!-- SECTION:NOTES:END -->
