@@ -1,11 +1,11 @@
 ---
 id: TASK-49.2
 title: 'Module 2: a trial repository for real nights'
-status: Active
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-29 08:36'
-updated_date: '2026-09-29 13:07'
+updated_date: '2026-09-29 13:08'
 labels:
   - spike
 dependencies: []
@@ -30,7 +30,7 @@ A small real project with tests, a Docker Compose database and deliberately open
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
 - [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
