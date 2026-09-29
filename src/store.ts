@@ -9,7 +9,7 @@ import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { insideDir } from './files.ts';
 import type { FollowUp, Night, PlanInput, RepoRef } from './types.ts';
-import { NIGHT_SCHEMA, DISCUSS, OUTCOMES, PLAN_SCHEMA } from './types.ts';
+import { DISCUSS, OUTCOMES, PLAN_SCHEMA, nightVersion } from './types.ts';
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const SCHEMAS = path.join(REPO_ROOT, 'schemas');
@@ -157,8 +157,11 @@ export function nightProblems(n: Night, dir: string): string[] {
   for (const q of n.questions) {
     const opts = q.options.map((o) => o.id);
     if (new Set(opts).size !== opts.length) problems.push(`${q.id}: option ids repeat`);
-    if (!opts.includes(q.recommended)) problems.push(`${q.id}: recommended "${q.recommended}" is not an option`);
-    if (q.answer !== null && q.answer !== DISCUSS && !opts.includes(q.answer)) problems.push(`${q.id}: answer "${q.answer}" is not an option`);
+    // One option id, or a list of them on a multiple-choice question (D34), and nothing else.
+    const choice = (v: string | string[]) => (q.multiple ? Array.isArray(v) && v.every((x) => opts.includes(x)) && new Set(v).size === v.length : typeof v === 'string' && opts.includes(v));
+    if (!choice(q.recommended)) problems.push(`${q.id}: recommended ${JSON.stringify(q.recommended)} is not ${q.multiple ? 'a list of its options' : 'an option'}`);
+    if (q.answer !== null && q.answer !== DISCUSS && !choice(q.answer)) problems.push(`${q.id}: answer ${JSON.stringify(q.answer)} is not ${q.multiple ? 'a list of its options' : 'an option'}`);
+    if (q.multiple && nightVersion(n) < 4) problems.push(`${q.id}: a multiple-choice question needs a night-shift/night@4 night file or newer`);
     if (q.task !== null && !ids.has(q.task)) problems.push(`${q.id}: task ${q.task} does not exist`);
     for (const o of q.options) if (o.image) {
       const p = evidenceProblem(dir, o.image);
@@ -172,7 +175,7 @@ export function nightProblems(n: Night, dir: string): string[] {
     if (d.task !== null && !ids.has(d.task)) problems.push(`${d.id}: task ${d.task} does not exist`);
     if (d.review === 'disagree' && !d.note?.trim()) problems.push(`${d.id}: a disagreement needs a note`);
   }
-  if ((n.agent_decisions ?? []).length && n.schema !== NIGHT_SCHEMA) problems.push(`agent decisions need a ${NIGHT_SCHEMA} night file`);
+  if ((n.agent_decisions ?? []).length && nightVersion(n) < 3) problems.push('agent decisions need a night-shift/night@3 night file or newer');
   if (n.status === 'complete' && !n.summary) problems.push('a complete night needs a summary');
   if (n.status !== 'open' && n.tasks.some((t) => t.outcome === null)) problems.push('a closed night has a task without an outcome');
   return problems;

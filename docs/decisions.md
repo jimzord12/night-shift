@@ -504,3 +504,20 @@ itself (it bypasses the prompts it is meant to find); reading
 `.claude/settings` (an allowed command can still fail, as a stopped Docker
 does). `plan@1` and `plan@2` still start without checks, so older skills
 keep working.
+
+## D34  A question may take several answers (2026-09-30)
+
+**Decision:** a question may say `"multiple": true`; its recommendation and
+its answer are then lists of option ids, `[]` meaning none of them. The deck
+shows tick boxes with the recommended set ticked; a click, a number key or
+Space on an option ticks or unticks it, and Save (or Enter) keeps the
+list. The night file goes to `night@4`; the follow-up keeps its shape, with
+the chosen ids comma-joined in `decision` and their labels in
+`decision_label`. **Why:** a
+real night's keep/drop question (keep A and B, drop C) had to recommend one
+option and leave the rest to a note (GitHub issue #3, TASK-36); the owner
+chose to build it. **Rejected:** one question per option (a long deck for
+one choice, and the options no longer compared side by side); a list type
+in the follow-up (every reader of `decision` would change for no gain: the
+next agent reads the label). A night started by an older release refuses
+a multiple-choice question rather than write a shape it does not know.

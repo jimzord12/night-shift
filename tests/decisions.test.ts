@@ -47,7 +47,7 @@ async function summary(app: ReturnType<typeof createApp>, ref: string, id: strin
 test('decisions the agent took keep the night in the developer\'s turn until reviewed', async () => {
   const { repo, id, ref } = nightWithDecisions('decide');
   const n = loadNight(repo, id).night;
-  assert.equal(n.schema, 'night-shift/night@3');
+  assert.equal(n.schema, 'night-shift/night@4');
   assert.deepEqual(n.agent_decisions!.map((d: AgentDecision) => [d.id, d.task, d.review]), [['AD1', 'T1', null], ['AD2', 'T2', null]]);
   const app = createApp({ version: 'test' });
   let s = await summary(app, ref.id, id);
@@ -145,5 +145,5 @@ test('a version 2 night file with agent decisions is reported, not read as versi
   const old = JSON.parse(fs.readFileSync(file, 'utf8'));
   old.schema = 'night-shift/night@2';
   fs.writeFileSync(file, JSON.stringify(old, null, 2));
-  assert.ok(readNight(repo, id).problems.includes('agent decisions need a night-shift/night@3 night file'));
+  assert.ok(readNight(repo, id).problems.includes('agent decisions need a night-shift/night@3 night file or newer'));
 });

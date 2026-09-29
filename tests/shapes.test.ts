@@ -116,7 +116,7 @@ test("let's discuss: needs a note, becomes a discuss item no night acts on, and 
   assert.deepEqual([n.follow_up_open, n.follow_up_discuss], [1, 1]);
   assert.equal(ownerState(n), 'needs_answers');
   const d = (await (await app.request(`/api/nights/${ref.id}/${id}`)).json()) as NightDetail;
-  assert.equal(d.night.schema, 'night-shift/night@3');
+  assert.equal(d.night.schema, 'night-shift/night@4');
   // A discuss answer is a valid night file.
   assert.deepEqual(readNight(repo, id).problems, []);
 });
@@ -162,7 +162,7 @@ test('version 1 files still read: a night, a plan and a follow-up written before
   fs.writeFileSync(file, JSON.stringify({ ...f, schema: 'night-shift/follow-up@1' }));
   assert.equal(readFollowUp(repo, id).schema, 'night-shift/follow-up@1');
   const s = start(repo, JSON.stringify({ schema: 'night-shift/plan@1', tasks: [{ ...TASKS[0], follow_up: `${id}/A1` }, { ...TASKS[1], follow_up: `${id}/A2` }] }), session('s2', DEAD_PID));
-  assert.equal(s.night.schema, 'night-shift/night@3');
+  assert.equal(s.night.schema, 'night-shift/night@4');
 });
 
 test("a question's files: served from the repository and shown in the file manager, and nothing else", async () => {

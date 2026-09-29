@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { AgentDecision, Block, Check, Feedback, Night, Option, PlanInput, Question, QuestionFile, Session, Task } from './types.ts';
-import { BLOCK_TYPES, DISCUSS, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, forTalk, refsOf } from './types.ts';
+import { BLOCK_TYPES, DISCUSS, NIGHT_SCHEMA, OUTCOMES, PLAN_SCHEMA, countOutcomes, forTalk, nightVersion, refsOf } from './types.ts';
 import {
   StoreError,
   evidenceDir,
@@ -290,7 +290,9 @@ export interface AskInput {
   ask: string;
   why?: string;
   options: (Partial<Option> & { label: string })[];
-  recommended: string;
+  // Several options may be chosen (D34): recommended is then a list of ids or labels.
+  multiple?: boolean;
+  recommended: string | string[];
   files?: (string | QuestionFile)[];
 }
 
@@ -325,14 +327,23 @@ export function ask(repo: string, input: AskInput): { night: Night; question: Qu
   }));
   if (options.some((o) => o.id === DISCUSS)) throw new StoreError(`"${DISCUSS}" is reserved for the developer's "let's discuss" answer; give the option another id`);
   const files = questionFiles(repo, input.files);
-  const rec = String(input.recommended ?? '');
-  const recommended = options.find((o) => o.id === rec)?.id ?? options.find((o) => o.label === rec)?.id ?? rec;
+  // An id or a label names an option; anything else stays as given and the shape check refuses it.
+  const idOf = (v: unknown) => {
+    const r = String(v ?? '');
+    return options.find((o) => o.id === r)?.id ?? options.find((o) => o.label === r)?.id ?? r;
+  };
+  const multiple = input.multiple === true;
+  if (multiple && nightVersion(n) < 4) throw new StoreError(`this night was started by an older release (${n.schema}); a multiple-choice question needs a newer one: ask one question per option instead`);
+  if (multiple && !Array.isArray(input.recommended)) throw new StoreError('a multiple-choice question recommends a list: "recommended": ["a", "c"] (the options you would choose; [] for none)');
+  if (!multiple && Array.isArray(input.recommended)) throw new StoreError('a list of recommended options needs "multiple": true; otherwise recommend one option');
+  const recommended = multiple ? (input.recommended as unknown[]).map(idOf) : idOf(input.recommended);
   const q: Question = {
     id: `Q${n.questions.length + 1}`,
     task: input.task ?? null,
     ask: text(input.ask),
     ...(text(input.why) ? { why: text(input.why) } : {}),
     options,
+    ...(multiple ? { multiple: true as const } : {}),
     recommended,
     ...(files.length ? { files } : {}),
     answer: null,
@@ -361,7 +372,7 @@ export interface DecideInput {
 export function decide(repo: string, input: DecideInput, now = new Date()): { night: Night; decision: AgentDecision; message: string } {
   if (!isObject(input)) throw new StoreError('send one JSON object: { "task": "T1", "decision": "...", "why": "..." }');
   const n = openNight(repo);
-  if (n.schema !== NIGHT_SCHEMA) throw new StoreError(`this night was started by an older release (${n.schema}); record the decision in the night's summary or a note instead`);
+  if (nightVersion(n) < 3) throw new StoreError(`this night was started by an older release (${n.schema}); record the decision in the night's summary or a note instead`);
   if (!text(input.decision)) throw new StoreError('a decision needs "decision": what you chose, in one sentence');
   if (!text(input.why)) throw new StoreError('a decision needs "why": what the developer would want to know to judge it');
   const all = n.agent_decisions ?? [];

@@ -44,7 +44,7 @@ test('every scenario builds, and the Viewer shows what it promises', async () =>
     morning: ({ nights: [n] }) => {
       assert.equal(n.status, 'complete');
       assert.deepEqual(n.counts, { done: 2, partial: 1, blocked: 1, failed: 1, not_started: 0, skipped: 1 });
-      assert.deepEqual([n.questions_open, n.decisions_open], [2, 3]);
+      assert.deepEqual([n.questions_open, n.decisions_open], [3, 3]);
     },
     'two-nights': ({ built, nights }) => {
       assert.equal(built.repos.length, 2);

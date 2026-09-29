@@ -31,7 +31,7 @@ export const createFollowUp = (repo: string, night: string) => post<NightDetail>
 export const ghStatus = () => call<{ ready: boolean; repo: string }>('/api/gh');
 export const getProposals = (fresh = false) => call<{ open: number; url: string } | null>(`/api/proposals${fresh ? '?fresh' : ''}`);
 
-export function postAnswer(repo: string, night: string, body: { question: string; answer: string | null; note: string; baseHash: string; was: { answer: string | null; note: string | null } }) {
+export function postAnswer(repo: string, night: string, body: { question: string; answer: string | string[] | null; note: string; baseHash: string; was: { answer: string | string[] | null; note: string | null } }) {
   return post<NightDetail>(`${nightUrl(repo, night)}/answer`, body);
 }
 
