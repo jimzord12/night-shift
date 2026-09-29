@@ -1,11 +1,11 @@
 ---
 id: TASK-36
 title: 'Idea: multi-select questions (GitHub #3)'
-status: Active
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-29 22:29'
+updated_date: '2026-09-29 22:30'
 labels:
   - cli
   - skills
@@ -36,7 +36,7 @@ Feedback from a real Adopter's night, sent by the owner as issue #3: keep/drop q
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [x] #1 Acceptance criteria verified; the final summary records the checks run, their results and what remains unverified.
-- [ ] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
+- [x] #2 npm run check passes on the integrated revision; a visible change has a screenshot someone looked at.
 - [x] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [x] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
