@@ -141,7 +141,7 @@ test('a partial task that followed two decisions carries both to the next agent'
   }
   createFollowUp(repo, loadNight(repo, id).night);
   const s = start(repo, plan([{ ...TASKS[0], follow_up: [`${id}/A1`, `${id}/A2`] }]), session('s2', DEAD_PID), new Date('2026-09-27T23:10:00'));
-  assert.equal(fs.readFileSync(path.join(repo, '.night-shift', 'nights', s.night.night, 'plan.json'), 'utf8').includes('"night-shift/plan@2"'), true);
+  assert.equal(fs.readFileSync(path.join(repo, '.night-shift', 'nights', s.night.night, 'plan.json'), 'utf8').includes('"night-shift/plan@3"'), true);
   record(repo, { task: 'T1', outcome: 'partial', checks: [true, { met: false, note: 'the download is left' }] });
   close(repo, 'Half the invoices.');
   const next = createFollowUp(repo, loadNight(repo, s.night.night).night);
@@ -219,7 +219,9 @@ test("the day skill raises discuss items first; the night skill leaves them out 
   assert.match(night, /\*\*Record every decision you take on the developer's behalf\*\*/);
   assert.match(night, /\{\{cli\}\} decide --file \.night-shift\/input\.json/);
   assert.match(night, /close with \*\*one\nsentence\*\*/);
-  assert.match(night, /"schema": "night-shift\/plan@2"/);
+  assert.match(night, /"schema": "night-shift\/plan@3"/);
+  // D33: the night proves it can work before it starts, and stops when it cannot.
+  assert.match(night, /\*\*When a check fails, or still stops\nfor a permission, do not start the night\.\*\*/);
 });
 
 test('an answer saves when only other parts of the night changed since it was opened (TASK-44)', async () => {

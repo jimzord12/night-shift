@@ -22,7 +22,7 @@ export type Block =
 // references on questions, and a task that follows several follow-up items. Version 3 of the night
 // and follow-up (D31, TASK-46): the agent's decisions and the `disagreed` item. Older files stay
 // valid and are read as they are; new files are written at the newest version.
-export const PLAN_SCHEMA = 'night-shift/plan@2';
+export const PLAN_SCHEMA = 'night-shift/plan@3';
 export const NIGHT_SCHEMA = 'night-shift/night@3';
 export const FOLLOW_UP_SCHEMA = 'night-shift/follow-up@3';
 
@@ -42,6 +42,13 @@ export interface PlanTask {
   follow_up?: FollowUpRefs;
 }
 
+export interface StartCheck {
+  command: string;
+  exit_code: number;
+  excerpt: string;
+  proves?: string;
+}
+
 export interface SkippedFollowUp {
   follow_up: string;
   reason: string;
@@ -49,8 +56,10 @@ export interface SkippedFollowUp {
 
 // What the agent hands to `night-shift start`.
 export interface PlanInput {
-  schema: 'night-shift/plan@1' | 'night-shift/plan@2';
+  schema: 'night-shift/plan@1' | 'night-shift/plan@2' | 'night-shift/plan@3';
   tasks: PlanTask[];
+  // Version 3 (D33, TASK-22): what the agent ran before planning to prove the night can work.
+  start_checks?: StartCheck[];
   skipped_follow_ups?: SkippedFollowUp[];
 }
 

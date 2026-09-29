@@ -161,7 +161,7 @@ without committing.
   `agent_decisions[]` and `feedback[].sent`, and the tool alone writes
   `status` and `metrics`.
 - File shapes are versioned by their `schema` values
-  (`night-shift/plan@2`, `night-shift/night@3`,
+  (`night-shift/plan@3`, `night-shift/night@3`,
   `night-shift/follow-up@3`; older versions still read). A breaking
   change adds the next version and keeps reading the older ones, or,
   while the only `Adopter`s are the owner's own repositories, updates

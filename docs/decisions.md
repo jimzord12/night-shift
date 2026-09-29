@@ -475,3 +475,32 @@ that guesses from whether the tag exists (TASK-49.1). **Rejected:**
 same keystrokes publish by accident when the tag was not fetched); checking
 out the tag in the clone (the files come straight from the tag). Replaces
 D10's single command; its tags and launcher stand.
+
+## D33  A night proves it can work before it starts (2026-09-30)
+
+**Decision:** before planning, the night skill runs once each kind of command
+the tasks need (the tests, a real empty commit on the night's branch that
+leaves staged work alone, every service the work uses) through the agent's
+own tools, and `plan@3` lists those `start_checks` with their exit codes.
+`night-shift start` refuses a `plan@3` without them or with one that
+failed. When a check fails, the agent hands it to `start` anyway, so the
+tool raises the desktop notification (when on) for a developer who has
+left; the agent then tells the developer what failed and what to do, and
+stops.
+**Limits:** the agent cannot see that a prompt was answered with a one-time
+yes, which lets a check pass and leaves the command waiting at night, so the
+skill asks the developer to answer prompts with "don't ask again" before the
+checks run; and a check still waiting on a prompt after the developer left
+never returns, so nothing can notify. **Why:** a trial night found halfway
+through that commits and the database needed permission approvals nobody
+could give, so nothing was committed and nothing ran (TASK-22). Only the
+agent's own tool calls meet the harness's permission prompts; a check the
+tool ran itself would pass while the agent's next command still waits for
+an approval. The owner chose real commands over reading the permission
+settings, and stopping over starting half-blind. **Rejected:** a checklist
+in the skill alone (nothing enforces it); a dry-run commit (it fails on a
+clean tree and skips hooks); `night-shift start` running the commands
+itself (it bypasses the prompts it is meant to find); reading
+`.claude/settings` (an allowed command can still fail, as a stopped Docker
+does). `plan@1` and `plan@2` still start without checks, so older skills
+keep working.

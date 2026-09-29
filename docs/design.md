@@ -74,13 +74,19 @@ are in `docs/glossary.md`.
 ## Lifecycle of a night
 
 - **Start.** The developer says "start night shift" (or runs
-  `/start-night-shift`). The agent reads any open follow-up file, checks each
-  open item against the real code, and links each one in the plan: as a
-  task with `follow_up`, or under `skipped_follow_ups` with a one-line
-  reason (for example, already fixed by other means). The tool refuses a
-  plan that leaves an open item out. The agent writes the plan, and the
-  tool opens the night, recording the harness session it runs in. The same start refreshes
-  the history copies of earlier nights (see The files). The first night in
+  `/start-night-shift`). The agent first runs its start checks (D33): once
+  each, the tests, a real empty commit and every service the work uses. A
+  check that fails or still stops for a permission stops the start: the
+  agent hands the failed checks to `night-shift start`, which refuses the
+  plan and, when notifications are on, raises a desktop notification for
+  a developer who has left; the agent then tells the developer what to
+  fix, and stops. Otherwise the agent reads any open follow-up file,
+  checks each open item against the real code, and links each one in the
+  plan: as a task with `follow_up`, or under `skipped_follow_ups` with a
+  one-line reason (for example, already fixed by other means). The tool
+  refuses a plan that leaves an open item out. The agent writes the plan,
+  and the tool opens the night, recording the harness session it runs in.
+  The same start refreshes the history copies of earlier nights (see The files). The first night in
   a repository registers it with the local Night Shift install and adds
   `.night-shift/*` and `!.night-shift/history/` to `.gitignore` (git cannot
   re-include a folder inside an ignored one); `night-shift install` does
@@ -177,8 +183,15 @@ repository's nights at a time.
 
 **Version 3** (D31): `night@3` adds `agent_decisions` and `follow-up@3` the
 `disagreed` item kind (with `agent_decision`, the decision it comes from).
-The plan stays at version 2. Older files read as they are; a night started
-by an older release cannot record a decision (the tool says so).
+The plan stayed at version 2 until D33. Older files read as they are; a
+night started by an older release cannot record a decision (the tool says
+so).
+
+**Plan version 3** (D33): `plan@3` adds `start_checks`, the commands the
+agent ran before planning (see Lifecycle, Start), each with its exit code
+and an excerpt. `night-shift start` refuses a `plan@3` without them or with
+one that failed. `plan@1` and `plan@2` still start without them, so older
+skills keep working; such a plan is stored as `@3`, without checks.
 
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
@@ -202,9 +215,13 @@ The agent's promise. `source` is free text so it fits any workflow.
 
 ```json
 {
-  "schema": "night-shift/plan@2",
+  "schema": "night-shift/plan@3",
   "night": "2026-09-26-a",
   "started_at": "2026-09-26T23:10:00+03:00",
+  "start_checks": [
+    { "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed", "proves": "the tests run" },
+    { "command": "git commit --allow-empty --only -m \"chore: night-shift start check\"", "exit_code": 0, "excerpt": "[night/2026-09-26 3f2c1ab] chore: night-shift start check", "proves": "commits run, hooks included" }
+  ],
   "tasks": [
     {
       "id": "T1",
@@ -391,7 +408,7 @@ slash command.
 
 | Skill | Triggered by | Teaches |
 |---|---|---|
-| `start-night-shift` | "start night shift" | The whole night: follow-ups, plan, record per task, questions, decisions, feedback, close |
+| `start-night-shift` | "start night shift" | The whole night: start checks, follow-ups, plan, record per task, questions, decisions, feedback, close |
 | `do-night-shift-follow-up` | "work on the follow-up" | Pick up a follow-up file by day, check items against the code, fix them, update their status |
 
 No `/ns:ask` in version 1: outside a night the developer is at the terminal.
@@ -489,9 +506,11 @@ agent's `close`, or the session-end hook marking it interrupted) raises a
 desktop notification, "blog: night finished" with "2 questions for you ·
 3 done, 1 blocked", whose click opens that `Night Report` in the Viewer; a
 Viewer is started on the configured port (4747 by default) when none runs.
-Windows raises a toast through Windows PowerShell, with nothing to install;
-elsewhere, or by choice, `--command "<cmd>"` runs the developer's own
-command with `NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
+A night that a failed start check stops (D33) raises one too, "blog: the
+night did not start", naming the checks. Windows raises a toast through
+Windows PowerShell, with nothing to install; elsewhere, or by choice,
+`--command "<cmd>"` runs the developer's own command with
+`NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
 `night-shift notify test` raises one now. The setting lives in the install
 folder (`notify.json`), per machine.
 

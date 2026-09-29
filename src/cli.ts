@@ -7,12 +7,12 @@ import { spawn } from 'node:child_process';
 import { serve } from '@hono/node-server';
 import { createApp } from './server.ts';
 import { StoreError, followUpSchemaProblems, forgetRepo, listFollowUpIds, listNightIds, parseJson, readFollowUp, readNight } from './store.ts';
-import { ask, close, decide, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
+import { StartCheckFailed, ask, close, decide, feedback, onSessionEnd, record, recover, start, status } from './night.ts';
 import { openItems, resolveItem } from './followup.ts';
 import { allow, install } from './install.ts';
 import { repoRoot } from './repo.ts';
 import { versionString } from './version.ts';
-import { notifyNightEnded, raise, readNotify, writeNotify } from './notify.ts';
+import { notifyNightEnded, notifyStartRefused, raise, readNotify, writeNotify } from './notify.ts';
 import type { Night } from './types.ts';
 import type { AskInput, DecideInput, RecordInput } from './night.ts';
 
@@ -20,7 +20,7 @@ const USAGE = `night-shift — unattended agent work, read in the morning
 
 For agents (JSON with --file .night-shift/input.json, on stdin, or with --json '<json>'):
   night-shift status                          where the open night stands, and the next step
-  night-shift start                           open a night from a plan (night-shift/plan@2)
+  night-shift start                           open a night from a plan (night-shift/plan@3)
   night-shift record                          record one task's outcome, checks and evidence
   night-shift ask                             add a question for the developer
   night-shift decide                          record a decision taken for the developer (task, decision, why)
@@ -36,7 +36,7 @@ For the developer:
   night-shift forget <repo id or path>        take a repository off the Viewer (its files stay)
   night-shift check [repo]                    validate a repository's night and follow-up files
   night-shift notify [on|off|test] [--port N] [--command "<cmd>"]
-                                              a desktop notification when a night ends (off until turned on)
+                                              a desktop notification when a night ends or does not start (off until turned on)
   night-shift --version
   night-shift docs                            this list, plus how a night goes
 
@@ -50,11 +50,15 @@ const DOCS = `${USAGE}
 
 How a night goes (the start-night-shift skill has the details):
   1. night-shift status                  an open night to continue, and open follow-up items
-  2. night-shift start                   the plan: tasks with done_when lines; follow-up items planned or skipped
-  3. per task: the work, then night-shift record (outcome, one check per done_when line, evidence);
+  2. start checks                        run once each kind of command the night needs (tests, a commit, its services);
+                                         one fails: hand it to night-shift start (it refuses and notifies), tell the
+                                         developer what to fix, and stop
+  3. night-shift start                   the plan: the start checks, tasks with done_when lines, follow-up items
+                                         planned or skipped
+  4. per task: the work, then night-shift record (outcome, one check per done_when line, evidence);
      night-shift ask when the task cannot go on without the developer or a wrong choice would be
      costly to undo; night-shift decide for every other choice taken on their behalf
-  4. night-shift close --summary "<one sentence>"
+  5. night-shift close --summary "<one sentence>"
 In the morning the developer answers and reviews in night-shift view, then saves a follow-up; the
 next night (or a day session, do-night-shift-follow-up) picks it up.`;
 
@@ -229,7 +233,16 @@ async function main(argv: string[]): Promise<number> {
       console.log(status(repo()));
       return 0;
     case 'start': {
-      const r = start(repo(), inputText(p));
+      let r: ReturnType<typeof start>;
+      try {
+        r = start(repo(), inputText(p));
+      } catch (error) {
+        if (error instanceof StartCheckFailed) {
+          const note = await notifyStartRefused(repo(), error.commands).catch((e: Error) => `The notification failed: ${e.message}`);
+          if (note) console.error(note);
+        }
+        throw error;
+      }
       console.log(r.messages.join('\n'));
       return 0;
     }
@@ -301,7 +314,7 @@ async function commandNotify(p: Parsed): Promise<number> {
     return result.startsWith('Notified') ? 0 : 1;
   } else if (sub !== undefined) throw new UsageError(`unknown notify command "${sub}"; use on, off or test`);
   if (sub !== undefined || p.flags.port !== undefined || p.flags.command !== undefined) writeNotify(s);
-  console.log(`Notifications are ${s.enabled ? 'on' : 'off'}: when a night ends, ${s.enabled ? 'a notification links to its report' : 'nothing is raised'} (Viewer port ${s.port}${s.command ? `, command: ${s.command}` : ''}).`);
+  console.log(`Notifications are ${s.enabled ? 'on' : 'off'}: when a night ends or a start check stops it, ${s.enabled ? 'a notification says so and links to the Viewer' : 'nothing is raised'} (Viewer port ${s.port}${s.command ? `, command: ${s.command}` : ''}).`);
   return 0;
 }
 

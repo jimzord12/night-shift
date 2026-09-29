@@ -1,7 +1,8 @@
-// Desktop notifications when a night ends (D24, TASK-33): optional per install and off until the
-// developer turns them on, since Night Shift imposes nothing. A click opens that night's report in
-// the Viewer, which is started first when it is not running. Windows raises a toast; elsewhere, or
-// by choice, a command of the developer's own receives the title, text and link.
+// Desktop notifications when a night ends, or a start check stops it (D24, TASK-33, D33):
+// optional per install and off until the developer turns them on, since Night Shift imposes
+// nothing. A click opens that night's report in the Viewer, which is started first when it is
+// not running. Windows raises a toast; elsewhere, or by choice, a command of the developer's own
+// receives the title, text and link.
 
 import fs from 'node:fs';
 import net from 'node:net';
@@ -56,6 +57,13 @@ export async function notifyNightEnded(repo: string, n: Night): Promise<string |
   const ref = registerRepo(repo);
   const { title, text } = nightMessage(ref.name, n);
   return raise(s, title, text, reportUrl(s.port, ref.id, n.night));
+}
+
+// A night that did not start because a start check failed (D33): the developer may have left.
+export async function notifyStartRefused(repo: string, commands: string[]): Promise<string | null> {
+  const s = readNotify();
+  if (!s.enabled) return null;
+  return raise(s, `${path.basename(repo)}: the night did not start`, `A start check failed: ${commands.join(', ')}. The agent says what to fix.`, `http://127.0.0.1:${s.port}/`);
 }
 
 export async function raise(s: NotifySettings, title: string, text: string, url: string): Promise<string> {

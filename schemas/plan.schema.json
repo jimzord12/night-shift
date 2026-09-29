@@ -6,7 +6,7 @@
   "required": ["schema", "tasks"],
   "additionalProperties": false,
   "properties": {
-    "schema": { "enum": ["night-shift/plan@1", "night-shift/plan@2"] },
+    "schema": { "enum": ["night-shift/plan@1", "night-shift/plan@2", "night-shift/plan@3"] },
     "night": { "type": "string", "description": "Added by the tool" },
     "started_at": { "type": "string", "description": "Added by the tool" },
     "tasks": {
@@ -21,6 +21,23 @@
           "source": { "type": "string", "minLength": 1, "maxLength": 300 },
           "done_when": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1, "maxLength": 300 } },
           "follow_up": { "oneOf": [{ "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z]+/A[0-9]+$" }, { "type": "array", "minItems": 1, "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z]+/A[0-9]+$" } }] }
+        }
+      }
+    },
+    "start_checks": {
+      "description": "Version 3: the commands the agent ran before planning, to prove the night can work (tests, a commit, its services); the tool refuses to start while one failed",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["command", "exit_code", "excerpt"],
+        "additionalProperties": false,
+        "properties": {
+          "command": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "exit_code": { "type": "integer" },
+          "excerpt": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "proves": { "type": "string", "maxLength": 200 }
         }
       }
     },
