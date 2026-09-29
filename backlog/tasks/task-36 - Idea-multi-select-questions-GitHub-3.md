@@ -1,10 +1,10 @@
 ---
 id: TASK-36
 title: 'Idea: multi-select questions (GitHub #3)'
-status: Queued
+status: Ready
 assignee: []
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-27 21:43'
+updated_date: '2026-09-29 08:19'
 labels:
   - cli
   - skills
@@ -25,7 +25,7 @@ Feedback from a real Adopter's night, sent by the owner as issue #3: keep/drop q
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The owner has decided whether and how to build it
+- [x] #1 The owner has decided whether and how to build it
 <!-- AC:END -->
 
 ## Definition of Done
@@ -35,3 +35,9 @@ Feedback from a real Adopter's night, sent by the owner as issue #3: keep/drop q
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-09-29: the owner said yes: build it.
+<!-- SECTION:NOTES:END -->

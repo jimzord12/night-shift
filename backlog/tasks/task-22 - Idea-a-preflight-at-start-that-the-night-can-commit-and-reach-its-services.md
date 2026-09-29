@@ -1,10 +1,10 @@
 ---
 id: TASK-22
 title: 'Idea: a preflight at start that the night can commit and reach its services'
-status: Queued
+status: Ready
 assignee: []
 created_date: '2026-09-26 12:36'
-updated_date: '2026-09-26 18:09'
+updated_date: '2026-09-29 08:19'
 labels:
   - skills
 dependencies: []
@@ -38,4 +38,6 @@ Night 1 of the v7 trial found halfway through that git commit and docker needed 
 Idea: discuss with the owner before implementing.
 
 2026-09-26: v11 adds night-shift allow (D23) for the tool's own permissions. The wider preflight (can the night commit, run tests, reach its services) is still open.
+
+2026-09-29: the owner said yes, super important. Design choices to bring: how the check runs, and whether a failed check stops the night.
 <!-- SECTION:NOTES:END -->

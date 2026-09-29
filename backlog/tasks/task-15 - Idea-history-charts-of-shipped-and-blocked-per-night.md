@@ -4,7 +4,7 @@ title: 'Idea: history charts of shipped and blocked per night'
 status: Queued
 assignee: []
 created_date: '2026-09-25 17:59'
-updated_date: '2026-09-27 21:46'
+updated_date: '2026-09-29 08:19'
 labels:
   - viewer
 dependencies: []
@@ -36,4 +36,6 @@ Owner idea, not decided: shipped and blocked per night over time. Discuss with t
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-09-28 (D24): the Trends tab leaves the navigation until there is data. Suggestion, not decided: a first version could be two or three numbers on top of History rather than a page.
+
+2026-09-29: parked by the owner.
 <!-- SECTION:NOTES:END -->
