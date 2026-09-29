@@ -3,7 +3,8 @@
 Read this before replying to the owner for the first time in a session, and
 before saving a draft or scratch evidence. `.local/` holds agent context
 that must never reach the repository: the owner's personal preferences,
-planning drafts and scratch proof (D18).
+planning drafts, scratch proof, and the pointer to the owner's trial copy
+with its reviews (D18).
 
 ## Layout
 
@@ -13,6 +14,9 @@ planning drafts and scratch proof (D18).
     owner-profile.md
   planning/<topic>/                drafts not yet promoted to a doc or a task
   evidence/<yyyy-mm-dd>-<slug>/    scratch proof: numbered screenshots, logs, walk scripts
+  trial/reviews/                   reviews of the trial copy: they name private paths and projects
+  trial/README.md                  where the owner's trial copy is and what each scripted night
+                                   should show (docs/practices/evidence.md, Real nights)
 ```
 
 `.gitignore` holds `/.local/`; every new clone also adds it to
