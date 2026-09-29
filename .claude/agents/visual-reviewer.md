@@ -22,21 +22,33 @@ to you.
 
 ## Set up
 
-1. Copy sample data, never the originals: answers, follow-ups and feedback
-   write into the files. Make a scratch install folder and point
-   `NIGHT_SHIFT_ROOT` at it, copy the repositories or night folders you
-   were given into a temporary folder, and register the copies there
-   (`night-shift install <copy>` or the lead's instructions).
-2. Build the `Viewer` (`npm run build`) and start it as `AGENTS.md`
-   "Commands" says, on a free port, with `NIGHT_SHIFT_ROOT` set to your
-   scratch folder.
-3. Drive it with Playwright from a Node script (this repository has no
-   Playwright of its own: import it from a sibling checkout the lead names,
-   or `npx playwright` when it is available). If the session gives you the
+1. Start from the sandbox, never from real nights: answers, follow-ups and
+   feedback write into the files. Set `NIGHT_SHIFT_SANDBOX` to a scratch
+   folder of your own on every sandbox command, `stop` included (a
+   variable does not carry from one shell call to the next), so other
+   agents' scenarios and yours never stop or replace each other.
+   `npm run sandbox list` names the scenarios;
+   `npm run sandbox <scenario>` builds the `Viewer`, builds that scenario
+   in its own install folder and prints the address (run
+   `npm run sandbox docs` first). The build is shared by the checkout:
+   when another agent already serves a sandbox from it, start yours with
+   `npm run sandbox -- <scenario> --no-build`. Run it again to start a
+   journey over. Use
+   data the lead gives you only when no scenario fits, and then copy it
+   into a scratch folder with `NIGHT_SHIFT_ROOT` pointed at its own
+   install folder.
+2. Drive it with Playwright from a Node script, imported from this
+   repository's own dependency
+   (`npm run sandbox -- shot <scenario> --out <folder>` covers plain
+   screenshots, `--phone` at 390 px). If the session gives you the
    Chrome extension tools, you may use the owner's browser instead; open a
    new tab and leave the others alone.
-4. Save every screenshot in a new folder under `.local/evidence/` named
-   `<yyyy-mm-dd>-visual-<topic>/`, and collect the browser console.
+3. Save every screenshot in a new folder under `.local/evidence/` named
+   `<yyyy-mm-dd>-visual-<topic>/`, never in the sandbox (the next run
+   deletes it), and collect the browser console.
+4. When you are done, `npm run sandbox stop <scenario>` for each one you
+   started: no `Viewer` of yours is left running, and nobody else's is
+   stopped.
 
 ## Walk, then judge
 
