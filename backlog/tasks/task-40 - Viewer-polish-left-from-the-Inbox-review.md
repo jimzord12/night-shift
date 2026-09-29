@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-29 22:37'
+updated_date: '2026-09-29 22:48'
 labels:
   - viewer
 dependencies: []
@@ -53,4 +53,6 @@ From TASK-34 round 4: the focus ring on the deck's cream footer buttons (Not now
 From the TASK-48 visual review (V1): with long cards the gate's focused Save and the 'Saved for the next agent' line sit below the fold; name the saved night in the lead or show the saved line above the remaining cards.
 
 2026-09-30 batch 1 (keyboard, fix/viewer-polish-1): the page behind an open deck is inert, so Tab stays in the deck; the deck returns the focus to what opened it; a second Esc with an unsaved note warns first ('Save it, or press Esc again'); the cream moon buttons get an accent focus-visible ring. Browser test added.
+
+Batch 1 review round 1 (docs/work/TASK-40/reviews/01-*): code FINDINGS, visual FINDINGS, fixed: one leave path (Esc, X, the gate's back button) warns once about an unsaved note, the warning shows on the gate too and any click takes it back; the focus falls back to the page's main area when the opener is gone; the media viewer (deck or report) takes the focus, keeps Tab inside, swallows Enter meant for controls under it and returns the focus to its thumbnail. Tests extended. Left: the warning can push the note out of view at 390 (V4); Save, X and ? keep the browser outline (V5).
 <!-- SECTION:NOTES:END -->

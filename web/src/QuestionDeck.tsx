@@ -126,6 +126,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const setDraft = (d: Draft) => {
     if (!key) return;
     setMessage(null);
+    warnedLeave.current = false;
     setDrafts((all) => ({ ...all, [key]: d }));
   };
   const url = (rel: string) => (item ? fileUrl(item.detail.repo.id, item.detail.night.night, rel) : rel);
@@ -157,7 +158,9 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     scroller.current?.focus({ preventScroll: true });
-    return () => opener?.focus({ preventScroll: true });
+    // An opener gone with the page's change (Start my morning once nothing is left) hands the focus
+    // to the page, not to the top of the document.
+    return () => (opener?.isConnected ? opener : document.querySelector<HTMLElement>('main'))?.focus({ preventScroll: true });
   }, []);
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(order.length - 1, i))), [order.length]);
@@ -223,7 +226,17 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   }, [q, item, draft, key, busy, savedKeys, passed, order, index]);
 
   const noteRef = useRef<HTMLTextAreaElement>(null);
+  // Leaving (Esc, the close button, the gate's back button) with a typed note that is not saved
+  // warns once; leaving again drops it. Any other key or a click takes the warning back.
   const warnedLeave = useRef(false);
+  const leave = () => {
+    const unsaved = Object.entries(drafts).some(([k, d]) => d.note.trim() && d.note.trim() !== (byKey.get(k)?.question.note ?? '').trim());
+    if (unsaved && !warnedLeave.current) {
+      warnedLeave.current = true;
+      return setMessage('You have a note that is not saved. Save it, or leave again (Esc) to go without it.');
+    }
+    onClose();
+  };
   const qRef = useRef(q);
   qRef.current = q;
   useEffect(() => {
@@ -236,15 +249,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         clearTimeout(noteFocus.current);
         return (e.target as HTMLElement).blur();
       }
-      if (e.key === 'Escape') {
-        // A note typed and not saved is not dropped by a second Esc without a word: the first says so.
-        const unsaved = Object.entries(drafts).some(([k, d]) => d.note.trim() && d.note.trim() !== (byKey.get(k)?.question.note ?? '').trim());
-        if (unsaved && !warnedLeave.current) {
-          warnedLeave.current = true;
-          return setMessage('You have a note that is not saved. Save it, or press Esc again to leave without it.');
-        }
-        return onClose();
-      }
+      if (e.key === 'Escape') return leave();
       warnedLeave.current = false;
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
@@ -334,7 +339,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const rec = item?.decision || !q ? undefined : multi ? { id: joined(q.recommended)!, label: answerLabel({ ...q, answer: recIds })! } : q.options.find((o) => o.id === q.recommended);
 
   return (
-    <div ref={scroller} tabIndex={-1} onPointerDown={() => (clicked.current = true)} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
+    <div ref={scroller} tabIndex={-1} onPointerDown={() => { clicked.current = true; warnedLeave.current = false; }} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">
@@ -356,13 +361,16 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             })}
           </div>
           <span className="text-sm text-white/60 tabular-nums">{answeredCount} / {order.length}</span>
-          <button onClick={onClose} className="rounded-full p-2 hover:bg-white/10" aria-label="Close">
+          <button onClick={leave} className="rounded-full p-2 hover:bg-white/10" aria-label="Close">
             <Icon name="close" className="size-5" />
           </button>
         </header>
 
         {finished ? (
-          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={onClose} back={from} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
+          <>
+          {message && <div className="mt-6 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{message}</div>}
+          <Gate nights={deckNights} savedNow={savedNow} onSavedNow={(k) => setSavedNow((s) => new Set(s).add(k))} onSaved={onSaved} onConflict={onConflict} onClose={leave} back={from} onTop={() => scroller.current?.scrollTo({ top: 0 })} celebrated={celebrated} onCelebrated={() => setCelebrated(true)} />
+          </>
         ) : !q || !draft || !item ? (
           <div className="my-auto text-center text-white/60">No open questions.</div>
         ) : (

@@ -390,11 +390,69 @@ test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a 
     await page.keyboard.type('Keep the logo small.');
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
-    await deck.getByText('You have a note that is not saved').waitFor();
+    const warning = deck.getByText('You have a note that is not saved');
+    await warning.waitFor();
     assert.equal(await deck.count(), 1, 'the second Esc closed the deck');
+    // A click takes the warning back: the next Esc warns again rather than closing.
+    await deck.getByRole('button', { name: /^Detailed/ }).click();
+    await warning.waitFor({ state: 'detached' });
+    await page.keyboard.press('Escape');
+    await warning.waitFor();
+    // On the gate too: Not now leads there, and leaving warns before the note goes.
+    await deck.getByRole('button', { name: /Not now/ }).click();
+    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor({ state: 'detached' });
+    await page.keyboard.press('Escape');
+    await warning.waitFor();
+    assert.equal(await deck.count(), 1, 'the gate closed without a warning');
     await page.keyboard.press('Escape');
     await deck.waitFor({ state: 'detached' });
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent ?? ''), await opener.textContent(), 'the focus did not return to the opener');
+    assert.ok(await opener.evaluate((el) => el === document.activeElement), 'the focus did not return to the opener');
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
+
+test('the media viewer over the deck keeps the keys: Tab and Enter never reach the deck behind it', async () => {
+  const repo = gitRepo('zoom');
+  const id = start(repo, plan(TASKS.slice(0, 1)), session('zm', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  const pics = path.join(repo, '.night-shift', 'nights', id, 'evidence');
+  fs.mkdirSync(pics, { recursive: true });
+  fs.writeFileSync(path.join(pics, 'red.png'), png);
+  fs.writeFileSync(path.join(pics, 'blue.png'), png);
+  ask(repo, { task: 'T1', ask: 'Which icon colour?', options: [{ label: 'Red', image: 'evidence/red.png' }, { label: 'Blue', image: 'evidence/blue.png' }], recommended: 'b' });
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  close(repo, 'Icons wait for you.');
+  recover(repo);
+  const ref = registerRepo(repo);
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
+    await page.getByRole('button', { name: /Start answering/ }).click();
+    const deck = page.locator('div.sky.fixed');
+    await deck.getByRole('heading', { name: 'Which icon colour?' }).waitFor();
+    const thumb = deck.getByTitle('View Red in full');
+    await thumb.focus();
+    await page.keyboard.press('Enter');
+    const viewer = page.getByRole('dialog');
+    await viewer.waitFor();
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press('Tab');
+      assert.ok(await viewer.evaluate((v) => v.contains(document.activeElement)), `Tab ${i + 1} left the viewer`);
+    }
+    // Closing it puts the focus back, and the deck is still on this question, unanswered.
+    await page.keyboard.press('Escape');
+    await viewer.waitFor({ state: 'detached' });
+    assert.ok(await thumb.evaluate((el) => el === document.activeElement), 'the focus did not return to the thumbnail');
+    await deck.getByRole('heading', { name: 'Which icon colour?' }).waitFor();
+    assert.equal(loadNight(repo, id).night.questions[0].answer, null);
   } finally {
     await browser.close();
     server.close();

@@ -27,11 +27,30 @@ const KIND_LABEL: Record<MediaKind, string> = { image: 'Image', video: 'Video', 
 export function MediaViewer({ media, onClose }: { media: Media; onClose: () => void }) {
   const kind = media.kind ?? mediaKind(media.src);
   const [actual, setActual] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  // Keys stay in the viewer while it is open (whatever opened it, the deck or a report), and the
+  // focus goes back to what opened it when it closes.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    root.current?.querySelector<HTMLElement>('[data-viewer-close]')?.focus({ preventScroll: true });
+    return () => opener?.focus({ preventScroll: true });
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose();
+      }
+      if (e.key === 'Tab' && root.current) {
+        const all = [...root.current.querySelectorAll<HTMLElement>('button, a[href], video, iframe')];
+        const i = all.indexOf(document.activeElement as HTMLElement);
+        e.preventDefault();
+        e.stopPropagation();
+        all[(i + (e.shiftKey ? -1 : 1) + all.length) % all.length]?.focus();
+      } else if (e.key === 'Enter' && !root.current?.contains(document.activeElement)) {
+        // Enter must not press a control hidden under the viewer.
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
     window.addEventListener('keydown', onKey, true);
@@ -39,7 +58,7 @@ export function MediaViewer({ media, onClose }: { media: Media; onClose: () => v
   }, [onClose]);
   const external = /^https?:\/\//i.test(media.src);
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 backdrop-blur-sm" onClick={onClose}>
+    <div ref={root} role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col bg-black/90 backdrop-blur-sm" onClick={onClose}>
       <header className="flex items-center gap-3 px-5 py-3" onClick={(e) => e.stopPropagation()}>
         <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide uppercase">{KIND_LABEL[kind]}</span>
         <span className="min-w-0 flex-1 truncate text-white/80">{media.title ?? media.src.split('/').pop()}</span>
@@ -49,7 +68,7 @@ export function MediaViewer({ media, onClose }: { media: Media; onClose: () => v
         <a href={media.src} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20">
           <Icon name="link" className="size-4" /> Open in new tab
         </a>
-        <button onClick={onClose} className="moon-btn size-10" aria-label="Close"><Icon name="close" className="size-5" strokeWidth={2.6} /></button>
+        <button data-viewer-close onClick={onClose} className="moon-btn size-10" aria-label="Close"><Icon name="close" className="size-5" strokeWidth={2.6} /></button>
       </header>
       <div className="min-h-0 flex-1 px-5 pb-5" onClick={(e) => e.target === e.currentTarget && onClose()}>
         {kind === 'image' && (

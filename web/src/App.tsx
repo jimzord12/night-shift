@@ -255,7 +255,7 @@ export function App() {
         {route.page === 'night' && failure && <Banner>{failure}</Banner>}
 
         {overview && (
-          <main className="mt-4">
+          <main className="mt-4 outline-none" tabIndex={-1}>
             {route.page === 'inbox' && (
               <Inbox
                 overview={overview}
