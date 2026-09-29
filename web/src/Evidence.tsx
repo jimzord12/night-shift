@@ -58,7 +58,7 @@ export function MediaViewer({ media, onClose }: { media: Media; onClose: () => v
   }, [onClose]);
   const external = /^https?:\/\//i.test(media.src);
   return (
-    <div ref={root} role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col bg-black/90 backdrop-blur-sm" onClick={(e) => {
+    <div ref={root} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[60] outline-none flex flex-col bg-black/90 backdrop-blur-sm" onClick={(e) => {
       // Only the dark backdrop closes; a click on the picture or the video is its own, and no click
       // reaches what lies under the viewer (a task drawer closes on its own backdrop click).
       e.stopPropagation();
@@ -88,7 +88,7 @@ export function MediaViewer({ media, onClose }: { media: Media; onClose: () => v
         )}
         {kind === 'pdf' && <iframe src={media.src} title={media.title ?? 'PDF'} className="pop-in h-full w-full rounded-lg bg-white" />}
         {kind === 'page' && (
-          <div className="flex h-full flex-col gap-2">
+          <div className="flex h-full flex-col gap-2" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <iframe src={media.src} title={media.title ?? 'Web page'} sandbox="allow-scripts allow-forms allow-popups" className="pop-in min-h-0 w-full flex-1 rounded-lg bg-white" />
             {external && <p className="text-center text-xs text-white/50">Blank? Some sites refuse to be shown inside another page: use Open in new tab.</p>}
           </div>

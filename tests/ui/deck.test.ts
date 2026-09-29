@@ -408,6 +408,15 @@ test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a 
     await x.click();
     await warning.waitFor();
     assert.equal(await deck.count(), 1, 'the first click on the close button dropped the note');
+    // A key that moves on, even from the close button, takes the warning back; a held Esc is one
+    // attempt, so it warns again rather than leaving.
+    await page.keyboard.press('ArrowRight');
+    await warning.waitFor({ state: 'detached' });
+    await page.keyboard.down('Escape');
+    await page.keyboard.down('Escape');
+    await page.keyboard.up('Escape');
+    await warning.waitFor();
+    assert.equal(await deck.count(), 1, 'a held Esc dropped the note');
     await x.click();
     await deck.waitFor({ state: 'detached' });
     assert.ok(await opener.evaluate((el) => el === document.activeElement), 'the focus did not return to the opener');
@@ -445,7 +454,7 @@ test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a 
 
 test('the media viewer over the deck keeps the keys: Tab and Enter never reach the deck behind it', async () => {
   const repo = gitRepo('zoom');
-  const id = start(repo, plan(TASKS.slice(0, 1)), session('zm', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  const id = start(repo, plan(TASKS.slice(0, 2)), session('zm', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
   const pics = path.join(repo, '.night-shift', 'nights', id, 'evidence');
   fs.mkdirSync(pics, { recursive: true });
@@ -454,6 +463,7 @@ test('the media viewer over the deck keeps the keys: Tab and Enter never reach t
   ask(repo, { task: 'T1', ask: 'Which icon colour?', options: [{ label: 'Red', image: 'evidence/red.png' }, { label: 'Blue', image: 'evidence/blue.png' }], recommended: 'b' });
   ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
   record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'image', path: 'evidence/blue.png', caption: 'Login page' }] });
   close(repo, 'Icons wait for you.');
   recover(repo);
   const ref = registerRepo(repo);
@@ -494,6 +504,20 @@ test('the media viewer over the deck keeps the keys: Tab and Enter never reach t
     assert.ok(await thumb.evaluate((el) => el === document.activeElement), 'the focus did not return to the thumbnail');
     await deck.getByRole('heading', { name: 'Which icon colour?' }).waitFor();
     assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+    // From a task's drawer on the report: a click on the picture keeps the viewer and the drawer, a
+    // click on the dark backdrop closes only the viewer.
+    await page.keyboard.press('Escape');
+    await deck.waitFor({ state: 'detached' });
+    await page.getByText('Fix the login redirect loop').click();
+    const drawer = page.locator('aside.slide-in');
+    await drawer.getByRole('button', { name: 'Login page' }).click();
+    await viewer.waitFor();
+    await viewer.locator('img').click();
+    assert.equal(await viewer.count(), 1, 'a click on the picture closed the viewer');
+    assert.equal(await drawer.count(), 1, 'a click on the picture closed the drawer');
+    await viewer.click({ position: { x: 8, y: 400 } });
+    await viewer.waitFor({ state: 'detached' });
+    assert.equal(await drawer.count(), 1, 'a click on the backdrop closed the drawer too');
   } finally {
     await browser.close();
     server.close();

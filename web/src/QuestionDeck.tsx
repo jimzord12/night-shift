@@ -128,7 +128,6 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const setDraft = (d: Draft) => {
     if (!key) return;
     setMessage(null);
-    warnedLeave.current = false;
     setDrafts((all) => ({ ...all, [key]: d }));
   };
   const url = (rel: string) => (item ? fileUrl(item.detail.repo.id, item.detail.night.night, rel) : rel);
@@ -233,22 +232,19 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
 
   const noteRef = useRef<HTMLTextAreaElement>(null);
   // Leaving (Esc, the close button, the gate's back button) with a typed note that is not saved
-  // warns once; leaving again drops it. Any other key or a click takes the warning back.
-  const warnedLeave = useRef(false);
+  // warns once; leaving again drops it. Any other key or a click takes the warning back. The warning
+  // is armed only while it is on screen, so whatever clears the message (moving on, saving) disarms it.
+  const warned = message === LEAVE_WARNING;
   const leave = () => {
     const unsaved = Object.entries(drafts).some(([k, d]) => d.note.trim() && d.note.trim() !== (byKey.get(k)?.question.note ?? '').trim());
-    if (unsaved && !warnedLeave.current) {
-      warnedLeave.current = true;
-      return setMessage(LEAVE_WARNING);
-    }
+    if (unsaved && !warned) return setMessage(LEAVE_WARNING);
     onClose();
   };
-  // A leave control (marked data-leave) keeps the warning armed, so its second press leaves.
-  const disarm = (target: EventTarget | null) => {
-    if (!warnedLeave.current || (target instanceof Element && target.closest('[data-leave]'))) return;
-    warnedLeave.current = false;
-    setMessage((m) => (m === LEAVE_WARNING ? null : m));
+  const disarm = () => {
+    if (warned) setMessage(null);
   };
+  // Pressing a leave control (marked data-leave) is the second attempt, so it keeps the warning.
+  const onLeaveControl = (target: EventTarget | null) => target instanceof Element && !!target.closest('[data-leave]');
   const qRef = useRef(q);
   qRef.current = q;
   useEffect(() => {
@@ -261,9 +257,14 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         clearTimeout(noteFocus.current);
         return (e.target as HTMLElement).blur();
       }
+      // A held key is one attempt to leave, not two.
+      const pressLeave = (e.key === 'Enter' || e.key === ' ') && onLeaveControl(e.target);
+      if ((e.key === 'Escape' || pressLeave) && e.repeat) return e.preventDefault();
       if (e.key === 'Escape') return leave();
+      // The control presses itself, even when it holds the focus from a click.
+      if (pressLeave) return;
       const gateEnter = finished && e.key === 'Enter' && !(e.target instanceof HTMLButtonElement && !!scroller.current?.contains(e.target));
-      if (!gateEnter) disarm(e.target);
+      if (!gateEnter) disarm();
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
         // A held key saves nothing more: each night on the gate takes its own press (TASK-48).
@@ -352,7 +353,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const rec = item?.decision || !q ? undefined : multi ? { id: joined(q.recommended)!, label: answerLabel({ ...q, answer: recIds })! } : q.options.find((o) => o.id === q.recommended);
 
   return (
-    <div ref={scroller} tabIndex={-1} onPointerDown={(e) => { clicked.current = true; disarm(e.target); }} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
+    <div ref={scroller} tabIndex={-1} onPointerDown={(e) => { clicked.current = true; if (!onLeaveControl(e.target)) disarm(); }} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
       <Starfield />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col px-4 pt-6">
         <header className="flex items-center gap-4">
