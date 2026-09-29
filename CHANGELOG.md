@@ -3,6 +3,23 @@
 One entry per release tag (`npm run release publish vN`); tags are never
 moved.
 
+## v20 (5190e80), 2026-09-30
+
+- A night proves it can work before it starts (TASK-22, D33). The night
+  skill's new step 2 runs once, through the agent's own tools, the tests, a
+  real empty commit on tonight's branch (`--only`, in the repository's
+  commit convention) and one command per service that talks to it, after
+  asking the developer to answer permission prompts with "don't ask
+  again". The plan goes to `night-shift/plan@3` with `start_checks`;
+  `night-shift start` refuses a `plan@3` without them, and any plan with a
+  failed one. A refused start raises the desktop notification ("the night
+  did not start") when notifications are on. `plan@1` and `plan@2` still
+  start without checks, so repositories on an older skill keep working
+  until `night-shift install .` refreshes it.
+- For this repository's own work: `npm run sandbox` serves named Viewer
+  scenarios in a throwaway install (TASK-49.3), and a private trial copy
+  hosts real nights (TASK-49.2). Neither changes what an `Adopter` gets.
+
 ## v19 (03d8f52), 2026-09-29
 
 - Releases are three steps (TASK-49.1, D32): `npm run release build v<N>`
