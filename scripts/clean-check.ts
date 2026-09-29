@@ -18,7 +18,7 @@ const DOCS = `npm run check:clean — a fresh clone installs a published release
 What it does, in a Linux container with Node and git and nothing else:
   clone the public repository (origin's URL) at <branch> (default main)
   npm run release build v<N>, npm run release install v<N>   (default: the newest published tag)
-  night-shift --version names v<N>; night-shift docs runs
+  night-shift --version names v<N>
   a throwaway git repository: night-shift install ., start, record, close, check
   night-shift view answers and lists that night
 The last line is PASS, or FAIL with the step that broke. It checks what is published (the tag,

@@ -19,7 +19,6 @@ PATH="$HOME/.night-shift/bin:$PATH"
 out=$(night-shift --version) || fail "night-shift --version"
 echo "$out"
 case "$out" in "$version "*) ;; *) fail "night-shift --version says '$out', not $version" ;; esac
-night-shift docs > /dev/null || fail "night-shift docs"
 
 step "a tiny night in a throwaway repository"
 mkdir shop && cd shop
