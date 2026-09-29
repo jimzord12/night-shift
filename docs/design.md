@@ -180,6 +180,13 @@ repository's nights at a time.
 The plan stays at version 2. Older files read as they are; a night started
 by an older release cannot record a decision (the tool says so).
 
+**Plan version 3** (D33): `plan@3` adds `start_checks`, the commands the
+agent ran before planning to prove the night can work (the tests, a commit,
+each service), each with its exit code and an excerpt. `night-shift start`
+refuses a `plan@3` without them or with one that failed, and the agent
+tells the developer instead of starting. `plan@1` and `plan@2` still start
+without them, so older skills keep working; the stored plan says `@3`.
+
 A night's id is the local date it started plus `a`, `b`, … for later nights
 that day. Everything lives in the `Adopter`'s `.night-shift/` folder, which
 git ignores except `.night-shift/history/`. At close, the night file is copied
@@ -202,9 +209,13 @@ The agent's promise. `source` is free text so it fits any workflow.
 
 ```json
 {
-  "schema": "night-shift/plan@2",
+  "schema": "night-shift/plan@3",
   "night": "2026-09-26-a",
   "started_at": "2026-09-26T23:10:00+03:00",
+  "start_checks": [
+    { "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed", "proves": "the tests run" },
+    { "command": "git commit --dry-run --allow-empty -m \"start check\"", "exit_code": 0, "excerpt": "On branch night/2026-09-26", "proves": "commits are allowed" }
+  ],
   "tasks": [
     {
       "id": "T1",

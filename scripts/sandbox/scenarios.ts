@@ -65,7 +65,14 @@ function at(days: number, hour: number, minute = 0): Date {
 }
 
 const plan = (tasks: { id: string; title: string; done_when: string[]; follow_up?: string | string[] }[], extra: object = {}) =>
-  JSON.stringify({ schema: PLAN_SCHEMA, tasks: tasks.map((t) => ({ source: 'developer prompt', ...t })), ...extra });
+  JSON.stringify({ schema: PLAN_SCHEMA, tasks: tasks.map((t) => ({ source: 'developer prompt', ...t })), start_checks: START_CHECKS, ...extra });
+
+// What an agent runs before planning to prove the night can work (D33).
+const START_CHECKS = [
+  { command: 'pnpm test', exit_code: 0, excerpt: 'Test Files  41 passed (41)', proves: 'the tests run' },
+  { command: 'git commit --dry-run --allow-empty -m "start check"', exit_code: 0, excerpt: 'On branch night/2026-09-29', proves: 'commits are allowed' },
+  { command: 'docker compose ps --status running', exit_code: 0, excerpt: 'db   postgres:17   running', proves: 'the database is up' },
+];
 
 // Media files copied into a night's evidence folder, named as the blocks cite them.
 function media(repoDir: string, night: string, ...names: string[]): void {

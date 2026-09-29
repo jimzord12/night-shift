@@ -341,3 +341,31 @@ test('a history commit survives a hook that prints megabytes, and a silent refus
   fs.writeFileSync(hook, '#!/bin/sh\nexit 1\n', { mode: 0o755 });
   assert.match(commitPath(repo, '.night-shift/history', 'history b').message, /git commit failed:\n {2}\(no output; exit 1\)/);
 });
+
+test('a version 3 plan starts only after its start checks passed (D33, TASK-22)', () => {
+  const repo = gitRepo('checks');
+  const tasks = TASKS.slice(0, 1);
+  const v3 = (extra: object) => JSON.stringify({ schema: 'night-shift/plan@3', tasks, ...extra });
+  const ok = { command: 'npm test', exit_code: 0, excerpt: '41 passed', proves: 'the tests run' };
+  const refused = (planText: string, pattern: RegExp) => {
+    assert.throws(() => start(repo, planText, session('c', DEAD_PID)), (e: Error) => e instanceof StoreError && pattern.test(e.message));
+    const nights = path.join(repo, '.night-shift', 'nights');
+    assert.equal(fs.existsSync(nights) ? fs.readdirSync(nights).length : 0, 0, 'a refused start opened a night');
+  };
+  // No checks, or an empty list: the night never proved it can work.
+  refused(v3({}), /lists "start_checks"/);
+  refused(v3({ start_checks: [] }), /start_checks/);
+  // One failed check stops it, naming the command, and tells the agent to tell the developer now.
+  refused(v3({ start_checks: [ok, { command: 'docker compose ps', exit_code: 1, excerpt: 'Cannot connect to the Docker daemon' }] }), /`docker compose ps` exited 1.*tell the developer now/);
+  // Every check passed: the night opens, and the plan keeps the checks for the morning.
+  const s = start(repo, v3({ start_checks: [ok] }), session('c', DEAD_PID));
+  assert.ok(s.messages.some((m) => m === 'Start checks passed: the tests run.'), s.messages.join('\n'));
+  const stored = JSON.parse(fs.readFileSync(path.join(repo, '.night-shift', 'nights', s.night.night, 'plan.json'), 'utf8'));
+  assert.deepEqual([stored.schema, stored.start_checks], ['night-shift/plan@3', [ok]]);
+});
+
+test('a version 2 plan still starts without start checks: older skills keep working', () => {
+  const repo = gitRepo('older');
+  const s = start(repo, JSON.stringify({ schema: 'night-shift/plan@2', tasks: TASKS.slice(0, 1) }), session('o', DEAD_PID));
+  assert.equal(s.night.status, 'open');
+});

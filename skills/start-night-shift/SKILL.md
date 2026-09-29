@@ -42,7 +42,7 @@ several items belong to one piece of work) or list it under
 `skipped_follow_ups` with a one-line reason. The tool refuses a plan that
 leaves an open item out. A `decision` item carries the developer's answer:
 follow it. A `waiting` item has no answer yet: plan it, and if it still
-needs the answer, ask it again word for word (step 4; the tool matches the
+needs the answer, ask it again word for word (step 5; the tool matches the
 wording) and record the task `blocked`; not asked again, it stays open
 where it was asked. Skip a `waiting` item only when the question no
 longer matters: a skipped question is closed. A `disagreed` item is a
@@ -53,8 +53,22 @@ leave it out of the plan entirely, together with the other open items of
 the same task (the tool refuses planning or skipping them); a day session
 raises them with the developer.
 
-## 3. The plan: your promise
+## 3. Check that you can work tonight
 
+Before you plan, prove the night can do its work, while the developer may
+still be there: run once, with your normal tools, each kind of command the
+tasks will need. At least the tests, a commit (`git commit --dry-run
+--allow-empty -m "start check"`), and every service the work uses (the
+database, a dev server, a container). A command that stops for a permission
+prompt, or fails, would stop the night hours later with nobody there to
+help.
+
+**When a check fails or waits for a permission, do not start the night.**
+Tell the developer right away what failed and what they need to do (start
+Docker, allow a command, fix the test setup), then stop. Start once every
+check passes. The tool refuses a plan with a failed check.
+
+## 4. The plan: your promise
 List the tasks you will attempt tonight, from the developer's instructions,
 their tracker, or the follow-ups. Each has a `done_when` list: the checks
 that make it done. Write them so a person can verify them.
@@ -63,7 +77,12 @@ Write to `.night-shift/input.json`:
 
 ```json
 {
-  "schema": "night-shift/plan@2",
+  "schema": "night-shift/plan@3",
+  "start_checks": [
+    { "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed", "proves": "the tests run" },
+    { "command": "git commit --dry-run --allow-empty -m \"start check\"", "exit_code": 0, "excerpt": "On branch night/2026-09-26", "proves": "commits are allowed" },
+    { "command": "docker compose ps --status running", "exit_code": 0, "excerpt": "db  postgres:17  running", "proves": "the database is up" }
+  ],
   "tasks": [
     { "id": "T1", "title": "Add PDF invoices to the checkout", "source": "backlog TASK-42",
       "done_when": ["Checkout offers an invoice download", "Invoice matches the order", "Screenshot attached"] },
@@ -80,11 +99,13 @@ then run:
 {{cli}} start --file .night-shift/input.json
 ```
 
+`start_checks` lists what step 3 ran, one entry each, with the real exit
+code and a short excerpt of the output; `proves` says what it shows.
 `source` is free text: a ticket, "developer prompt", a follow-up item. The
 tool prints the night's evidence folder: save screenshots, PDFs and
 recordings there.
 
-## 4. Work, and record each task as soon as it ends
+## 5. Work, and record each task as soon as it ends
 
 Work each task the repository's normal way (branch, tests, review, commit).
 Right after a task ends, record it, before you start the next one, so a
@@ -190,7 +211,7 @@ then run:
 developer needs to judge it. The developer reviews each in the Viewer:
 fine, or "I disagree" with a note that reaches the next agent.
 
-## 5. Friction with Night Shift itself
+## 6. Friction with Night Shift itself
 
 When the vocabulary, a rule or the tool gets in your way (a block you
 needed, a confusing message), log it and carry on. The developer decides
@@ -213,7 +234,7 @@ Kinds: `missing-block`, `confusing-rule`, `bad-fit`, `tool-bug`, `other`.
 Keep private details of this repository out of feedback; it may become a
 public issue.
 
-## 6. Close
+## 7. Close
 
 When every task has an outcome (or time runs out), close with **one
 sentence** the developer reads first, on one line, at most 200 characters

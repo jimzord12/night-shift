@@ -20,7 +20,7 @@ const USAGE = `night-shift — unattended agent work, read in the morning
 
 For agents (JSON with --file .night-shift/input.json, on stdin, or with --json '<json>'):
   night-shift status                          where the open night stands, and the next step
-  night-shift start                           open a night from a plan (night-shift/plan@2)
+  night-shift start                           open a night from a plan (night-shift/plan@3)
   night-shift record                          record one task's outcome, checks and evidence
   night-shift ask                             add a question for the developer
   night-shift decide                          record a decision taken for the developer (task, decision, why)
@@ -50,11 +50,14 @@ const DOCS = `${USAGE}
 
 How a night goes (the start-night-shift skill has the details):
   1. night-shift status                  an open night to continue, and open follow-up items
-  2. night-shift start                   the plan: tasks with done_when lines; follow-up items planned or skipped
-  3. per task: the work, then night-shift record (outcome, one check per done_when line, evidence);
+  2. start checks                        run once each kind of command the night needs (tests, a commit, its services);
+                                         one fails or waits for a permission: tell the developer now and stop
+  3. night-shift start                   the plan: the start checks, tasks with done_when lines, follow-up items
+                                         planned or skipped
+  4. per task: the work, then night-shift record (outcome, one check per done_when line, evidence);
      night-shift ask when the task cannot go on without the developer or a wrong choice would be
      costly to undo; night-shift decide for every other choice taken on their behalf
-  4. night-shift close --summary "<one sentence>"
+  5. night-shift close --summary "<one sentence>"
 In the morning the developer answers and reviews in night-shift view, then saves a follow-up; the
 next night (or a day session, do-night-shift-follow-up) picks it up.`;
 

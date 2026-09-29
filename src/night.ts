@@ -130,7 +130,20 @@ export function start(repo: string, planText: string, session: Session | null = 
     throw new StoreError(`night ${id} is still running in another session; one night at a time per repository`, 409);
   }
   const plan: PlanInput = readPlanInput(planText);
-  const ids = plan.tasks.map((t) => t.id);
+  // Version 3 (D33): the night proves it can work before it starts, while the developer may still
+  // be there to fix what it cannot do alone.
+  if (plan.schema === PLAN_SCHEMA) {
+    if (!plan.start_checks?.length)
+      throw new StoreError(
+        'a night-shift/plan@3 lists "start_checks": run each kind of command tonight needs once (the tests, a commit, each service it uses), then list them: [{ "command": "npm test", "exit_code": 0, "excerpt": "…", "proves": "the tests run" }]',
+      );
+    const failed = plan.start_checks.filter((c) => c.exit_code !== 0);
+    if (failed.length)
+      throw new StoreError(
+        `a start check failed: ${failed.map((c) => `\`${c.command}\` exited ${c.exit_code}`).join('; ')}. Do not start the night: tell the developer now what failed and what they need to do (start a service, allow a command), and start once every check passes.`,
+        422,
+      );
+  }  const ids = plan.tasks.map((t) => t.id);
   if (!ids.length && !plan.skipped_follow_ups?.length) throw new StoreError('the plan has no tasks');
   if (new Set(ids).size !== ids.length) throw new StoreError('task ids repeat in the plan');
 
@@ -186,6 +199,7 @@ export function start(repo: string, planText: string, session: Session | null = 
   }
   const talk = openItems(repo).filter((o) => forTalk(o.followUp, o.item));
   if (talk.length) messages.push(`Left for a day session with the developer (they want to discuss): ${talk.map((o) => `${o.ref} "${o.item.title}"`).join('; ')}.`);
+  if (plan.start_checks?.length) messages.push(`Start checks passed: ${plan.start_checks.map((c) => c.proves ?? c.command).join('; ')}.`);
   messages.push(`Night ${id} is open with ${night.tasks.length} task(s)${session ? '' : ' (no Claude Code session found: metrics will be unknown)'}.`);
   messages.push(`Evidence goes in ${path.relative(repo, evidenceDir(repo, id)).split(path.sep).join('/')}/ and is referenced as evidence/<file>.`);
   messages.push(nextStep(night));

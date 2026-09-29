@@ -9,7 +9,7 @@ import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { insideDir } from './files.ts';
 import type { FollowUp, Night, PlanInput, RepoRef } from './types.ts';
-import { NIGHT_SCHEMA, DISCUSS, OUTCOMES } from './types.ts';
+import { NIGHT_SCHEMA, DISCUSS, OUTCOMES, PLAN_SCHEMA } from './types.ts';
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const SCHEMAS = path.join(REPO_ROOT, 'schemas');
@@ -251,7 +251,7 @@ export function readPlanInput(text: string): PlanInput {
     throw new StoreError(`the plan is not valid JSON: ${(error as Error).message}`);
   }
   const problems = planProblems(data);
-  if (problems.length) throw new StoreError(`the plan does not match night-shift/plan@2: ${problems.join('; ')}`);
+  if (problems.length) throw new StoreError(`the plan does not match ${PLAN_SCHEMA}: ${problems.join('; ')}`);
   return data as PlanInput;
 }
 
