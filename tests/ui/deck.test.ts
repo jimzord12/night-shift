@@ -359,3 +359,44 @@ test('a multiple-choice question: the recommended set is ticked, clicks and keys
     server.close();
   }
 });
+
+test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a note, the focus returns to its opener', async () => {
+  const repo = gitRepo('keep');
+  const id = start(repo, plan(TASKS.slice(0, 1)), session('kp', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  close(repo, 'Invoices wait for you.');
+  recover(repo);
+  const ref = registerRepo(repo);
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
+    const opener = page.getByRole('button', { name: /Start answering/ });
+    await opener.focus();
+    await page.keyboard.press('Enter');
+    const deck = page.locator('div.sky.fixed');
+    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor();
+    // Tab never reaches the page behind the deck.
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.press('Tab');
+      assert.ok(await page.evaluate(() => !!document.activeElement?.closest('div.sky.fixed') || document.activeElement === document.body), `Tab ${i + 1} left the deck`);
+    }
+    await deck.getByRole('button', { name: '+ add a note' }).click();
+    await page.keyboard.type('Keep the logo small.');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await deck.getByText('You have a note that is not saved').waitFor();
+    assert.equal(await deck.count(), 1, 'the second Esc closed the deck');
+    await page.keyboard.press('Escape');
+    await deck.waitFor({ state: 'detached' });
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent ?? ''), await opener.textContent(), 'the focus did not return to the opener');
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});

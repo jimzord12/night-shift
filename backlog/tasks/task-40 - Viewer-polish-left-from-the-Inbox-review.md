@@ -1,10 +1,11 @@
 ---
 id: TASK-40
 title: Viewer polish left from the Inbox review
-status: Queued
-assignee: []
+status: Active
+assignee:
+  - '@claude'
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-28 20:55'
+updated_date: '2026-09-29 22:37'
 labels:
   - viewer
 dependencies: []
@@ -50,4 +51,6 @@ From TASK-34 round 2: a question left with Not now in a night saved earlier is n
 From TASK-34 round 4: the focus ring on the deck's cream footer buttons (Not now, Previous, Next) is the browser's thin outline, hard to see; give them an accent focus-visible ring.
 
 From the TASK-48 visual review (V1): with long cards the gate's focused Save and the 'Saved for the next agent' line sit below the fold; name the saved night in the lead or show the saved line above the remaining cards.
+
+2026-09-30 batch 1 (keyboard, fix/viewer-polish-1): the page behind an open deck is inert, so Tab stays in the deck; the deck returns the focus to what opened it; a second Esc with an unsaved note warns first ('Save it, or press Esc again'); the cream moon buttons get an accent focus-visible ring. Browser test added.
 <!-- SECTION:NOTES:END -->

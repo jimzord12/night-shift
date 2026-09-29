@@ -150,6 +150,11 @@ body {
   transform: translateY(-2px) scale(1.06);
   box-shadow: 0 0 34px -2px #f5d76e88, inset -3px -4px 10px #00000026, inset 2px 2px 6px #ffffffb0;
 }
+/* The browser's thin outline is lost on the cream moon: an accent ring the keyboard can follow. */
+.moon-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
 .moon-btn:active:not(:disabled) {
   transform: scale(0.96);
 }

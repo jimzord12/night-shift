@@ -152,9 +152,12 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
-  // The deck takes the focus from whatever opened it, so keys act on the deck, not the page behind.
+  // The deck takes the focus from whatever opened it, so keys act on the deck, not the page behind,
+  // and gives it back when it closes.
   useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     scroller.current?.focus({ preventScroll: true });
+    return () => opener?.focus({ preventScroll: true });
   }, []);
 
   const go = useCallback((i: number) => setIndex(Math.max(0, Math.min(order.length - 1, i))), [order.length]);
@@ -220,6 +223,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   }, [q, item, draft, key, busy, savedKeys, passed, order, index]);
 
   const noteRef = useRef<HTMLTextAreaElement>(null);
+  const warnedLeave = useRef(false);
   const qRef = useRef(q);
   qRef.current = q;
   useEffect(() => {
@@ -232,7 +236,16 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
         clearTimeout(noteFocus.current);
         return (e.target as HTMLElement).blur();
       }
-      if (e.key === 'Escape') return onClose();
+      if (e.key === 'Escape') {
+        // A note typed and not saved is not dropped by a second Esc without a word: the first says so.
+        const unsaved = Object.entries(drafts).some(([k, d]) => d.note.trim() && d.note.trim() !== (byKey.get(k)?.question.note ?? '').trim());
+        if (unsaved && !warnedLeave.current) {
+          warnedLeave.current = true;
+          return setMessage('You have a note that is not saved. Save it, or press Esc again to leave without it.');
+        }
+        return onClose();
+      }
+      warnedLeave.current = false;
       // On the gate Enter only leaves once nothing is left to save; on a focused button it presses it.
       if (finished) {
         // A held key saves nothing more: each night on the gate takes its own press (TASK-48).
