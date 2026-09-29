@@ -126,7 +126,7 @@ export class StartCheckFailed extends StoreError {
   readonly commands: string[];
   constructor(commands: string[]) {
     super(
-      `a start check failed: ${commands.map((c) => `\`${c}\``).join(', ')}. Do not start the night: tell the developer now what failed and what they need to do (start a service, allow a command for good), then run every check again and start once all pass.`,
+      `a start check failed: ${commands.map((c) => `\`${c}\``).join(', ')}. Do not start the night: tell the developer now what failed and what they need to do (start a service, allow a command for good), and stop; once it is fixed, run every check again and start when all pass.`,
       422,
     );
     this.commands = commands;

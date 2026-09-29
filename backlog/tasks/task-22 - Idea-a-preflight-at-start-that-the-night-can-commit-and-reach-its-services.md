@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-26 12:36'
-updated_date: '2026-09-29 21:25'
+updated_date: '2026-09-29 21:33'
 labels:
   - skills
 dependencies: []
@@ -50,4 +50,6 @@ Idea: discuss with the owner before implementing.
 Review round 1 (docs/work/TASK-22/reviews/): code and context FINDINGS. Blocking: the dry-run commit check exits 1 on a clean tree (confirmed): the skill now makes a real empty commit on the night's branch, which also runs the hooks; examples, design and D33 follow. Material: a one-time yes passes a check: the agent first tells the developer to answer prompts with don't ask again, and reruns every check after a fix (limit recorded in D33); a red suite: run one passing test file; stale plan@2 pointers (design, AGENTS.md, glossary) fixed; the Lifecycle Start bullet now owns the behaviour; glossary Start check added. Minor: formatting, trailing newlines, the stored-@3 wording, the Skills table, an excerpt must not be empty, the shape error names the version range. Added beyond the reports: a refused start raises the desktop notification (tested), so a developer who has left still hears. Filed: showing the checks in the Night Report.
 
 Review round 2 (docs/work/TASK-22/reviews/02-*): code and context FINDINGS, fixed: the check commit uses --only (staged work stays out and staged, tested by hand) and the repository's commit convention (chore: night-shift start check), on tonight's branch, and stays; a failed check is handed to night-shift start with tasks [] so the tool refuses and notifies, then the agent tells and stops (test uses that exact plan); the checks moved to step 2, before follow-ups, as the design says; a check allowed for good is simply rerun; enforcement applies to plan@3 and anything newer; notification docs name the refused start; D33 limits include a check stuck on a prompt; TASK-50 made an Idea.
+
+Review round 3 (docs/work/TASK-22/reviews/03-*): code FINDINGS (M1 the example service check listed containers and passed with the database stopped: now a real ping, docker compose exec db pg_isready, and the rule says a listing is not enough; m1, m2 fixed), context FINDINGS (the glossary step number; the refusal message now says stop, then rerun after the fix; a refused-permission check is recorded with exit code 1; Skills table order; D33 wording; wraps; TASK-50 label). Also: step 2 is skipped when continuing an open night. Left as is: the toast button reads Open the report while a refused start opens the Viewer's home (cosmetic).
 <!-- SECTION:NOTES:END -->

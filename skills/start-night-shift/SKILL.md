@@ -35,14 +35,16 @@ earlier night, and which feedback of earlier nights was sent to GitHub
 
 ## 2. Check that you can work tonight
 
-Before anything else, prove the night can do its work, while the developer
-may still be there: run once, with your normal tools, each kind of command
-the tasks will need. A command that stops for a permission prompt, or
-fails, would stop the night hours later with nobody there to help. First
-tell the developer, in one line, to answer any permission prompt now with
-"don't ask again" (or an allow rule in their settings): a one-time yes lets
-the check pass and leaves the same command waiting at night. Then check at
-least:
+Skip this step when you continue a night already open.
+
+Before the follow-ups and the plan, prove the night can do its work, while
+the developer may still be there: run once, with your normal tools, each
+kind of command the tasks will need. A command that stops for a permission
+prompt, or fails, would stop the night hours later with nobody there to
+help. First tell the developer, in one line, to answer any permission
+prompt now with "don't ask again" (or an allow rule in their settings): a
+one-time yes lets the check pass and leaves the same command waiting at
+night. Then check at least:
 
 - **The tests run.** The test command the tasks will use. When the suite
   is already failing (tonight's work is to fix it), run one test file that
@@ -54,17 +56,22 @@ least:
   runs the repository's hooks, as every commit tonight will. The commit
   stays; do not undo it.
 - **Every service the work uses runs.** The database, a dev server, a
-  container: one command each that talks to it.
+  container: one command each that talks to the service itself (a
+  database ping, a request to the dev server), not one that only lists
+  containers: a stopped database still lists.
 
 A check that stopped for a permission the developer then allowed for good
 is simply run again with the others. **When a check fails, or still stops
 for a permission, do not start the night.** Hand the failed checks to the
 tool so a developer who has left hears of it: write a plan with
-`"tasks": []` and the `start_checks` as they ran (real exit codes) and run
-`{{cli}} start` (step 4); it refuses the plan and raises the developer's
-desktop notification. Then tell the developer what failed and what they
-need to do (start Docker, allow a command for good, fix the test setup),
-and stop. Start once every check passes on a new run.
+`"tasks": []` and the `start_checks` as they ran (real exit codes; a
+command that never ran, because the permission was refused, is recorded
+with exit code 1 and the prompt as its excerpt) and run `{{cli}} start`
+(step 4); it refuses the plan and raises the developer's desktop
+notification when they turned notifications on. Then tell the developer
+what failed and what they need to do (start Docker, allow a command for
+good, fix the test setup), and stop. Start once every check passes on a
+new run.
 
 ## 3. Follow-ups
 
@@ -100,7 +107,7 @@ Write to `.night-shift/input.json`:
   "start_checks": [
     { "command": "npm test", "exit_code": 0, "excerpt": "148 tests, 148 passed", "proves": "the tests run" },
     { "command": "git commit --allow-empty --only -m \"chore: night-shift start check\"", "exit_code": 0, "excerpt": "[night/2026-09-26 3f2c1ab] chore: night-shift start check", "proves": "commits run, hooks included" },
-    { "command": "docker compose ps --status running", "exit_code": 0, "excerpt": "db  postgres:17  running", "proves": "the database is up" }
+    { "command": "docker compose exec db pg_isready", "exit_code": 0, "excerpt": "/var/run/postgresql:5432 - accepting connections", "proves": "the database answers" }
   ],
   "tasks": [
     { "id": "T1", "title": "Add PDF invoices to the checkout", "source": "backlog TASK-42",

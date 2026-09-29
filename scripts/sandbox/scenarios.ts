@@ -71,7 +71,7 @@ const plan = (tasks: { id: string; title: string; done_when: string[]; follow_up
 const START_CHECKS = [
   { command: 'pnpm test', exit_code: 0, excerpt: 'Test Files  41 passed (41)', proves: 'the tests run' },
   { command: 'git commit --allow-empty --only -m "chore: night-shift start check"', exit_code: 0, excerpt: '[night/2026-09-29 3f2c1ab] chore: night-shift start check', proves: 'commits run, hooks included' },
-  { command: 'docker compose ps --status running', exit_code: 0, excerpt: 'db   postgres:17   running', proves: 'the database is up' },
+  { command: 'docker compose exec db pg_isready', exit_code: 0, excerpt: '/var/run/postgresql:5432 - accepting connections', proves: 'the database answers' },
 ];
 
 // Media files copied into a night's evidence folder, named as the blocks cite them.

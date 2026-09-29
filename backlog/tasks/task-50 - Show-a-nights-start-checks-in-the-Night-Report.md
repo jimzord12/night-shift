@@ -4,9 +4,9 @@ title: 'Idea: show a night''s start checks in the Night Report'
 status: Queued
 assignee: []
 created_date: '2026-09-29 21:16'
-updated_date: '2026-09-29 21:22'
+updated_date: '2026-09-29 21:27'
 labels:
-  - enhancement viewer
+  - viewer
 dependencies: []
 priority: low
 ordinal: 52000

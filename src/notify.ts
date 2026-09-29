@@ -1,5 +1,6 @@
-// Desktop notifications when a night ends, or a start check stops it (D24, TASK-33, D33): optional per install and off until the
-// developer turns them on, since Night Shift imposes nothing. A click opens that night's report in
+// Desktop notifications when a night ends, or a start check stops it (D24, TASK-33, D33):
+// optional per install and off until the developer turns them on, since Night Shift imposes
+// nothing. A click opens that night's report in
 // the Viewer, which is started first when it is not running. Windows raises a toast; elsewhere, or
 // by choice, a command of the developer's own receives the title, text and link.
 

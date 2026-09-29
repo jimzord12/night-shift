@@ -408,7 +408,7 @@ slash command.
 
 | Skill | Triggered by | Teaches |
 |---|---|---|
-| `start-night-shift` | "start night shift" | The whole night: follow-ups, start checks, plan, record per task, questions, decisions, feedback, close |
+| `start-night-shift` | "start night shift" | The whole night: start checks, follow-ups, plan, record per task, questions, decisions, feedback, close |
 | `do-night-shift-follow-up` | "work on the follow-up" | Pick up a follow-up file by day, check items against the code, fix them, update their status |
 
 No `/ns:ask` in version 1: outside a night the developer is at the terminal.
@@ -507,8 +507,8 @@ desktop notification, "blog: night finished" with "2 questions for you ·
 3 done, 1 blocked", whose click opens that `Night Report` in the Viewer; a
 Viewer is started on the configured port (4747 by default) when none runs.
 A night that a failed start check stops (D33) raises one too, "blog: the
-night did not start", naming the checks. Windows raises a toast through Windows PowerShell, with nothing to install;
-elsewhere, or by choice, `--command "<cmd>"` runs the developer's own
+night did not start", naming the checks. Windows raises a toast through
+Windows PowerShell, with nothing to install; elsewhere, or by choice, `--command "<cmd>"` runs the developer's own
 command with `NIGHT_SHIFT_TITLE`, `NIGHT_SHIFT_TEXT` and `NIGHT_SHIFT_URL`.
 `night-shift notify test` raises one now. The setting lives in the install
 folder (`notify.json`), per machine.
