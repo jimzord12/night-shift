@@ -1,10 +1,11 @@
 ---
 id: TASK-36
 title: 'Idea: multi-select questions (GitHub #3)'
-status: Ready
-assignee: []
+status: Active
+assignee:
+  - '@claude'
 created_date: '2026-09-27 21:42'
-updated_date: '2026-09-29 08:19'
+updated_date: '2026-09-29 21:57'
 labels:
   - cli
   - skills
@@ -26,6 +27,10 @@ Feedback from a real Adopter's night, sent by the owner as issue #3: keep/drop q
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The owner has decided whether and how to build it
+- [ ] #2 ask takes multiple: true with a recommended list (ids or labels, [] for none); a single-choice question refuses a list and a list needs multiple (tested)
+- [ ] #3 The answer API saves a list of distinct options on a multiple-choice question and refuses anything else; the follow-up item names every chosen option (tested)
+- [ ] #4 The deck shows tick boxes with the recommended set ticked; click, number keys and Enter on an option tick or untick; Save keeps the list (browser test; screenshots at laptop and phone width)
+- [ ] #5 night@4 (D34): a night started by an older release refuses a multiple-choice question; older night files still read
 <!-- AC:END -->
 
 ## Definition of Done

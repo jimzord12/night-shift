@@ -206,7 +206,11 @@ then run:
 ```
 
 A question has two to six options; they get ids `a`, `b`, `c`… in order.
-Every question has a recommendation. **A question about files carries
+Every question has a recommendation. **When several options can be chosen
+together** (which of these to keep, which checks to add), add
+`"multiple": true` and recommend the set you would choose as a list,
+`"recommended": ["a", "c"]` (`[]` for none of them); the developer ticks
+any number of options and the follow-up names every one they chose. **A question about files carries
 them** in `files` (paths inside the repository), so the developer sees
 them instead of hunting for them; the Viewer offers Show in folder. The
 developer may also answer "let's discuss" with a note: that becomes a

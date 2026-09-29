@@ -317,3 +317,43 @@ test('saving one night on the gate never saves the next one before it is seen (T
     server.close();
   }
 });
+
+test('a multiple-choice question: the recommended set is ticked, clicks and keys tick and untick, Save keeps the list (D34)', async () => {
+  const repo = gitRepo('multi');
+  const id = start(repo, plan(TASKS.slice(0, 1)), session('mu', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  ask(repo, { task: 'T1', ask: 'Which exports do we keep?', options: [{ label: 'CSV' }, { label: 'PDF' }, { label: 'XML' }], multiple: true, recommended: ['a', 'c'] });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  close(repo, 'The exports wait for you.');
+  recover(repo);
+  const ref = registerRepo(repo);
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
+    await page.getByRole('button', { name: /Start answering/ }).click();
+    const deck = page.locator('div.sky.fixed');
+    await deck.getByRole('heading', { name: 'Which exports do we keep?' }).waitFor();
+    await deck.getByText('Choose all that apply').waitFor();
+    const ticked = async () => Promise.all(['CSV', 'PDF', 'XML'].map(async (l) => (await deck.getByRole('checkbox', { name: new RegExp(`^${l}`) }).getAttribute('aria-checked')) === 'true'));
+    assert.deepEqual(await ticked(), [true, false, true], 'the recommended set starts ticked');
+    await deck.getByText('Recommended: ').waitFor();
+    assert.match(await deck.locator('text=Recommended:').locator('..').innerText(), /CSV, XML/);
+    // A click unticks, a number key ticks, Enter on a focused option toggles it and saves nothing.
+    await deck.getByRole('checkbox', { name: /^XML/ }).click();
+    await page.keyboard.press('2');
+    await deck.getByRole('checkbox', { name: /^CSV/ }).focus();
+    await page.keyboard.press('Enter');
+    assert.deepEqual(await ticked(), [false, true, false]);
+    assert.equal(loadNight(repo, id).night.questions[0].answer, null, 'Enter on an option saved');
+    await deck.getByRole('button', { name: /^Save/ }).click();
+    await deck.getByRole('heading', { name: 'Which exports do we keep?' }).waitFor({ state: 'detached', timeout: 10_000 });
+    assert.deepEqual(loadNight(repo, id).night.questions[0].answer, ['b']);
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});

@@ -146,6 +146,15 @@ function fullNight(dir: string, days = 1): string {
     recommended: 'b',
   });
   record(dir, { task: 'T6', outcome: 'skipped', checks: [false, false], reason: 'Waits for the priority work to settle.' });
+  // A keep/drop question: several options may be chosen (D34).
+  ask(dir, {
+    task: null,
+    ask: 'Which old export formats do we keep?',
+    why: 'The new CSV export makes some of them redundant; each one kept is code to maintain.',
+    options: [{ label: 'JSON', detail: 'Used by the mobile app' }, { label: 'XML', detail: 'No use in the last 90 days' }, { label: 'Plain text', detail: 'Used by the print view' }],
+    multiple: true,
+    recommended: ['a', 'c'],
+  });
   decide(dir, { task: null, decision: 'Ran the whole test suite once at the end instead of after every task.', why: 'It takes eleven minutes; the targeted tests ran after each task.' });
   feedback(dir, { kind: 'confusing-rule', title: 'record wants one check per done_when line', tags: ['record'], body: 'A task with a long done_when list needs a long checks array; easy to miscount.' });
   close(dir, 'Export and the README shipped; priority is half done; the archive waits for your answer.', at(days - 1, 6, 40));
@@ -158,7 +167,7 @@ function ref(dir: string): RepoRef {
 }
 
 // The Viewer's own API, in process: a morning answered and saved the way the developer does it.
-async function morning(r: RepoRef, night: string, answers: Record<string, { answer: string; note?: string }>, reviews: Record<string, { review: 'ok' | 'disagree'; note?: string }>, save: boolean): Promise<void> {
+async function morning(r: RepoRef, night: string, answers: Record<string, { answer: string | string[]; note?: string }>, reviews: Record<string, { review: 'ok' | 'disagree'; note?: string }>, save: boolean): Promise<void> {
   const app = createApp({ version: 'sandbox' });
   const post = async (what: string, body: object) => {
     const hash = readNight(r.path, night).hash;
@@ -176,9 +185,9 @@ async function savedMorning(base: string): Promise<{ dir: string; r: RepoRef; ni
   const night = fullNight(dir, 2);
   const r = ref(dir);
   const n = readNight(dir, night).night!;
-  const [q1, q2] = n.questions.map((q) => q.id);
+  const [q1, q2, q3] = n.questions.map((q) => q.id);
   const [d1, d2] = (n.agent_decisions ?? []).map((d) => d.id);
-  await morning(r, night, { [q1]: { answer: 'b' }, [q2]: { answer: 'discuss', note: 'Neither: can we match the brand colours?' } }, { [d1]: { review: 'ok' }, [d2]: { review: 'disagree', note: 'Default to low, not normal.' } }, true);
+  await morning(r, night, { [q1]: { answer: 'b' }, [q2]: { answer: 'discuss', note: 'Neither: can we match the brand colours?' }, [q3]: { answer: ['a', 'b'] } }, { [d1]: { review: 'ok' }, [d2]: { review: 'disagree', note: 'Default to low, not normal.' } }, true);
   return { dir, r, night };
 }
 
@@ -192,7 +201,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     name: 'morning',
-    about: 'one closed night to read and answer: every outcome, every evidence block, two questions (one with a file, one with pictures), three agent decisions, feedback',
+    about: 'one closed night to read and answer: every outcome, every evidence block, three questions (one with a file, one with pictures, one multiple choice), three agent decisions, feedback',
     build(base) {
       const dir = repo(base, 'todo');
       const id = fullNight(dir);

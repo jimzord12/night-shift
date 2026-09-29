@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DISCUSS, answerLabel, disagreementItem, handedItem, isOpenQuestionIn, takenBack } from '../../src/types.ts';
+import { DISCUSS, answerLabel, disagreementItem, handedItem, isOpenQuestionIn, recommendedIds, takenBack } from '../../src/types.ts';
 import type { AgentDecision, FollowUpItem, NightDetail, Question } from '../../src/types.ts';
 import { ApiError, fileUrl, postAnswer, postReview, questionFileUrl, revealQuestionFile } from './api.ts';
 import { MediaThumb, MediaViewer, mediaKind } from './Evidence.tsx';
@@ -32,10 +32,14 @@ const handedOf = (i: DeckItem): FollowUpItem | undefined => (i.decision ? disagr
 // Waiting for the developer: an open question, or a decision not reviewed yet.
 export const isOpenItem = (i: DeckItem) => (i.decision ? i.decision.review === null : isOpenQuestionIn(i.question, i.detail.follow_up, i.detail.taken));
 
+// The draft answer is text: an option id, the talk choice, or on a multiple-choice question (D34)
+// the chosen ids joined by commas ("" for none), turned into a list when saved.
 interface Draft {
   answer: string;
   note: string;
 }
+const joined = (v: string | string[] | null) => (Array.isArray(v) ? v.join(',') : v);
+const idsOf = (answer: string) => answer.split(',').filter(Boolean);
 
 interface Props {
   items: DeckItem[];
@@ -102,7 +106,20 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   const settled = (h: FollowUpItem | undefined) => !!h && h.status !== 'open' && !takenBack(h);
   // Settled or held elsewhere: no recommendation is shown as if it were the answer.
   const settledHere = !!q && !!item && (settled(handedOf(item)) || !!takenBy(item));
-  const draft: Draft | null = q && key ? (drafts[key] ?? { answer: q.answer ?? (settledHere ? '' : q.recommended), note: q.note ?? '' }) : null;
+  const multi = !!q?.multiple && !item?.decision;
+  const draft: Draft | null = q && key ? (drafts[key] ?? { answer: joined(q.answer) ?? (settledHere ? '' : joined(q.recommended)!), note: q.note ?? '' }) : null;
+  // What Save sends: a list on a multiple-choice question, unless the talk card is chosen.
+  const toAnswer = (answer: string): string | string[] => (multi && answer !== TALK ? idsOf(answer) : answer);
+  const isOn = (id: string) => !!draft && (multi && draft.answer !== TALK ? idsOf(draft.answer).includes(id) : draft.answer === id);
+  // A click, a number key or Enter on an option: one choice replaces the answer; on a multiple
+  // choice it is ticked or unticked, in the options' order.
+  const pickOption = (id: string) => {
+    if (!draft || !q) return;
+    if (!multi) return setDraft({ ...draft, answer: id });
+    const now = draft.answer === TALK ? [] : idsOf(draft.answer);
+    const next = now.includes(id) ? now.filter((x) => x !== id) : [...now, id];
+    setDraft({ ...draft, answer: q.options.map((o) => o.id).filter((x) => next.includes(x)).join(',') });
+  };
   const locked = (i: DeckItem | undefined) => settled(i ? handedOf(i) : undefined) || !!takenBy(i);
   const handled = (k: string, saved: Set<string>) => saved.has(k) || (byKey.get(k)?.question.answer ?? null) !== null || locked(byKey.get(k));
   // Editing the answer clears an earlier save error: it no longer describes what is on screen.
@@ -184,7 +201,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
     try {
       const detail = item.decision
         ? await postReview(item.detail.repo.id, item.detail.night.night, { decision: item.decision.id, review: draft_.answer as 'ok' | 'disagree', note: draft_.note, baseHash: item.detail.hash, was: { review: item.decision.review, note: item.decision.note } })
-        : await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: draft_.answer, note: draft_.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
+        : await postAnswer(item.detail.repo.id, item.detail.night.night, { question: q.id, answer: toAnswer(draft_.answer), note: draft_.note, baseHash: item.detail.hash, was: { answer: q.answer, note: q.note } });
       onSaved(detail);
       const nextSaved = new Set(savedKeys).add(key);
       setSavedKeys(nextSaved);
@@ -250,6 +267,11 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
           setFocusNote(true);
           return focusNoteSoon();
         }
+        if (option && multi && option !== TALK) {
+          // On a multiple choice Enter ticks the focused option; Save (or Enter elsewhere) saves.
+          e.preventDefault();
+          return pickOption(option);
+        }
         if (option) {
           e.preventDefault();
           return void save(option);
@@ -271,7 +293,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
       const n = Number(e.key);
       const pick = qRef.current.options[n - 1];
       if (n >= 1 && pick) {
-        setDraft({ ...draft, answer: pick.id });
+        pickOption(pick.id);
         // The picked option takes the focus, so Enter saves what the screen shows as chosen.
         clicked.current = false;
         scroller.current?.querySelector<HTMLElement>(`[data-option="${CSS.escape(pick.id)}"]`)?.focus();
@@ -294,7 +316,8 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
   // The nights this deck walked, each with its latest detail, in the deck's order.
   const deckNights = [...new Map(order.map((k) => byKey.get(k)!).filter(Boolean).map((i) => [`${i.detail.repo.id}/${i.detail.night.night}`, i.detail])).values()];
   // A decision's only option is the agent's own: no recommendation to show.
-  const rec = item?.decision ? undefined : q?.options.find((o) => o.id === q.recommended);
+  const recIds = q ? recommendedIds(q) : [];
+  const rec = item?.decision || !q ? undefined : multi ? { id: joined(q.recommended)!, label: answerLabel({ ...q, answer: recIds })! } : q.options.find((o) => o.id === q.recommended);
 
   return (
     <div ref={scroller} tabIndex={-1} onPointerDown={() => (clicked.current = true)} className="sky fixed inset-0 z-40 overflow-y-auto outline-none">
@@ -345,21 +368,24 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             )}
             <h2 className={`font-display leading-tight font-semibold ${item.decision ? 'mt-1 text-xl sm:text-3xl' : 'mt-4 text-2xl sm:text-4xl'}`}>{q.ask}</h2>
             {q.why && <p className="mt-2 text-white/60 sm:text-lg">{q.why}</p>}
+            {multi && !lock && <p className="mt-3 text-sm font-semibold text-white/70">Choose all that apply</p>}
             {q.files && q.files.length > 0 && <QuestionFiles detail={item.detail} q={q} onView={setZoom} />}
 
             <div className="mt-6 grid gap-3">
               {q.options.map((o, i) => {
-                const on = draft.answer === o.id;
+                const on = isOn(o.id);
                 return (
                   <button
                     key={o.id}
                     data-option={o.id}
-                    onClick={() => setDraft({ ...draft, answer: o.id })}
+                    role={multi ? 'checkbox' : undefined}
+                    aria-checked={multi ? on : undefined}
+                    onClick={() => pickOption(o.id)}
                     disabled={!!lock}
                     className={`flex items-center gap-4 rounded-2xl border-2 px-4 py-3.5 text-left transition ${lock ? 'cursor-not-allowed' : 'hover:bg-white/5'}`}
                     style={{ borderColor: on ? 'var(--accent)' : '#ffffff14', background: on ? 'color-mix(in srgb, var(--accent) 22%, var(--color-night-900))' : 'color-mix(in srgb, var(--color-night-800) 92%, transparent)', opacity: lock && !on ? 0.4 : 1 }}
                   >
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full border-2" style={{ borderColor: on ? 'var(--accent)' : '#ffffff30', background: on ? 'var(--accent)' : undefined }}>
+                    <span className={`grid size-7 shrink-0 place-items-center border-2 ${multi ? 'rounded-lg' : 'rounded-full'}`} style={{ borderColor: on ? 'var(--accent)' : '#ffffff30', background: on ? 'var(--accent)' : undefined }}>
                       {on && <Icon name="check" className="size-4" strokeWidth={3} />}
                     </span>
                     {o.image && (
@@ -380,7 +406,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
                       <span className="block font-medium sm:text-lg">{o.label}</span>
                       {o.detail && <span className="block text-sm text-white/55">{o.detail}</span>}
                     </span>
-                    {o.id === q.recommended && !item.decision && <Icon name="sparkle" className="size-4 text-moon" />}
+                    {recIds.includes(o.id) && !item.decision && <Icon name="sparkle" className="size-4 text-moon" />}
                     {lock && on && <Icon name="lock" className="size-4 text-white/70" strokeWidth={2.4} />}
                     {!lock && <kbd className="hidden text-white/40 sm:inline">{i + 1}</kbd>}
                   </button>
@@ -443,7 +469,7 @@ export function QuestionDeck({ items, startKey, from, onClose, onSaved, onConfli
             <footer className="sticky bottom-0 z-10 -mx-4 mt-auto border-t border-white/10 bg-night-950 px-4 py-3 sm:mt-6">
               {message && <div className="mb-2 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{message}</div>}
               {/* On a phone the options may be above the fold: name the answer Save would keep. */}
-              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{draft.answer === DISAGREE && item.decision ? 'I disagree' : answerLabel({ ...q, answer: draft.answer })}</span></div>}
+              {!lock && draft.answer && <div className="mb-2 truncate text-xs text-white/60 sm:hidden">Your answer: <span className="text-white/85">{draft.answer === DISAGREE && item.decision ? 'I disagree' : answerLabel({ ...q, answer: toAnswer(draft.answer) })}</span></div>}
               <div className="flex items-center gap-2">
               <div className="hidden gap-2 sm:flex">
                 <button onClick={() => go(index - 1)} disabled={index === 0} className="moon-btn size-12 shrink-0" aria-label="Previous" title="Previous question (←)"><Icon name="left" className="size-5" strokeWidth={2.8} /></button>

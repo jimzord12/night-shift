@@ -44,7 +44,7 @@
     }
   },
   "properties": {
-    "schema": { "enum": ["night-shift/night@1", "night-shift/night@2", "night-shift/night@3"] },
+    "schema": { "enum": ["night-shift/night@1", "night-shift/night@2", "night-shift/night@3", "night-shift/night@4"] },
     "night": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z]+$" },
     "status": { "enum": ["open", "complete", "interrupted"] },
     "started_at": { "type": "string" },
@@ -110,8 +110,9 @@
               "properties": { "id": { "type": "string", "pattern": "^[a-z]$" }, "label": { "type": "string", "minLength": 1, "maxLength": 200 }, "detail": { "type": "string", "maxLength": 500 }, "image": { "$ref": "#/$defs/path" } }
             }
           },
-          "recommended": { "type": "string" },
-          "answer": { "type": ["string", "null"] },
+          "multiple": { "const": true, "description": "Version 4 (D34): several options may be chosen; recommended and answer are then lists of option ids" },
+          "recommended": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" }, "uniqueItems": true }] },
+          "answer": { "oneOf": [{ "type": "string" }, { "type": "null" }, { "type": "array", "items": { "type": "string" }, "uniqueItems": true }] },
           "note": { "type": ["string", "null"], "maxLength": 2000 },
           "answered_at": { "type": "string" },
           "files": {

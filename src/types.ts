@@ -23,7 +23,7 @@ export type Block =
 // and follow-up (D31, TASK-46): the agent's decisions and the `disagreed` item. Older files stay
 // valid and are read as they are; new files are written at the newest version.
 export const PLAN_SCHEMA = 'night-shift/plan@3';
-export const NIGHT_SCHEMA = 'night-shift/night@3';
+export const NIGHT_SCHEMA = 'night-shift/night@4';
 export const FOLLOW_UP_SCHEMA = 'night-shift/follow-up@3';
 
 // "<follow-up id>/<item id>", or a list of them when one task carries several items forward.
@@ -104,11 +104,15 @@ export interface Question {
   ask: string;
   why?: string;
   options: Option[];
-  recommended: string;
+  // Version 4 (D34, TASK-36): several options may be chosen, for keep/drop questions.
+  multiple?: true;
+  // An option id; a list of them (possibly empty) when `multiple`.
+  recommended: string | string[];
   // Files in the repository the question is about, shown to the developer with Show in folder.
   files?: QuestionFile[];
-  // Written by the Viewer only: an option id, DISCUSS (with a note), or null.
-  answer: string | null;
+  // Written by the Viewer only: an option id (a list of them, possibly empty, when `multiple`),
+  // DISCUSS (with a note), or null.
+  answer: string | string[] | null;
   note: string | null;
   answered_at?: string;
 }
@@ -179,7 +183,7 @@ export interface Session {
 export type NightStatus = 'open' | 'complete' | 'interrupted';
 
 export interface Night {
-  schema: 'night-shift/night@1' | 'night-shift/night@2' | 'night-shift/night@3';
+  schema: 'night-shift/night@1' | 'night-shift/night@2' | 'night-shift/night@3' | 'night-shift/night@4';
   night: string;
   status: NightStatus;
   started_at: string;
@@ -360,7 +364,15 @@ export const forTalk = (f: FollowUp, item: FollowUpItem) =>
 export const followUpDiscuss = (f: FollowUp) => f.items.filter((i) => forTalk(f, i)).length;
 
 // How an answer reads to a person: the option's label, or "Let's discuss".
-export const answerLabel = (q: Question): string | null => (q.answer === null ? null : q.answer === DISCUSS ? "Let's discuss" : (q.options.find((o) => o.id === q.answer)?.label ?? q.answer));
+// The labels of chosen options, in the options' order; "None of them" for an empty multiple choice.
+export const labelsOf = (q: Question, ids: string[]): string =>
+  ids.length ? q.options.filter((o) => ids.includes(o.id)).map((o) => o.label).join(', ') || ids.join(', ') : 'None of them';
+export const answerLabel = (q: Question): string | null =>
+  q.answer === null ? null : q.answer === DISCUSS ? "Let's discuss" : Array.isArray(q.answer) ? labelsOf(q, q.answer) : (q.options.find((o) => o.id === q.answer)?.label ?? q.answer);
+// A question's recommendation as a list, whether it names one option or several.
+export const recommendedIds = (q: Question): string[] => (Array.isArray(q.recommended) ? q.recommended : [q.recommended]);
+// A night file's version, 1 for night@1: features check the version they arrived in.
+export const nightVersion = (n: { schema: string }): number => Number(/@(\d+)$/.exec(n.schema)?.[1] ?? 1);
 
 // D24: one state per night, in this order; the first that holds wins. Whose turn it is decides
 // the colour (web/src/ui.tsx), and the same labels show on cards, the report and History.

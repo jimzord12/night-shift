@@ -2,7 +2,7 @@
 // The Viewer creates one from a closed night; afterwards only the tool changes it (item statuses).
 
 import type { AgentDecision, FollowUp, FollowUpItem, Night, Question, Task } from './types.ts';
-import { DISCUSS, FOLLOW_UP_SCHEMA, TAKEN_BACK, disagreementItem, handedItem, refsOf, takenBack } from './types.ts';
+import { DISCUSS, FOLLOW_UP_SCHEMA, TAKEN_BACK, answerLabel, disagreementItem, handedItem, refsOf, takenBack } from './types.ts';
 import { StoreError, followUpFile, listFollowUpIds, listNightIds, loadNight, localIso, readFollowUp, saveFollowUp } from './store.ts';
 import fs from 'node:fs';
 
@@ -13,6 +13,10 @@ import fs from 'node:fs';
 // it was blocked by.
 const askedAgain = (n: Night, t: Task, item: FollowUpItem) => n.questions.some((q) => (q.task === t.id || q.id === t.blocked_by) && q.ask === item.question);
 
+// A decision item names the chosen option; a multiple choice (D34) names them all, comma-joined,
+// and an empty one names none. The follow-up shape stays as it was.
+const decisionIds = (a: string | string[]): string => (Array.isArray(a) ? a.join(',') : a);
+
 export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string) => FollowUpItem | undefined = () => undefined): FollowUp {
   const items: FollowUpItem[] = [];
   const used = new Set<string>();
@@ -21,7 +25,7 @@ export function buildFollowUp(n: Night, now = new Date(), earlier: (ref: string)
   const answered = (q: Question): Pick<FollowUpItem, 'kind' | 'question' | 'decision' | 'decision_label' | 'owner_note'> =>
     q.answer === DISCUSS
       ? { kind: 'discuss', question: q.ask, ...(q.note ? { owner_note: q.note } : {}) }
-      : { kind: 'decision', question: q.ask, decision: q.answer!, decision_label: q.options.find((o) => o.id === q.answer)?.label ?? q.answer!, ...(q.note ? { owner_note: q.note } : {}) };
+      : { kind: 'decision', question: q.ask, decision: decisionIds(q.answer!), decision_label: answerLabel(q)!, ...(q.note ? { owner_note: q.note } : {}) };
   for (const t of n.tasks) {
     if (t.outcome === 'done' || t.outcome === 'skipped') continue;
     // Never reached: the item it took on is still open in its own follow-up.
@@ -123,8 +127,8 @@ export function followAnswer(repo: string, night: string, q: Question): FollowUp
     if (q.note) item.owner_note = q.note;
   } else {
     item.kind = 'decision';
-    item.decision = q.answer;
-    item.decision_label = q.options.find((o) => o.id === q.answer)?.label ?? q.answer;
+    item.decision = decisionIds(q.answer);
+    item.decision_label = answerLabel(q)!;
     if (q.note) item.owner_note = q.note;
   }
   return f;
