@@ -33,6 +33,17 @@ Give the owner evidence they can read: the last line of a test run, a
 screenshot, a diff image. Not a code listing. In a night these become the
 task's evidence blocks in the night file ([design.md](../design.md#blocks-version-1)).
 
+## Real nights
+
+What only a real night shows (an agent deciding, asking, stalling) is tried
+on the owner's private trial copy of a real app: scripted nights, a reset
+in one command, its own database, and no way to reach GitHub. Where it is,
+and what each scripted night should show, is in `.local/trial/README.md`
+of the main checkout (a worktree has its own `.local/`; missing: ask the
+owner); the copy's own manual is `pnpm trial docs` there. A trial runs the
+installed release (`pnpm trial refresh` after a new one), so it proves a
+release, not a branch. A trial finding becomes a task here like any other.
+
 ## New folder per run
 
 - Every script, build and test run writes into a **new timestamped folder**
