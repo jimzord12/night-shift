@@ -1,10 +1,10 @@
 ---
 id: TASK-21
 title: Install a tagged release from a fresh clone
-status: Queued
+status: Done
 assignee: []
 created_date: '2026-09-26 12:36'
-updated_date: '2026-09-26 12:42'
+updated_date: '2026-09-29 08:36'
 labels:
   - release
 dependencies: []
@@ -31,3 +31,15 @@ npm run release builds a tag only when the tag is new, and switch needs an exist
 - [ ] #3 Review gate passed (docs/practices/review.md) or the small-change path recorded in the commit.
 - [ ] #4 Docs, glossary, decisions and CHANGELOG are current; discovered work is tracked here without duplicates.
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-09-29: absorbed into TASK-49.1 (module 1 of the testing kit).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Superseded: carried on as TASK-49.1.
+<!-- SECTION:FINAL_SUMMARY:END -->
