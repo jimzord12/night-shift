@@ -14,8 +14,8 @@ were replaced and the app's name was painted out of the screenshots.
 - `follow-ups/2026-09-26-b.json`: that answer, resolved later by an agent
   working by day.
 
-To see a morning quickly, `npm run sandbox morning` builds one (`npm run
-sandbox list` shows the others). To look at these files in the `Viewer`
+To see a morning quickly, `npm run sandbox morning` builds one
+(`npm run sandbox list` shows the others). To look at these files in the `Viewer`
 without touching your own install, serve a copy (the tool writes to it,
 and needs a git repository):
 

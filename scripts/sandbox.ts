@@ -76,7 +76,8 @@ async function serves(url: string, name: string): Promise<boolean> {
     if (!res.ok) return false;
     const { repos } = (await res.json()) as { repos: { path: string }[] };
     const home = fs.realpathSync.native(dirOf(name)).toLowerCase() + path.sep;
-    return repos.length > 0 && repos.every((r) => path.resolve(r.path).toLowerCase().startsWith(home));
+    // Another Viewer never lists this sandbox's repositories: the kit registers them only here.
+    return repos.some((r) => path.resolve(r.path).toLowerCase().startsWith(home));
   } catch {
     return false;
   }
@@ -95,6 +96,11 @@ async function stop(name: string): Promise<boolean> {
     } catch {
       // Already gone.
     }
+  } else if (await fetch(s.url, { signal: AbortSignal.timeout(1500) }).then(() => true, () => false)) {
+    // Something answers there that no longer lists this sandbox's repositories (all of them were
+    // forgotten, say): keep track of it rather than claim nothing runs.
+    console.error(`${name}: ${s.url} answers but does not serve this sandbox now; left running (process ${s.pid}), stop it by hand if it is this sandbox's`);
+    return false;
   }
   fs.rmSync(stateFile(name), { force: true });
   return stopped;
