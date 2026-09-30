@@ -417,13 +417,29 @@ test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a 
     await page.keyboard.up('Escape');
     await warning.waitFor();
     assert.equal(await deck.count(), 1, 'a held Esc dropped the note');
+    // Enter on the clicked close button presses it (the second attempt), not Save.
+    await page.keyboard.press('ArrowRight');
+    await warning.waitFor({ state: 'detached' });
     await x.click();
+    await warning.waitFor();
+    await page.keyboard.press('Enter');
     await deck.waitFor({ state: 'detached' });
     assert.ok(await opener.evaluate((el) => el === document.activeElement), 'the focus did not return to the opener');
-    await opener.click();
-    await deck.getByRole('button', { name: '+ add a note' }).click();
-    await page.keyboard.type('Keep the logo small.');
-    await page.keyboard.press('Escape');
+    assert.equal(loadNight(repo, id).night.questions[0].answer, null, 'Enter on the close button saved the question');
+    const reopen = async () => {
+      await opener.click();
+      await deck.getByRole('button', { name: '+ add a note' }).click();
+      await page.keyboard.type('Keep the logo small.');
+      await page.keyboard.press('Escape');
+    };
+    // Space, the button's other key, warns and then leaves the same way.
+    await reopen();
+    await x.focus();
+    await page.keyboard.press('Space');
+    await warning.waitFor();
+    await page.keyboard.press('Space');
+    await deck.waitFor({ state: 'detached' });
+    await reopen();
     // On the gate too: Not now leads there (the click takes the warning back), the night is saved
     // for the next agent (S), and Enter, the gate's own shortcut, warns before the note goes.
     await deck.getByRole('button', { name: /Not now/ }).click();
@@ -518,6 +534,14 @@ test('the media viewer over the deck keeps the keys: Tab and Enter never reach t
     await viewer.click({ position: { x: 8, y: 400 } });
     await viewer.waitFor({ state: 'detached' });
     assert.equal(await drawer.count(), 1, 'a click on the backdrop closed the drawer too');
+    // A held Esc closes the viewer only.
+    await drawer.getByRole('button', { name: 'Login page' }).click();
+    await viewer.waitFor();
+    await page.keyboard.down('Escape');
+    await page.keyboard.down('Escape');
+    await page.keyboard.up('Escape');
+    await viewer.waitFor({ state: 'detached' });
+    assert.equal(await drawer.count(), 1, 'a held Esc closed the drawer too');
   } finally {
     await browser.close();
     server.close();

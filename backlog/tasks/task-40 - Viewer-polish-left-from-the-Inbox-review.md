@@ -5,7 +5,7 @@ status: Active
 assignee:
   - '@claude'
 created_date: '2026-09-28 08:21'
-updated_date: '2026-09-29 23:48'
+updated_date: '2026-09-30 00:08'
 labels:
   - viewer
 dependencies: []
@@ -59,4 +59,6 @@ Batch 1 review round 1 (docs/work/TASK-40/reviews/01-*): code FINDINGS, visual F
 Batch 1 review round 2 (docs/work/TASK-40/reviews/02-*): code FINDINGS, visual FINDINGS, fixed: X and the gate's leave button are leave controls (data-leave) that keep the warning armed, so the second press leaves; Enter on a clear gate goes through the same warning; disarming also clears the warning text; the warning shows beside the gate's way out and scrolls into view; the warning no longer names Esc; a click on the picture or video stays in the viewer and never reaches a drawer under it; Shift+Tab from outside the viewer lands on its last control; the focus falls back to the main area when the opener cannot take it. Found while testing: the new gate effect returned scrollIntoView's value and React crashed on it when the gate closed; now a block body, and the keyboard test asserts no page error. Tests extended; each fix checked by reverting it. Left as notes: video controls inside the trap and keys inside an iframe (R2-5), the viewer header at 390 (V4), focus on the page itself (V5), the drawer's focus (V7).
 
 Batch 1 review round 3 (docs/work/TASK-40/reviews/03-*): code FINDINGS, visual PASS. Fixed: the warning is armed only while it is on screen (no separate flag), so moving on or saving disarms it; only Enter and Space on a leave control keep it, and they press the control even after a click; a held Esc or Enter on a leave control is one attempt; a page-kind viewer closes on its own gap again; the viewer root holds the focus when its picture is clicked. Tests added: X then a key then Esc warns again, a held Esc warns, the picture and backdrop clicks from the report drawer; each checked by reverting its fix. Left as notes: those of rounds 1-2.
+
+Batch 1 review round 4 (docs/work/TASK-40/reviews/04-code-reviewer.md): code PASS. Its two Minor findings fixed anyway: tests for Space on the close button and Enter on a clicked one (both fail with their fix reverted); a held Esc in the report drawer's media viewer closes only the viewer (tested). R4-3 left as a note. Batch 1 merged into main.
 <!-- SECTION:NOTES:END -->
