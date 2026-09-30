@@ -25,6 +25,8 @@ interface Props {
   onSaved: (d: NightDetail) => void;
   onConflict: (repo: string, night: string) => Promise<boolean>;
   onClose: () => void;
+  // The deck's message (the unsaved-note warning, an error), shown beside the way out.
+  notice?: string | null;
   // Where closing returns to.
   back: 'Inbox' | 'report';
   // The deck's scroller: a new state of the gate opens at its top.
@@ -38,10 +40,14 @@ interface Props {
 // saved yet, what the next agent gets and one Save for the next agent; once saved, a confirmation
 // that nothing runs until the developer starts an agent, with the phrase to say. A night still
 // running is named: its answers are kept, and it is saved once it ends.
-export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClose, back, onTop, celebrated, onCelebrated }: Props) {
+export function Gate({ notice, nights, savedNow, onSavedNow, onSaved, onConflict, onClose, back, onTop, celebrated, onCelebrated }: Props) {
   const { running, toSave, clear } = gateState(nights);
   const justSaved = nights.filter((d) => savedNow.has(nightKey(d)) && d.follow_up);
   const earlier = nights.filter((d) => d.night.status !== 'open' && !savedNow.has(nightKey(d)) && d.follow_up);
+  const noticeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    noticeRef.current?.scrollIntoView({ block: 'center' });
+  }, [notice]);
   const heading = toSave.length ? 'One step left' : running.length ? 'Answers kept' : 'All clear';
   const lead = toSave.length
     ? 'Save for the next agent. Nothing runs until you start one.'
@@ -115,7 +121,8 @@ export function Gate({ nights, savedNow, onSavedNow, onSaved, onConflict, onClos
       </div>
 
       <div className="mt-8 text-center">
-        <button onClick={onClose} className={`rounded-full px-6 py-2.5 font-semibold ${clear ? 'bg-[var(--accent)] text-white shadow-lg' : 'glass text-white/80'}`}>
+        {notice && <div ref={noticeRef} className="mb-4 rounded-xl bg-broken/15 px-4 py-2 text-sm text-broken">{notice}</div>}
+        <button data-leave onClick={onClose} className={`rounded-full px-6 py-2.5 font-semibold ${clear ? 'bg-[var(--accent)] text-white shadow-lg' : 'glass text-white/80'}`}>
           {toSave.length ? `Not now, back to the ${back}` : `Back to the ${back}`}
           {clear && <kbd className="ml-2 hidden !border-white/40 sm:inline">Enter</kbd>}
         </button>

@@ -322,7 +322,8 @@ function TaskDrawer({ task: t, detail, onClose, onQuestion }: { task: Task; deta
   const url = (rel: string) => fileUrl(detail.repo.id, detail.night.night, rel);
   const questions = detail.night.questions.filter((q) => q.task === t.id || q.id === t.blocked_by);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !zoom && onClose();
+    // A held Esc closes the media viewer only, not the drawer under it too.
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.repeat && !zoom && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, zoom]);

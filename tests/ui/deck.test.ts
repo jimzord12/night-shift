@@ -359,3 +359,191 @@ test('a multiple-choice question: the recommended set is ticked, clicks and keys
     server.close();
   }
 });
+
+test('the deck keeps the keyboard: Tab stays in it, Esc warns before dropping a note, the focus returns to its opener', async () => {
+  const repo = gitRepo('keep');
+  const id = start(repo, plan(TASKS.slice(0, 1)), session('kp', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  close(repo, 'Invoices wait for you.');
+  recover(repo);
+  const ref = registerRepo(repo);
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    const errs: string[] = [];
+    page.on('pageerror', (e) => errs.push(e.stack ?? e.message));
+    await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
+    const opener = page.getByRole('button', { name: /Start answering/ });
+    await opener.focus();
+    await page.keyboard.press('Enter');
+    const deck = page.locator('div.sky.fixed');
+    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor();
+    // Tab never reaches the page behind the deck.
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.press('Tab');
+      assert.ok(await page.evaluate(() => !!document.activeElement?.closest('div.sky.fixed') || document.activeElement === document.body), `Tab ${i + 1} left the deck`);
+    }
+    await deck.getByRole('button', { name: '+ add a note' }).click();
+    await page.keyboard.type('Keep the logo small.');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    const warning = deck.getByText('You have a note that is not saved');
+    await warning.waitFor();
+    assert.equal(await deck.count(), 1, 'the second Esc closed the deck');
+    // A click takes the warning back: the next Esc warns again rather than closing.
+    await deck.getByRole('button', { name: /^Detailed/ }).click();
+    await warning.waitFor({ state: 'detached' });
+    await page.keyboard.press('Escape');
+    await warning.waitFor();
+    // Any other key takes the warning back, and its text goes with it.
+    await page.keyboard.press('Tab');
+    await warning.waitFor({ state: 'detached' });
+    // The close button warns like Esc, and its second press is the one that leaves.
+    const x = deck.getByRole('button', { name: 'Close' });
+    await x.click();
+    await warning.waitFor();
+    assert.equal(await deck.count(), 1, 'the first click on the close button dropped the note');
+    // A key that moves on, even from the close button, takes the warning back; a held Esc is one
+    // attempt, so it warns again rather than leaving.
+    await page.keyboard.press('ArrowRight');
+    await warning.waitFor({ state: 'detached' });
+    await page.keyboard.down('Escape');
+    await page.keyboard.down('Escape');
+    await page.keyboard.up('Escape');
+    await warning.waitFor();
+    assert.equal(await deck.count(), 1, 'a held Esc dropped the note');
+    // Enter on the clicked close button presses it (the second attempt), not Save.
+    await page.keyboard.press('ArrowRight');
+    await warning.waitFor({ state: 'detached' });
+    await x.click();
+    await warning.waitFor();
+    await page.keyboard.press('Enter');
+    await deck.waitFor({ state: 'detached' });
+    assert.ok(await opener.evaluate((el) => el === document.activeElement), 'the focus did not return to the opener');
+    assert.equal(loadNight(repo, id).night.questions[0].answer, null, 'Enter on the close button saved the question');
+    const reopen = async () => {
+      await opener.click();
+      await deck.getByRole('button', { name: '+ add a note' }).click();
+      await page.keyboard.type('Keep the logo small.');
+      await page.keyboard.press('Escape');
+    };
+    // Space, the button's other key, warns and then leaves the same way.
+    await reopen();
+    await x.focus();
+    await page.keyboard.press('Space');
+    await warning.waitFor();
+    await page.keyboard.press('Space');
+    await deck.waitFor({ state: 'detached' });
+    await reopen();
+    // On the gate too: Not now leads there (the click takes the warning back), the night is saved
+    // for the next agent (S), and Enter, the gate's own shortcut, warns before the note goes.
+    await deck.getByRole('button', { name: /Not now/ }).click();
+    await deck.getByRole('heading', { name: 'Which invoice layout?' }).waitFor({ state: 'detached' });
+    await deck.locator('[data-gate-save]:not(:disabled)').waitFor();
+    await page.keyboard.press('s');
+    const back = deck.getByRole('button', { name: /^Back to the/ });
+    await back.waitFor();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    // At phone size the gate is long: the warning shows beside the way out, where the eye is.
+    await page.setViewportSize({ width: 390, height: 700 });
+    await deck.evaluate((d) => d.scrollTo({ top: 0 }));
+    await page.keyboard.press('Enter');
+    await warning.waitFor();
+    assert.equal(await deck.count(), 1, 'Enter on the gate closed without a warning');
+    const onScreen = () => warning.evaluate((w) => { const r = w.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; });
+    for (let i = 0; i < 20 && !(await onScreen()); i++) await page.waitForTimeout(100);
+    assert.ok(await onScreen(), 'the warning is off-screen');
+    await back.click();
+    await deck.waitFor({ state: 'detached' });
+    assert.ok(await opener.evaluate((el) => el === document.activeElement), 'the focus did not return to the opener');
+    assert.deepEqual(errs, [], 'the page threw');
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
+
+test('the media viewer over the deck keeps the keys: Tab and Enter never reach the deck behind it', async () => {
+  const repo = gitRepo('zoom');
+  const id = start(repo, plan(TASKS.slice(0, 2)), session('zm', DEAD_PID), new Date('2026-09-26T23:10:00')).night.night;
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  const pics = path.join(repo, '.night-shift', 'nights', id, 'evidence');
+  fs.mkdirSync(pics, { recursive: true });
+  fs.writeFileSync(path.join(pics, 'red.png'), png);
+  fs.writeFileSync(path.join(pics, 'blue.png'), png);
+  ask(repo, { task: 'T1', ask: 'Which icon colour?', options: [{ label: 'Red', image: 'evidence/red.png' }, { label: 'Blue', image: 'evidence/blue.png' }], recommended: 'b' });
+  ask(repo, { task: 'T1', ask: 'Which invoice layout?', options: [{ label: 'Compact' }, { label: 'Detailed' }], recommended: 'a' });
+  record(repo, { task: 'T1', outcome: 'blocked', checks: [false, false], blocked_by: 'Q1' });
+  record(repo, { task: 'T2', outcome: 'done', checks: [true], evidence: [{ type: 'image', path: 'evidence/blue.png', caption: 'Login page' }] });
+  close(repo, 'Icons wait for you.');
+  recover(repo);
+  const ref = registerRepo(repo);
+
+  const browser = await chromium.launch();
+  const server = serve({ fetch: createApp({ version: 'test' }).fetch, hostname: '127.0.0.1', port: 0 });
+  try {
+    await new Promise((resolve) => server.once('listening', resolve));
+    const { port } = server.address() as AddressInfo;
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(`http://127.0.0.1:${port}/#/night/${ref.id}/${id}`);
+    await page.getByRole('button', { name: /Start answering/ }).click();
+    const deck = page.locator('div.sky.fixed');
+    await deck.getByRole('heading', { name: 'Which icon colour?' }).waitFor();
+    const thumb = deck.getByTitle('View Red in full');
+    await thumb.focus();
+    await page.keyboard.press('Enter');
+    const viewer = page.getByRole('dialog');
+    await viewer.waitFor();
+    assert.ok(await viewer.getByRole('button', { name: 'Close' }).evaluate((el) => el === document.activeElement), 'the viewer did not take the focus');
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press('Tab');
+      assert.ok(await viewer.evaluate((v) => v.contains(document.activeElement)), `Tab ${i + 1} left the viewer`);
+    }
+    // A click on the picture is the picture's own (actual size), never a close.
+    await viewer.locator('img').click();
+    assert.equal(await viewer.count(), 1, 'a click on the picture closed the viewer');
+    // Enter meant for a deck control under the viewer does nothing: Not now stays unpressed.
+    await deck.getByRole('button', { name: /Not now/ }).evaluate((el) => (el as HTMLElement).focus());
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(400);
+    assert.equal(await deck.getByRole('heading', { name: 'Which invoice layout?' }).count(), 0, 'Enter pressed Not now under the viewer');
+    assert.equal(await viewer.count(), 1, 'Enter under the viewer closed it');
+    await viewer.getByRole('button', { name: 'Close' }).focus();
+    // Closing it puts the focus back, and the deck is still on this question, unanswered.
+    await page.keyboard.press('Escape');
+    await viewer.waitFor({ state: 'detached' });
+    assert.ok(await thumb.evaluate((el) => el === document.activeElement), 'the focus did not return to the thumbnail');
+    await deck.getByRole('heading', { name: 'Which icon colour?' }).waitFor();
+    assert.equal(loadNight(repo, id).night.questions[0].answer, null);
+    // From a task's drawer on the report: a click on the picture keeps the viewer and the drawer, a
+    // click on the dark backdrop closes only the viewer.
+    await page.keyboard.press('Escape');
+    await deck.waitFor({ state: 'detached' });
+    await page.getByText('Fix the login redirect loop').click();
+    const drawer = page.locator('aside.slide-in');
+    await drawer.getByRole('button', { name: 'Login page' }).click();
+    await viewer.waitFor();
+    await viewer.locator('img').click();
+    assert.equal(await viewer.count(), 1, 'a click on the picture closed the viewer');
+    assert.equal(await drawer.count(), 1, 'a click on the picture closed the drawer');
+    await viewer.click({ position: { x: 8, y: 400 } });
+    await viewer.waitFor({ state: 'detached' });
+    assert.equal(await drawer.count(), 1, 'a click on the backdrop closed the drawer too');
+    // A held Esc closes the viewer only.
+    await drawer.getByRole('button', { name: 'Login page' }).click();
+    await viewer.waitFor();
+    await page.keyboard.down('Escape');
+    await page.keyboard.down('Escape');
+    await page.keyboard.up('Escape');
+    await viewer.waitFor({ state: 'detached' });
+    assert.equal(await drawer.count(), 1, 'a held Esc closed the drawer too');
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});

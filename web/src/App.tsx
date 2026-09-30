@@ -218,7 +218,8 @@ export function App() {
   return (
     <div className="sky min-h-screen">
       <Starfield />
-      <div className="relative mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+      {/* The page behind an open deck takes no focus and no clicks: Tab stays in the deck. */}
+      <div className="relative mx-auto max-w-7xl px-4 pb-16 sm:px-6" inert={!!deck || undefined}>
         <header className="flex flex-wrap items-center gap-x-2 gap-y-3 py-4 sm:gap-4 sm:py-5">
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="grid size-10 place-items-center rounded-full bg-moon/15 text-moon shadow-[0_0_24px_#f5d76e55]">
@@ -254,7 +255,7 @@ export function App() {
         {route.page === 'night' && failure && <Banner>{failure}</Banner>}
 
         {overview && (
-          <main className="mt-4">
+          <main className="mt-4 outline-none" tabIndex={-1}>
             {route.page === 'inbox' && (
               <Inbox
                 overview={overview}
